@@ -265,3 +265,4 @@ def Parse_xvg(filepath):
 "Sto facendo una modifica a cazzo de merda"
 
 "Ne sto facendo un'altra vivaddio"
+"Mannaggia alla madonna"
