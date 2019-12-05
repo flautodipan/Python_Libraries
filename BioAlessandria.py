@@ -18,9 +18,9 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-class BioStructure:
+class Protein:
 
-    def __init__(self, pdb_filename, from_web = False, model = 1, n_structures = 1):
+    def __init__(self, pdb_filename, from_web = False, model = 1):
         
         """OSS  per adesso non sono stato in grado di farlo da più modelli, noi prendiamo il primo..poi si vedrà"""
         
@@ -82,59 +82,109 @@ class BioStructure:
         
         #return CA_Coord
 
-    @staticmethod
-    def Dist_Matrix (Coord):
+
+
+class BioStructure():
+
+    def __init__(self, pdb_filename, n_structures, from_web = False, model = 1):
+        
+        """ 
+        Classe dedicata a strutture biologiche più complesse, non solo proteine, ma proteine
+        e ligandi, acidi nucleici, etc..
+
+        Parametri
+
+        pdb_filename è la struttura da cui creare il pdb che deve essere nella cartella
+
+        n_structures è il numero di differenti strutture presenti nel pdb, 
+        le quali avranno un differente chain_id
+
+
+        """
+
+        if from_web: 
+
+            self.pdb = PandasPdb().fetch_pdb(pdb_filename)            
+        else:
+            self.pdb = PandasPdb().read_pdb(pdb_filename)
+            
+        if model:
+            
+            n= model-1 #aggiusto per combaciare indici
+
+            #estraggo indici partenza/arresto lettura dal pdb
+            # lo faccio facendo la query delle righe con MODEL e prendendo gli 
+            #indici di linea --> a meno di un addendo costante è la numerosità da prendere
+            # per i valori identificati dalle keys ['ATOM']
+    
+            models = self.pdb.df['OTHERS'][self.pdb.df['OTHERS']['record_name']== 'MODEL']
+            start_index = np.array(models['line_idx'])[n]
+            stop_index = np.array(models['line_idx'])[n+1]
+            
+            # ho contato a mano che sbaglia di 4 righe considerando MODEL,ENDMDL e TER
+            # che ignora perchè io gli chiedo ATOM come key e costruisco start e stop
+            # in base a MODEL
+            
+            Delta      = stop_index-start_index-4        
+            self.atoms = self.pdb.df['ATOM'][n:Delta]
+            self.terminus = self.pdb.df['OTHERS']
+        
+        else:
+            
+            self.atoms    =  self.pdb.df['ATOM']
+            #self.terminus =  self.pdb.df['OTHERS']
+         
+
+def Dist_Matrix (Coord):
     
 # prende matrice coordinate x,y,z di N elementi, ritorna matrice delle distanze relative
 # capire se come in C è un problema ritornare una matrice, 
 # è meglio fare con i puntatori
 
-        if (np.shape(Coord)[1] != 3):
-            raise ValueError ("Dist_Matrix is defined with 3 columns matrix\n")
+    if (np.shape(Coord)[1] != 3):
+        raise ValueError ("Dist_Matrix is defined with 3 columns matrix\n")
 
-        N = np.shape(Coord)[0]
-        Distances = np.zeros((N, N))
+    N = np.shape(Coord)[0]
+    Distances = np.zeros((N, N))
 
-        i = 0
-        k = 0
-        for i in range (N):
-            for k in range (N):
-                Distances[i,k] = dis.euclidean(Coord[i,], Coord[k,]) 
-    
-        return Distances
+    i = 0
+    k = 0
+    for i in range (N):
+        for k in range (N):
+            Distances[i,k] = dis.euclidean(Coord[i,], Coord[k,]) 
+    return Distances
 
-    @staticmethod
-    def R_Coord (Coord):
+
+def R_Coord (Coord):
 # prende matrice coordinate x,y,z di N elementi, ritorna vettore coordinate radiali
-        if (np.shape(Coord)[1] != 3):
-            raise ValueError ("Dist_Matrix is defined with 3 columns matrix\n")
+    if (np.shape(Coord)[1] != 3):
+        raise ValueError ("Dist_Matrix is defined with 3 columns matrix\n")
 
-        N = np.shape(Coord)[0]
-        RCoord = np.zeros(N)
+    N = np.shape(Coord)[0]
+    RCoord = np.zeros(N)
 
-        for l in range(N):
-            RCoord[l] = dis.euclidean(np.zeros(3), Coord[l,:])
+    for l in range(N):
+        RCoord[l] = dis.euclidean(np.zeros(3), Coord[l,:])
         
-        return RCoord
+    return RCoord
 
 
-    @staticmethod
-    def Contacts_Matrix (Dist, treshold):
-        #prende matrice distanze e ritorna matrice binaria
-        # dei contatti definita sul limite treshold
+def Contacts_Matrix (Dist, treshold):
+    #prende matrice distanze e ritorna matrice binaria
+    # dei contatti definita sul limite treshold
 
-        if np.shape(Dist)[0] != np.shape(Dist)[1]:
-            raise ValueError("Matrix should be square matrix of relative distances")
-        N = np.shape(Dist)[0]
+    if np.shape(Dist)[0] != np.shape(Dist)[1]:
+        raise ValueError("Matrix should be square matrix of relative distances")
+    N = np.shape(Dist)[0]
 
-        Cont_Matrix = np.zeros((N,N))
+    Cont_Matrix = np.zeros((N,N))
 
-        for i in range (N):
-            for k in range (N):
-                if Dist[i,k] <= treshold:
-                    Cont_Matrix[i,k] = 1
+    for i in range (N):
+        for k in range (N):
+            if Dist[i,k] <= treshold:
+                Cont_Matrix[i,k] = 1
 
-        return Cont_Matrix
+    return Cont_Matrix
 
     
 class Eigen_Trj():
