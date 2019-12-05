@@ -20,23 +20,38 @@ from sklearn.metrics import silhouette_score
 
 class Protein:
 
-    def __init__(self, pdb_filename, from_web = False, model = 1):
+    def __init__(self, pdb_filename, chain_id = 'A', from_web = False, model = 1):
         
-        """OSS  per adesso non sono stato in grado di farlo da più modelli, noi prendiamo il primo..poi si vedrà"""
+        """
+        Classe dedicata alle proteine, che vengono lette dal file pdb indicato con pdb_filename
         
-        #ritorna matrice N righe 3 colonne con le coordinate degli atomi di Carbonio Alfa
-        # della proteina, per adesso troncando a mano gli N atomi del primo modello del pdb
-        # N è il numero di amminoacidi = numero CA
-        # n è il modello che si vuole prendere dal file pdb
+        Parametri
+
+        pdb_filen   se il file è presente in cartella, indicare estensione
+                    se from_web = True, senza estensione
+        
+        chain_id    di default considera pdb in cui non si ha che una proteina
+                    in caso contrario indicare il chain_id      
+        
+        model       DEVE ESSERE SETTATO SU 'None' SE NEL PDB NON SI HANNO PIÙ MODELLI
+                    altrimenti deve essere un'intero, anche se per adesso non sono stato
+                    in grado di farlo per n diverso da 1
+                    noi prendiamo il primo..poi si vedrà
+
+        """
+
+        #1) carico pdb
 
         if from_web: 
 
             self.pdb = PandasPdb().fetch_pdb(pdb_filename)            
         else:
             self.pdb = PandasPdb().read_pdb(pdb_filename)
-            
+
+        #2A) seleziono modello
+
         if model:
-            
+
             n= model-1 #aggiusto per combaciare indici
 
             #estraggo indici partenza/arresto lettura dal pdb
@@ -53,12 +68,19 @@ class Protein:
             # in base a MODEL
             
             Delta      = stop_index-start_index-4        
-            self.atoms = self.pdb.df['ATOM'][n:Delta]
-            self.terminus = self.pdb.df['OTHERS']
         
+            #3A) seleziono atomi e chain_id
+
+            self.atoms  =   self.pdb.df['ATOM'][n:Delta]
+            self.atoms  =   self.atoms[self.pdb.df['ATOM']['chain_id']==chain_id]
+
+            #self.terminus = self.pdb.df['OTHERS']
+        
+        #2B) prendo atomi e seleziono chain_id
         else:
             
-            self.atoms    =  self.pdb.df['ATOM']
+            self.atoms  =   self.pdb.df['ATOM']
+            self.atoms  =   self.atoms[self.pdb.df['ATOM']['chain_id']==chain_id] 
             #self.terminus =  self.pdb.df['OTHERS']
          
             
@@ -79,44 +101,43 @@ class Protein:
         self.CA_Coord = np.matrix.transpose(self.CA_Coord)
          
         print('Tutto ok \n Selezionati %s atomi di Carbonio pari al numero di residui \n Salvate le coordinate cartesiane di ogni atomo CA\n\n' %len(self.CA_Coord))
+      
+
+class RNA:
+
+    def __init__(self, pdb_filename, chain_id = 'A', from_web = False, model = 1):
         
-        #return CA_Coord
-
-
-
-class BioStructure():
-
-    def __init__(self, pdb_filename, n_structures, from_web = False, model = 1):
+        """
+        Classe dedicata all'RNA, che viene letto dal file pdb indicato con pdb_filename
         
-        """ 
-        Classe dedicata a strutture biologiche più complesse, non solo proteine, ma proteine
-        e ligandi, acidi nucleici, etc..
-
         Parametri
 
-        pdb_filename è la struttura da cui creare il pdb che deve essere nella cartella
-
-        n_structures è il numero di differenti strutture presenti nel pdb, 
-        le quali avranno un differente chain_id
-
+        pdb_filen   se il file è presente in cartella, indicare estensione
+                    se from_web = True, senza estensione
+        
+        chain_id    di default considera pdb in cui non si ha che un RNA
+                    in caso contrario indicare il chain_id      
+        
+        model       DEVE ESSERE SETTATO SU 'None' SE NEL PDB NON SI HANNO PIÙ MODELLI
+                    altrimenti deve essere un'intero, anche se per adesso non sono stato
+                    in grado di farlo per n diverso da 1
+                    noi prendiamo il primo..poi si vedrà
 
         """
+
+        #1) carico pdb
 
         if from_web: 
 
             self.pdb = PandasPdb().fetch_pdb(pdb_filename)            
         else:
             self.pdb = PandasPdb().read_pdb(pdb_filename)
-            
-        if model:
-            
-            n= model-1 #aggiusto per combaciare indici
 
-            #estraggo indici partenza/arresto lettura dal pdb
-            # lo faccio facendo la query delle righe con MODEL e prendendo gli 
-            #indici di linea --> a meno di un addendo costante è la numerosità da prendere
-            # per i valori identificati dalle keys ['ATOM']
-    
+        #2A) seleziono modello
+
+        if model:
+
+            n= model-1
             models = self.pdb.df['OTHERS'][self.pdb.df['OTHERS']['record_name']== 'MODEL']
             start_index = np.array(models['line_idx'])[n]
             stop_index = np.array(models['line_idx'])[n+1]
@@ -126,14 +147,51 @@ class BioStructure():
             # in base a MODEL
             
             Delta      = stop_index-start_index-4        
-            self.atoms = self.pdb.df['ATOM'][n:Delta]
-            self.terminus = self.pdb.df['OTHERS']
         
+            #3A) seleziono atomi e chain_id
+
+            self.atoms  =   self.pdb.df['ATOM'][n:Delta]
+            self.atoms  =   self.atoms[self.pdb.df['ATOM']['chain_id']==chain_id]
+
+            #self.terminus = self.pdb.df['OTHERS']
+        
+        #2B) prendo atomi e seleziono chain_id
+
         else:
             
-            self.atoms    =  self.pdb.df['ATOM']
+            self.atoms  =   self.pdb.df['ATOM']
+            self.atoms  =   self.atoms[self.pdb.df['ATOM']['chain_id']==chain_id] 
             #self.terminus =  self.pdb.df['OTHERS']
+    
+        
+    def Get_P_Coord(self): 
+
+       
+        self.P = self.atoms[self.pdb.df['ATOM']['atom_name']=='P']
+        
+        self.P_xcoord = np.array(self.P['x_coord'])
+        self.P_ycoord = np.array(self.P['y_coord'])
+        self.P_zcoord = np.array(self.P['z_coord'])
+        
+
+        self.P_Coord = np.matrix([(self.P_xcoord), (self.P_ycoord), (self.P_zcoord)])
+        self.P_Coord = np.matrix.transpose(self.P_Coord)
          
+        print('Tutto ok \n Selezionati %s atomi di Fosforo pari al numero di residui -1\n Salvate le coordinate cartesiane di ogni atomo CA\n\n' %len(self.P_Coord))
+     
+def BioStructure (pdb_filename, n_structures, structures_names, structures_type, structures_chain_ids, structures_models):
+
+    """
+        if len(structures_type) is not n_structures:
+            raise ValueError("Size of structure type must be n_structures\n")
+        if (structures_type.type is not str):
+            raise ValueError("structures type must be a tuple of strings \n Strings accepted are 'Protein' or 'RNA' for now\n\n")
+    """
+    for (st_type, st_name, st_chain_id) in zip(structures_type, structures_names, structures_chain_ids):
+        command = st_name+' = '+st_type+'('+pdb_filename+', chain_id ='+st_chain_id+')'
+        print(command)
+        exec(command)
+        
 
 def Dist_Matrix (Coord):
     
