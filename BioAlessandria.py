@@ -18,7 +18,7 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-class Proteina:
+class BioStructure:
 
     def __init__(self, pdb_filename, from_web = False, model = 1, n_structures = 1):
         
@@ -30,9 +30,10 @@ class Proteina:
         # n è il modello che si vuole prendere dal file pdb
 
         if from_web: 
-            self.protein = PandasPdb().fetch_pdb(pdb_filename)            
+
+            self.pdb = PandasPdb().fetch_pdb(pdb_filename)            
         else:
-            self.protein = PandasPdb().read_pdb(pdb_filename)
+            self.pdb = PandasPdb().read_pdb(pdb_filename)
             
         if model:
             
@@ -43,7 +44,7 @@ class Proteina:
             #indici di linea --> a meno di un addendo costante è la numerosità da prendere
             # per i valori identificati dalle keys ['ATOM']
     
-            models = self.protein.df['OTHERS'][self.protein.df['OTHERS']['record_name']== 'MODEL']
+            models = self.pdb.df['OTHERS'][self.pdb.df['OTHERS']['record_name']== 'MODEL']
             start_index = np.array(models['line_idx'])[n]
             stop_index = np.array(models['line_idx'])[n+1]
             
@@ -52,13 +53,13 @@ class Proteina:
             # in base a MODEL
             
             Delta      = stop_index-start_index-4        
-            self.atoms = self.protein.df['ATOM'][n:Delta]
-            self.terminus = self.protein.df['OTHERS']
+            self.atoms = self.pdb.df['ATOM'][n:Delta]
+            self.terminus = self.pdb.df['OTHERS']
         
         else:
             
-            self.atoms    =  self.protein.df['ATOM']
-            #self.terminus =  self.protein.df['OTHERS']
+            self.atoms    =  self.pdb.df['ATOM']
+            #self.terminus =  self.pdb.df['OTHERS']
          
             
     def Get_All_Coord (self):
@@ -67,7 +68,7 @@ class Proteina:
         
     def Get_CA_Coord(self):      
        
-        self.CA = self.atoms[self.protein.df['ATOM']['atom_name']=='CA']
+        self.CA = self.atoms[self.pdb.df['ATOM']['atom_name']=='CA']
         
         self.CA_xcoord = np.array(self.CA['x_coord'])
         self.CA_ycoord = np.array(self.CA['y_coord'])
