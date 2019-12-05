@@ -1,4 +1,4 @@
-#libreria utile per programmi sulle proteine
+# #libreria utile per programmi sulle proteine
 # 
 # OSS 30/09/2019 :
 #                 PER ORA A PARTE UNA FUNZIONE DICHIARO METODI STATICI
