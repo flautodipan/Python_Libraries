@@ -99,9 +99,15 @@ class Protein:
 
         self.CA_Coord = np.matrix([(self.CA_xcoord), (self.CA_ycoord), (self.CA_zcoord)])
         self.CA_Coord = np.matrix.transpose(self.CA_Coord)
-         
-        print('Tutto ok \n Selezionati %s atomi di Carbonio pari al numero di residui \n Salvate le coordinate cartesiane di ogni atomo CA\n\n' %len(self.CA_Coord))
-      
+        
+        self.lenght   = self.CA_Coord.shape[0]
+
+        if (self.lenght == len(self.CA_Coord)):
+
+            print('Tutto ok \n Selezionati %s atomi di Carbonio pari al numero di residui \n Salvate le coordinate cartesiane di ogni atomo CA\n\n' %len(self.CA_Coord))
+        
+        else:
+            raise ValueError ("Something went wrong in determining protein size\n\n")
 
 class RNA:
 
@@ -176,9 +182,15 @@ class RNA:
 
         self.P_Coord = np.matrix([(self.P_xcoord), (self.P_ycoord), (self.P_zcoord)])
         self.P_Coord = np.matrix.transpose(self.P_Coord)
-         
-        print('Tutto ok \n Selezionati %s atomi di Fosforo pari al numero di residui -1\n Salvate le coordinate cartesiane di ogni atomo CA\n\n' %len(self.P_Coord))
-     
+
+        self.lenght   = self.P_Coord.shape[0] + 1 
+        #il primo residuo 5' dell'RNA non ha il gruppo fosfato
+
+        if (self.lenght == (len(self.P_Coord)+1)):
+            print('Tutto ok \n Selezionati %s atomi di Fosforo pari al numero di residui -1\n Salvate le coordinate cartesiane di ogni atomo P\n\n' %len(self.P_Coord))
+        else:
+            raise ValueError("Something went wrong in determining size of RNA\n\n")
+
 def BioStructure (pdb_filename, n_structures, structures_names, structures_type, structures_chain_ids, structures_models):
 
     """
@@ -187,11 +199,22 @@ def BioStructure (pdb_filename, n_structures, structures_names, structures_type,
         if (structures_type.type is not str):
             raise ValueError("structures type must be a tuple of strings \n Strings accepted are 'Protein' or 'RNA' for now\n\n")
     """
+
+    """ IDEA 
+
+    fare una clasese che si prende in input oggetti di classe e come attributi ha automaticamente
+    - matrice coordinate
+    - matrice contatti
+    - matrice legami (ossia matrice contatti tagliata nella parte asimmetrica)
+    
+    
+    
+    """
     for (st_type, st_name, st_chain_id) in zip(structures_type, structures_names, structures_chain_ids):
         command = st_name+' = '+st_type+'('+pdb_filename+', chain_id ='+st_chain_id+')'
         print(command)
         exec(command)
-        
+
 
 def Dist_Matrix (Coord):
     
@@ -227,9 +250,11 @@ def R_Coord (Coord):
     return RCoord
 
 
-def Contacts_Matrix (Dist, treshold):
+def Contacts_Matrix (Dist, treshold, fig = False):
+
     #prende matrice distanze e ritorna matrice binaria
     # dei contatti definita sul limite treshold
+    # NOVITA' : fig funge da nome, tanto l'importante è che non sia False !
 
     if np.shape(Dist)[0] != np.shape(Dist)[1]:
         raise ValueError("Matrix should be square matrix of relative distances")
@@ -242,8 +267,71 @@ def Contacts_Matrix (Dist, treshold):
             if Dist[i,k] <= treshold:
                 Cont_Matrix[i,k] = 1
 
+
+    if fig:
+
+        fig1 = plt.figure()
+    
+        ax1 = fig1.add_subplot(111)
+        ax1.set_title(str(fig)+' Contacts Matrix'+'- '+str(treshold)+' angstrom')
+    
+        ax1.set_xlabel('Element index', labelpad = 10)
+        ax1.set_ylabel('Element index')
+
+    
+        cax1 = ax1.matshow(Cont_Matrix, cmap = 'ocean', origin = 'lower')
+    
+        fig1.savefig(str(fig)+' Contact_matrix_'+str(treshold).replace('.', ','))
+
+        plt.show()
+
     return Cont_Matrix
 
+def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names):
+
+    #1) estrarre matrice dei contatti nella parte che interessa 
+    # per ora a due poi servirà giocare meglio su sizes e numero strutture
+    # o forse fare un ciclo nel main
+
+    Asym_Cont = Cont_Matrix[structure_sizes[0]:, :structure_sizes[0]]
+
+    plt.figure()
+    plt.matshow(Asym_Cont)
+    plt.xlabel(structure_names[0]+" residue index")
+    plt.ylabel(structure_names[1]+" residue index")
+    plt.title("Asym_Cont Matrix of "+structure_names[0]+" + "+structure_names[1])
+    plt.savefig(structure_names[0]+"+"+structure_names[1]+"_Asym_Cont_Matrix")
+    plt.show()
+
+    #2) estraggo informazioni dalla tupla di array ritornata da np.nonzero()
+
+    NonZero =   Asym_Cont.nonzero()
+
+    cont_prev = 0
+    RNA_Bonds = ()
+
+    for i in range(Asym_Cont.shape[0]):
+        RNA_i = ()
+        cont_next = np.count_nonzero(Asym_Cont[i, :])
+        j = 0
+        for j in range (cont_prev, cont_next + cont_prev):
+            RNA_i = RNA_i + (NonZero[1][j],)
+
+        print ("Il residuo di RNA "+str(i+2)+" lega con "+str(cont_next)+" residui della proteina:\n I residui \n", RNA_i, '\n')
+        print ("cont_prev = ", cont_prev, "\n")
+        print ("cont_next = ", cont_next, "\n")
+
+        #check e aggiorno variabili
+        if (cont_next != 0):
+            cont_prev = cont_next
+
+        if (cont_next != len(RNA_i)):
+                 
+            raise ValueError("Qualcosa è andato storto: taglia della tupla dei residui di contatto non coincide con il numero dei cont_nonzero\n\n")
+        
+        RNA_Bonds = RNA_Bonds + (RNA_i,)
+    
+    return RNA_Bonds
     
 class Eigen_Trj():
 
