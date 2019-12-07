@@ -1,10 +1,3 @@
-# #libreria utile per programmi sulle proteine
-# 
-# OSS 30/09/2019 :
-#                 PER ORA A PARTE UNA FUNZIONE DICHIARO METODI STATICI
-#                 CIOè NON PROGAMMANDO OBJ ORIENTED 
-#                 per ora solamente le CA_Coord diventano un attributo
-
 from biopandas.pdb import PandasPdb
 import numpy as np
 import pandas as pd
@@ -75,14 +68,16 @@ class Protein:
 
             self.atoms  =   self.pdb.df['ATOM'][n:Delta]
             self.atoms  =   self.atoms[self.pdb.df['ATOM']['chain_id']==chain_id]
+            self.initial=   self.atoms.residue_number[0]
 
-            #self.terminus = self.pdb.df['OTHERS']
+        #self.terminus = self.pdb.df['OTHERS']
         
         #2B) prendo atomi e seleziono chain_id
         else:
             
             self.atoms  =   self.pdb.df['ATOM']
             self.atoms  =   self.atoms[self.pdb.df['ATOM']['chain_id']==chain_id] 
+            self.initial=   self.atoms.residue_number[0]
             #self.terminus =  self.pdb.df['OTHERS']
          
             
@@ -305,25 +300,41 @@ class Cluster_2DAnalysis():
         plt.plot(np.arange(0,kmax-1,1)+2, self.Silh)
         plt.title('Silohuette check for k-means')
         plt.xlabel('k value')
-        plt.savefig('Silh_test')
+        plt.savefig('Silh_test.png')
 
-    def Clusterize(self):
+    def Clusterize(self, verbose = False):
 
         if (self.clustype == 'KMeans'):
 
             self.Cluster = KMeans(n_clusters=self.n_clusters).fit(self.xy)
+
+            #definisco clusterchiefs : elementi (x,y) in xy più vicini
+            # ai centroidi di ogni cluster
+            self.clusterchiefs  =   ()
+
+            for jj in range(self.n_clusters):
+
+                self.clusterchiefs  =  self.clusterchiefs + (Find_Nearest_2D(self.xy, (self.Cluster.cluster_centers_[jj,:]))[0],)
+
+                if verbose:
+
+                    print("Il punto più vicino al centroide del cluster " + str(jj+1) + " è \n" +str(self.clusterchiefs[jj]))
+
         else:
             raise ValueError ("Non è stato selezionato un algoritmo di clustering corretto\
                 Scegliere:\n 'KMeans' per algoritmo k-means\n")    
+        
+
 
     def Figure_Clusters(self):
 
+        #color map data dall'appartenenza a un certo cluster
         c   =   self.Cluster.labels_
 
         fig = plt.figure()
-        
+
         plt.scatter(self.xy[:,0], self.xy[:,1], c=c, cmap= 'viridis', s = 10)
-        plt.colorbar()
+        plt.colorbar(c)
         plt.scatter(self.Cluster.cluster_centers_[:,0],self.Cluster.cluster_centers_[:,1], marker='*', edgecolors='black')
         plt.xlabel(' PC 1 ')
         plt.ylabel(' PC 2 ')
@@ -426,13 +437,17 @@ def Contacts_Matrix (Dist, treshold, fig = False):
 
     return Cont_Matrix
 
-def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names):
+def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, initial,  first = 'Proteina', second = 'RNA'):
 
     #1) estrarre matrice dei contatti nella parte che interessa 
     # per ora a due poi servirà giocare meglio su sizes e numero strutture
     # o forse fare un ciclo nel main
+    # first = 'RNA' stampa per ogni res di RNA quali res di proteina a distanza data
+    # first = 'Proteina' viceversa
+
 
     Asym_Cont = Cont_Matrix[structure_sizes[0]:, :structure_sizes[0]]
+
 
     plt.figure()
     plt.matshow(Asym_Cont)
@@ -443,34 +458,40 @@ def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names):
     plt.show()
 
     #2) estraggo informazioni dalla tupla di array ritornata da np.nonzero()
+    
+    check = 1 #numero da aggiungere a indice per ottenere numero residuo reale, ma 
+    # per adesso deve essere 2 in quanto non ho atomi di fosforo in primo res RNA
 
+    if (first == 'Proteina') & (second == 'RNA'):
+
+        check = 2
+        Asym_Cont = Asym_Cont.T
+        
     NonZero =   Asym_Cont.nonzero()
-
     cont_prev = 0
-    RNA_Bonds = ()
-
+    Bonds = ()
+        
     for i in range(Asym_Cont.shape[0]):
-        RNA_i = ()
+        Bond_i = ()
         cont_next = np.count_nonzero(Asym_Cont[i, :])
         j = 0
         for j in range (cont_prev, cont_next + cont_prev):
-            RNA_i = RNA_i + (NonZero[1][j],)
+            Bond_i = Bond_i + (NonZero[1][j],)
 
-        print ("Il residuo di RNA "+str(i+2)+" lega con "+str(cont_next)+" residui della proteina:\n I residui \n", RNA_i, '\n')
-        print ("cont_prev = ", cont_prev, "\n")
-        print ("cont_next = ", cont_next, "\n")
+        if (cont_next!=0):
 
-        #check e aggiorno variabili
-        if (cont_next != 0):
-            cont_prev = cont_next
+            print ("Il "+str(i+1+initial)+" residuo di "+first+" lega con "+str(cont_next)+" residui di "+second+ "\n I residui \n", np.array(Bond_i)+check,'\n')
+            cont_prev = cont_prev + cont_next #aggiorno
 
-        if (cont_next != len(RNA_i)):
-                 
+        if (cont_next != len(Bond_i)):
+                
             raise ValueError("Qualcosa è andato storto: taglia della tupla dei residui di contatto non coincide con il numero dei cont_nonzero\n\n")
         
-        RNA_Bonds = RNA_Bonds + (RNA_i,)
+        Bonds = Bonds + (Bond_i,)  
+ 
     
-    return RNA_Bonds
+        
+    return Bonds
 
 
 def Parse_xvg(filepath):
@@ -483,3 +504,30 @@ def Parse_xvg(filepath):
 
         temp    =  np.array([row.split() for row in filter(methodcaller('startswith', ' '), file.readlines())], dtype=np.float64)
         return     temp[:,0],  temp[:,1]
+
+def Find_Nearest_2D(insieme, point):
+
+    """
+
+    Trova il punto 2d nell'insieme più vicino a 'point'
+    l'insieme deve essere passato sotto forma di matrice [N x 2]
+    i cui elementi  [:, 0] sono le x, [:,1] sono le y
+
+    Ritorna una tupla contenente il punto dell'insieme più
+    vicino a point e l'indice di riga dell'insieme
+
+    """
+
+    insieme =   np.asarray(insieme)
+    dist    =   np.zeros(insieme.shape[0])
+
+    for ii in range (insieme.shape[0]):
+
+        dist[ii]   =   dis.euclidean([insieme[ii,0], insieme[ii,1]], [point[0], point[1]])
+       
+    
+    idx     =   dist.argmin()
+
+
+    return (insieme[idx, :], idx)
+

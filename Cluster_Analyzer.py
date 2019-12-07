@@ -38,13 +38,6 @@ plt.title('Projection of MD trajectory in Essential Space')
 plt.show()
 fig.savefig('3 micros/Essential.png')
 
-# %%
-
-xy = np.array([x,y]).T
-
-RNA2_Clust = BA.Cluster_2DAnalysis(xy)
-
-RNA2_Clust.Elbow_KMeans(15)
 #%%
 xy = np.array([x,y]).T
 RNA2_Clust = BA.Cluster_2DAnalysis(xy)
@@ -52,7 +45,7 @@ RNA2_Clust.Silhouette_KMeans(15)
 
 # %%
 
-RNA2_Clust.Clusterize()
+RNA2_Clust.Clusterize(verbose=True)
 RNA2_Clust.Figure_Clusters()
 
 #%%

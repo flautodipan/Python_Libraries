@@ -23,11 +23,13 @@ Coord = np.concatenate((TDP43.CA_Coord, RNA1.P_Coord))
 Dist = BA.Dist_Matrix(Coord)
 
 # %%
-#vado coi contatti in threshold a 9 angstorm
+#vado coi contatti in threshold a 1 angstorm
 # e identifico 
-Cont = BA.Contacts_Matrix(Dist, 9.,  fig='Protein-RNA1')
 
-Bonds = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA1.lenght), ("TDP43", "RNA1"))
+
+Cont = BA.Contacts_Matrix(Dist, 11.,  fig='Protein-RNA1')
+Bonds = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA1.lenght), ("TDP43", "RNA1"), TDP43.initial)
+
 
 # %%
 
