@@ -196,7 +196,7 @@ class Eigen_Trj():
     --> indicare il path dove si trovano i file eigenval.xvg e eigenvec.trr (solitamente cartella
     supeiore a quella di questo script)
     """
-    def __init__(self, path = '../', fig = False):
+    def __init__(self, path = './', fig = False):
 
         _ , self.EigenValues = Parse_xvg(path+'eigenval.xvg')
 
@@ -437,13 +437,15 @@ def Contacts_Matrix (Dist, treshold, fig = False):
 
     return Cont_Matrix
 
-def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, initial,  first = 'Proteina', second = 'RNA'):
+def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first = ('Proteina', 0), second = ('RNA', 0)):
 
     #1) estrarre matrice dei contatti nella parte che interessa 
     # per ora a due poi servirà giocare meglio su sizes e numero strutture
     # o forse fare un ciclo nel main
     # first = 'RNA' stampa per ogni res di RNA quali res di proteina a distanza data
     # first = 'Proteina' viceversa
+    # i secondi argomenti delle tuple first e secondo sono gli initial : es nel pdb 4bs2 la proteina è risolta
+    # solo per i domini centrail -> initial = 96
 
 
     Asym_Cont = Cont_Matrix[structure_sizes[0]:, :structure_sizes[0]]
@@ -459,12 +461,11 @@ def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, initia
 
     #2) estraggo informazioni dalla tupla di array ritornata da np.nonzero()
     
-    check = 1 #numero da aggiungere a indice per ottenere numero residuo reale, ma 
+    #numero da aggiungere a indice per ottenere numero residuo reale, ma 
     # per adesso deve essere 2 in quanto non ho atomi di fosforo in primo res RNA
 
     if (first == 'Proteina') & (second == 'RNA'):
 
-        check = 2
         Asym_Cont = Asym_Cont.T
         
     NonZero =   Asym_Cont.nonzero()
@@ -480,7 +481,7 @@ def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, initia
 
         if (cont_next!=0):
 
-            print ("Il "+str(i+1+initial)+" residuo di "+first+" lega con "+str(cont_next)+" residui di "+second+ "\n I residui \n", np.array(Bond_i)+check,'\n')
+            print ("Il "+str(i+1+first[1])+" residuo di "+first[0]+" lega con "+str(cont_next)+" residui di "+second[0]+ "\n I residui \n", np.array(Bond_i)+second[1]+1,'\n')
             cont_prev = cont_prev + cont_next #aggiorno
 
         if (cont_next != len(Bond_i)):
@@ -492,6 +493,37 @@ def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, initia
     
         
     return Bonds
+
+def Print_Bonds_HDOCK (Bonds, filename, distance, initial):
+
+    f = open(filename, 'w')
+
+    for (jj,Bond) in zip(range(len(Bonds)), Bonds):
+
+        if (len(Bond) == 1 ):
+            f.write("%d:A %d:B %d, " %(jj+initial+1, np.array(Bond[0]) +2 , int(distance)))
+        elif (len(Bond) > 1):
+            f.write("%d:A %d-%d:B %d, " %(jj+initial+1,np.array(Bond[0]) +2, np.array(Bond[len(Bond)-1])+2,int(distance)))
+        else:
+            pass
+    
+    f.close()
+
+def Print_Bonds_HDOCK_1 (Bonds, first=('Protein', 0), second = ('RNA', 0)):
+
+    """
+    stampa residui coinvolti nel legame
+
+    initial è una tupla compatibile con la funzione Analyze_Bond_Residues():
+    il primo elemento indica il nome della struttura primaria, il secondo il suo indice di partenza
+
+    """
+
+    
+
+
+
+
 
 
 def Parse_xvg(filepath):

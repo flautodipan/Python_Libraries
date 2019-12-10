@@ -11,12 +11,13 @@ from sklearn.cluster import KMeans
 
 #%%
 #RNA 2
-EigVal_RNA2 = BA.Eigen_Trj(path = '3 micros/', fig = True)
-EigVal_RNA2.Analyze_Variance_Explained_Ratio(0.65)
+EigVal_RNA2 = BA.Eigen_Trj( fig = True)
+EigVal_RNA2.Analyze_Variance_Explained_Ratio(0.55)
 
 # %%
 
-x,y =  BA.Parse_xvg('1micros/2dproj.xvg')
+x,y =  BA.Parse_xvg('2dproj.xvg')
+"""
 #per un motivo stupiddo ci sta un frame di troppo
 x   =   x[np.arange(x.size-1)]
 y   =   y[np.arange(y.size-1)]
@@ -24,7 +25,7 @@ y   =   y[np.arange(y.size-1)]
 indices = np.arange(0, x.size, 100)
 x   =   x[indices]
 y   =   y[indices]
-
+"""
 
 
 
@@ -36,7 +37,7 @@ plt.xlabel(' PC 1 ')
 plt.ylabel(' PC 2 ')
 plt.title('Projection of MD trajectory in Essential Space')
 plt.show()
-fig.savefig('3 micros/Essential.png')
+fig.savefig('Essential.png')
 
 #%%
 xy = np.array([x,y]).T

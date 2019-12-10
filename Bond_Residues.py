@@ -28,10 +28,12 @@ Dist = BA.Dist_Matrix(Coord)
 
 
 Cont = BA.Contacts_Matrix(Dist, 11.,  fig='Protein-RNA1')
-Bonds = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA1.lenght), ("TDP43", "RNA1"), TDP43.initial)
+Bonds = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA1.lenght), ("TDP43", "RNA1"), first = ('RNA', 1), second = ('Proteina', TDP43.initial))
 
 
 # %%
+
+BA.Print_Bonds_HDOCK(Bonds, 'contact.txt', 11., TDP43.initial)
 
 
 # %%
