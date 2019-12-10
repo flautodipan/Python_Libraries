@@ -239,10 +239,15 @@ class Eigen_Trj():
 
 class Cluster_2DAnalysis():
 
-    def __init__(self, xy, clustype = 'KMeans', fig = False):
-        
-        self.clustype   =  clustype
-        self.xy         =  xy
+    def __init__(self, xy, final_time, initial_time = 0, clustype = 'KMeans', fig = False):
+        #time units = ps
+
+        self.clustype       =  clustype
+        self.xy             =  xy
+        self.final_time     =  final_time
+        self.initial_time   =  initial_time
+        self.timestep       =  (self.final_time-self.initial_time)/self.xy.shape[0]
+       
 
     def Elbow_KMeans(self, kmax):
 
@@ -310,15 +315,16 @@ class Cluster_2DAnalysis():
 
             #definisco clusterchiefs : elementi (x,y) in xy più vicini
             # ai centroidi di ogni cluster
-            self.clusterchiefs  =   ()
-
+            self.clusterchiefs      =   ()
+            self.clusterchiefs_idx  =   ()
             for jj in range(self.n_clusters):
 
-                self.clusterchiefs  =  self.clusterchiefs + (Find_Nearest_2D(self.xy, (self.Cluster.cluster_centers_[jj,:]))[0],)
-
+                self.clusterchiefs      =  self.clusterchiefs + (Find_Nearest_2D(self.xy, (self.Cluster.cluster_centers_[jj,:]))[0],)
+                self.clusterchiefs_idx  =  self.clusterchiefs_idx + (Find_Nearest_2D(self.xy, (self.Cluster.cluster_centers_[jj,:]))[1],)
+                          
                 if verbose:
 
-                    print("Il punto più vicino al centroide del cluster " + str(jj+1) + " è \n" +str(self.clusterchiefs[jj]))
+                    print("Il punto più vicino al centroide del cluster " + str(jj+1) + " è \n" +str(self.clusterchiefs[jj])+"\nCorrisponde al frame %d\nOssia al tempo %f ps\n" %((self.clusterchiefs_idx[jj]+1), (self.clusterchiefs_idx[jj]+1)*self.timestep))
 
         else:
             raise ValueError ("Non è stato selezionato un algoritmo di clustering corretto\
@@ -334,7 +340,6 @@ class Cluster_2DAnalysis():
         fig = plt.figure()
 
         plt.scatter(self.xy[:,0], self.xy[:,1], c=c, cmap= 'viridis', s = 10)
-        plt.colorbar(c)
         plt.scatter(self.Cluster.cluster_centers_[:,0],self.Cluster.cluster_centers_[:,1], marker='*', edgecolors='black')
         plt.xlabel(' PC 1 ')
         plt.ylabel(' PC 2 ')
@@ -477,11 +482,11 @@ def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first 
         cont_next = np.count_nonzero(Asym_Cont[i, :])
         j = 0
         for j in range (cont_prev, cont_next + cont_prev):
-            Bond_i = Bond_i + (NonZero[1][j],)
+                Bond_i = Bond_i + (int(NonZero[1][j]+1+second[1]),)
 
         if (cont_next!=0):
 
-            print ("Il "+str(i+1+first[1])+" residuo di "+first[0]+" lega con "+str(cont_next)+" residui di "+second[0]+ "\n I residui \n", np.array(Bond_i)+second[1]+1,'\n')
+            print ("Il "+str(i+1+first[1])+" residuo di "+first[0]+" lega con "+str(cont_next)+" residui di "+second[0]+ "\n I residui \n", np.array(Bond_i)+1,'\n')
             cont_prev = cont_prev + cont_next #aggiorno
 
         if (cont_next != len(Bond_i)):
@@ -509,30 +514,50 @@ def Print_Bonds_HDOCK (Bonds, filename, distance, initial):
     
     f.close()
 
-def Print_Bonds_HDOCK_1 (Bonds, first=('Protein', 0), second = ('RNA', 0)):
+def Print_Protein_BS (Bonds, size, filename = 'BS.txt', initial = 0):
 
     """
-    stampa residui coinvolti nel legame
-
-    initial è una tupla compatibile con la funzione Analyze_Bond_Residues():
-    il primo elemento indica il nome della struttura primaria, il secondo il suo indice di partenza
+    stampa residui proteina coinvolti nel legame
 
     """
+    Binding_Site = np.zeros(size)
 
+    count = 0
+
+    for kk in range(size):
+        for Bond in Bonds:
+            
+            if (((kk+1+initial) in Bond) & ((kk+1+initial) not in Binding_Site)):
+
+                Binding_Site[count] = kk+1+initial
+                count += 1
+        
+    Binding_Site = Binding_Site[Binding_Site != 0]
+    Binding_Site = np.sort(Binding_Site)
+
+    #print ("La proteina utilizza nel legame (definito dalla distanza inserita) i residui\n")
     
+    f = open(filename, 'w')
+
+    for Bond in Binding_Site:
+
+        f.write("%d A\n"%Bond)
+    
+    f.close()
+        
+    return Binding_Site
 
 
 
 
 
+def Parse_xvg(filename, path='./'):
 
-def Parse_xvg(filepath):
-
-    """Funzione che legge file xvg indicato da filepath
+    """Funzione che legge file xvg indicato da filename
     e ritorna i conseguenti  array
     """
 
-    with open(filepath) as file:
+    with open(path+filename) as file:
 
         temp    =  np.array([row.split() for row in filter(methodcaller('startswith', ' '), file.readlines())], dtype=np.float64)
         return     temp[:,0],  temp[:,1]
