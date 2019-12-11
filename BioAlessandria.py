@@ -330,8 +330,24 @@ class Cluster_2DAnalysis():
             raise ValueError ("Non è stato selezionato un algoritmo di clustering corretto\
                 Scegliere:\n 'KMeans' per algoritmo k-means\n")    
         
+    def Cluster_RMSD_Division (self, filename, path='./', skip = False, fig_RMSD = False):
+
+        _ ,  self.RMSD =  Parse_xvg_skip(filename, skip = skip, path = path)
 
 
+        if (self.RMSD.size != self.xy.shape[0]):
+           raise ValueError("Dimensione RMSD differente da #frame su cui si sta clusterizzando\n #frames = %d \t len(RMSD) = %d \n Sicuro hai scelto il file giusto?\n" %(self.xy.shape[0], self.RMSD.size))
+        
+        if fig_RMSD:
+
+            c   =   self.Cluster.labels_
+            plt.figure()
+            plt.plot(np.arange(0,self.xy.shape[0]*self.timestep, 1), self.RMSD, '.')
+            plt.xlabel('Time (ps)')
+            plt.ylabel('RMSD (nm)')
+            plt.title(fig_RMSD)
+            plt.savefig(fig_RMSD+'.png')
+        
     def Figure_Clusters(self):
 
         #color map data dall'appartenenza a un certo cluster
@@ -551,7 +567,7 @@ def Print_Protein_BS (Bonds, size, filename = 'BS.txt', initial = 0):
 
 
 
-def Parse_xvg(filename, path='./'):
+def Parse_xvg(filename, path='./', skip = False):
 
     """Funzione che legge file xvg indicato da filename
     e ritorna i conseguenti  array
@@ -559,7 +575,37 @@ def Parse_xvg(filename, path='./'):
 
     with open(path+filename) as file:
 
-        temp    =  np.array([row.split() for row in filter(methodcaller('startswith', ' '), file.readlines())], dtype=np.float64)
+        temp    =  np.array([row.split() for row in filter(methodcaller('startswith', ''), file.readlines()[17:])], dtype=np.float64)
+    
+
+    if skip:
+        return temp[np.arange(0,temp.shape[0], skip),0],  temp[np.arange(0,temp.shape[0], skip),1]
+    
+    else:
+        return     temp[:,0],  temp[:,1]
+
+def Parse_xvg_skip(filename, path='./', skip_lines = 18, skip = False):
+
+    """Funzione che legge file xvg indicato da filename
+    e ritorna i conseguenti  array
+    """
+
+    f = open(path+filename, 'r')
+    
+    parser    =  f.readlines()[skip:]
+    temp      =  np.zeros((len(parser),2))
+
+    for row in range(temp.shape[0]):
+
+        temp[row]   =   np.array(str(parser[row]).split(), dtype=np.float64)
+
+
+    f.close()
+
+    if skip:
+        return temp[np.arange(0,temp.shape[0], skip),0],  temp[np.arange(0,temp.shape[0], skip),1]
+    
+    else:
         return     temp[:,0],  temp[:,1]
 
 def Find_Nearest_2D(insieme, point):

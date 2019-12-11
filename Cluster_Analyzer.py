@@ -52,3 +52,10 @@ RNA2_Clust.Clusterize(verbose=True)
 RNA2_Clust.Figure_Clusters()
 
 #%%
+
+#Je do de sotto cluster
+#1) divisione by RMSD
+
+RNA2_Clust.Cluster_RMSD_Division('rmsd_red.xvg', path = '1micros/', skip = 100, fig_RMSD='RMSD')
+
+# %%
