@@ -188,25 +188,81 @@ class RNA:
         else:
             raise ValueError("Something went wrong in determining size of RNA\n\n")
     
-class Eigen_Trj():
+class Trajectory():
 
     """
+
     Classe per analisi degli autovalori e autovettori della traiettoria effettuata in simulazione
     MD con il Software GROMACS
-    --> indicare il path dove si trovano i file eigenval.xvg e eigenvec.trr (solitamente cartella
-    supeiore a quella di questo script)
+    --> indicare il path dove si trovano i file eigenval.xvg e eigenvec.trr ù
+
     """
-    def __init__(self, path = './', fig = False):
+    def __init__(self, bio_name):
 
-        _ , self.EigenValues = Parse_xvg(path+'eigenval.xvg')
+        self.bio_name   =   bio_name
 
-        if fig :
+    def __str__(self):
+
+        return '{}'.format(self.bio_name)
+
+    def Get_EigenValues(self, xvg_filename = 'eigenval.xvg', path = './', **kwargs):
+
+        _ , self.EigenValues    = Parse_xvg(path+xvg_filename)
+
+        if kwargs['fig'] :
             
             plt.figure()
             plt.plot(self.EigenValues, '.')
-            plt.title('Eigenvalues of MD trajetory')
-            plt.xlabel('Eig index (ordered by variance significance)')
+            plt.title('Eigenvalues of MD trajetory for '+self.__str__())
+            plt.xlabel('Eig index (ordered by variance significance)')            
+            plt.savefig(path+kwargs['fig']+'.png')
             plt.show()
+
+    def Get_2D_Traj(self, time_range, xvg_filename = '2dproj.xvg', path = './',  **kwargs):
+
+
+        self.x_proj, self.y_proj    =   Parse_xvg(xvg_filename, path = path)
+        
+        self.n_frames               =   self.x_proj.size
+        self.initial_time   =  time_range[0]
+        self.final_time     =  time_range[1]
+        self.timestep       =  (self.final_time-self.initial_time)/self.x_proj.size
+
+        if kwargs['verbose']:
+
+            print   ('Acquisito proiezioni su PC1 e PC2 della traiettoria.\n')
+            print   ('Tempo iniziale =\t{} ps \nTempo finale =\t{} ps \ntime step =\t{} ps'.format(self.initial_time, self.final_time, self.timestep))
+            print   ('Numero di punti nello spazio essenziale : {}\n'.format(self.n_frames))
+
+        if kwargs['fig'] :
+
+            fig = plt.figure()
+            c = range(self.n_frames)
+            plt.scatter(self.x_proj,self.y_proj, c=c, cmap= 'viridis', s = 10)
+            plt.colorbar()
+            plt.xlabel(' PC 1 ')
+            plt.ylabel(' PC 2 ')
+            plt.title('PCA of MD traj for '+self.__str__())
+            fig.savefig(path+kwargs['fig']+'.png')  
+            plt.show()
+
+    def Get_RMSD(self, xvg_filename, path='./', skip = False, **kwargs):
+
+        _ ,  self.RMSD =  Parse_xvg_skip(xvg_filename, skip = skip, path = path)
+
+        if (self.RMSD.size != self.x_proj.size):
+
+           raise ValueError("Dimensione RMSD differente da #frame \n #frames = %d \t len(RMSD) = %d \n Sicuro hai scelto il file giusto?\n" %(self.n_frames, self.RMSD.size))
+        
+        if kwargs['fig']:
+
+            plt.figure()
+            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.RMSD,  'g-.', markersize = 0.1, alpha = 0.5)
+            plt.xlabel('Time (ps)')
+            plt.ylabel('RMSD (nm)')
+            plt.title('RMSD for '+self.__str__())
+            plt.savefig(path+kwargs['fig']+'.png')
+        
 
     def Analyze_Variance_Explained_Ratio(self, percent_sigma):
 
@@ -218,8 +274,8 @@ class Eigen_Trj():
         
         """
 
-        Norma           = np.sum(self.EigenValues)
-        Sigma_ERatio    = self.EigenValues/Norma
+        self.Norma           = np.sum(self.EigenValues)
+        self.Sigma_ERatio    = self.EigenValues/self.Norma
 
         n               = 0
         test            = 0.
@@ -228,7 +284,7 @@ class Eigen_Trj():
         while True:
 
             Sigma_Eigens.append(self.EigenValues[n])
-            test        += Sigma_ERatio[n]         
+            test        += self.Sigma_ERatio[n]         
             n           += 1
             if test     > percent_sigma: break
 
@@ -236,18 +292,39 @@ class Eigen_Trj():
         print('# Autovalori che spiegano la varianza richiesta = ', n, '\n\n')
         df
         print(Sigma_Eigens)
+    
+    def Analyze_Eig_Variance_Ratio (self, n_eig = 2):
+
+        """
+        Funzione che ritorna la percentuale di varianza del moto spiegata
+        da n_eig autovalori della matrice delle covarianze
+        default = 2 perchè lavoriamo in spazio essenziale di 2d
+
+        """
+        
+        self.Norma          = np.sum(self.EigenValues)
+        self.Sigma_ERatio   = self.EigenValues/self.Norma
+
+        mask                = np.zeros(len(self.Sigma_ERatio), dtype=bool)
+        mask[:n_eig]        = True
+        self.perceigen      = np.sum(self.Sigma_ERatio, where=mask)       
+
+
+        print('# Percentuale di varianza spiegata da n_eig = %d autovalori \n %f\n\n' %(n_eig, self.perceigen*100))
+        print('Autovalori:\n', self.EigenValues[:n_eig])
 
 class Cluster_2DAnalysis():
 
-    def __init__(self, xy, final_time, initial_time = 0, clustype = 'KMeans', fig = False):
-        #time units = ps
+    def __init__(self, traj, clustype, name):
+        
+        self.xy         =   np.array([traj.x_proj,traj.y_proj]).T
+        self.timestep   =   traj.timestep
+        self.clustype   =   clustype
+        self.name       =   name
+    
+    def __str__(self):
 
-        self.clustype       =  clustype
-        self.xy             =  xy
-        self.final_time     =  final_time
-        self.initial_time   =  initial_time
-        self.timestep       =  (self.final_time-self.initial_time)/self.xy.shape[0]
-       
+        return "{}".format(self.name)
 
     def Elbow_KMeans(self, kmax):
 
@@ -289,7 +366,7 @@ class Cluster_2DAnalysis():
         plt.xlabel('k value')
         plt.savefig('Elbow_test')
 
-    def Silhouette_KMeans(self, kmax):
+    def Silhouette_KMeans(self, kmax, **kwargs):
 
         self.Silh = []
 
@@ -299,17 +376,38 @@ class Cluster_2DAnalysis():
             labels = kmeans.labels_
             self.Silh.append(silhouette_score(self.xy, labels, metric = 'euclidean'))
 
-        self.n_clusters =  np.array(self.Silh).argmax() +2 
+        self.silhouette_max =  np.array(self.Silh).argmax() + 2 
         
-        plt.figure()
-        plt.plot(np.arange(0,kmax-1,1)+2, self.Silh)
-        plt.title('Silohuette check for k-means')
-        plt.xlabel('k value')
-        plt.savefig('Silh_test.png')
+        if kwargs['fig']:
+                
+            plt.figure()
+            plt.plot(np.arange(0,kmax-1,1)+2, self.Silh)
+            plt.title('Silohuette check for k-means algorithm for '+self.__str__())
+            plt.xlabel('k value')
+            plt.savefig(kwargs['path']+kwargs['fig']+'.png')
+            plt.show()
 
-    def Clusterize(self, verbose = False):
+    def Clusterize(self, by_silhouette = True, **kwargs):
+        
+        """
+        - Effettua la clusterizzazione, di default prendendo il massimo dall'analisi di silhouette
+        ma può essere usato specificando il keyword arg n_clust e mettendo False per by_silhouette
+        - Calcola centroidi e trova elementi in xy più vicini ai centroidi,
+        salvandoli in self.clusterchiefs con i corrispettivi indici in ""_idx
 
+        - verbose = True per stampe
+
+
+        """
         if (self.clustype == 'KMeans'):
+
+            if not by_silhouette:
+
+                self.n_clusters =   kwargs['n_clust']
+
+            else:
+
+                self.n_clusters = self.silhouette_max
 
             self.Cluster = KMeans(n_clusters=self.n_clusters).fit(self.xy)
 
@@ -317,51 +415,53 @@ class Cluster_2DAnalysis():
             # ai centroidi di ogni cluster
             self.clusterchiefs      =   ()
             self.clusterchiefs_idx  =   ()
+
             for jj in range(self.n_clusters):
 
                 self.clusterchiefs      =  self.clusterchiefs + (Find_Nearest_2D(self.xy, (self.Cluster.cluster_centers_[jj,:]))[0],)
                 self.clusterchiefs_idx  =  self.clusterchiefs_idx + (Find_Nearest_2D(self.xy, (self.Cluster.cluster_centers_[jj,:]))[1],)
                           
-                if verbose:
+                if kwargs['verbose']:
 
                     print("Il punto più vicino al centroide del cluster " + str(jj+1) + " è \n" +str(self.clusterchiefs[jj])+"\nCorrisponde al frame %d\nOssia al tempo %f ps\n" %((self.clusterchiefs_idx[jj]+1), (self.clusterchiefs_idx[jj]+1)*self.timestep))
 
+                    
+            if kwargs['fig']:
+
+                fig = plt.figure()
+
+                plt.scatter(self.xy[:,0], self.xy[:,1], c=self.Cluster.labels_, cmap= 'viridis', s = 10)
+                plt.scatter(self.Cluster.cluster_centers_[:,0],self.Cluster.cluster_centers_[:,1], marker='*', edgecolors='black')
+                plt.xlabel(' PC 1 ')
+                plt.ylabel(' PC 2 ')
+                plt.title(str(self.n_clusters)+ 'Cluster representation for '+self.__str__())
+                fig.savefig(kwargs['path']+kwargs['fig']+'.png')
+                plt.show()
+
         else:
+
             raise ValueError ("Non è stato selezionato un algoritmo di clustering corretto\
                 Scegliere:\n 'KMeans' per algoritmo k-means\n")    
         
-    def Cluster_RMSD_Division (self, filename, path='./', skip = False, fig_RMSD = False):
+    def Cluster_RMSD_Division (self, RMSD, histo = False, **kwargs):
+        
+        "Funzione che individua il cluster il cui centroide ha RMSD più alto, assumendolo rappresentativo dello stato unfold"
 
-        _ ,  self.RMSD =  Parse_xvg_skip(filename, skip = skip, path = path)
+        if histo:
 
-
+            pass
+        
+        # get cluster idx with the higher RMSD
+        
         if (self.RMSD.size != self.xy.shape[0]):
-           raise ValueError("Dimensione RMSD differente da #frame su cui si sta clusterizzando\n #frames = %d \t len(RMSD) = %d \n Sicuro hai scelto il file giusto?\n" %(self.xy.shape[0], self.RMSD.size))
+
+           raise ValueError("Dimensione RMSD differente da #frame \n #frames = %d \t len(RMSD) = %d \n Sicuro hai scelto il file giusto?\n" %(self.xy.shape[0], self.RMSD.size))
         
-        if fig_RMSD:
-
-            c   =   self.Cluster.labels_
-            plt.figure()
-            plt.plot(np.arange(0,self.xy.shape[0]*self.timestep, 1), self.RMSD, '.')
-            plt.xlabel('Time (ps)')
-            plt.ylabel('RMSD (nm)')
-            plt.title(fig_RMSD)
-            plt.savefig(fig_RMSD+'.png')
+        self.unfoldest_idx  =   RMSD[list(self.clusterchiefs_idx)].argmax()
         
-    def Figure_Clusters(self):
+        if kwargs['verbose']:
+            print("Cluster con RMSD maggiore è il %d \n con RMSD = %f\n" %(self.unfoldest_idx +1, self.RMSD[list(self.clusterchiefs_idx)].max()))
 
-        #color map data dall'appartenenza a un certo cluster
-        c   =   self.Cluster.labels_
-
-        fig = plt.figure()
-
-        plt.scatter(self.xy[:,0], self.xy[:,1], c=c, cmap= 'viridis', s = 10)
-        plt.scatter(self.Cluster.cluster_centers_[:,0],self.Cluster.cluster_centers_[:,1], marker='*', edgecolors='black')
-        plt.xlabel(' PC 1 ')
-        plt.ylabel(' PC 2 ')
-        plt.title(str(self.n_clusters)+' Cluster representation by '+self.clustype+' algorithm')
-        plt.show()
-        fig.savefig('3 micros/Clusters.png')
 
 def BioStructure (pdb_filename, n_structures, structures_names, structures_type, structures_chain_ids, structures_models):
 
@@ -591,21 +691,20 @@ def Parse_xvg_skip(filename, path='./', skip_lines = 18, skip = False):
     """
 
     f = open(path+filename, 'r')
-    
-    parser    =  f.readlines()[skip:]
+    parser    =  f.readlines()[skip_lines:]
+    f.close()
     temp      =  np.zeros((len(parser),2))
-
-    for row in range(temp.shape[0]):
+    for row in range(len(parser)):
 
         temp[row]   =   np.array(str(parser[row]).split(), dtype=np.float64)
 
 
-    f.close()
-
     if skip:
+
         return temp[np.arange(0,temp.shape[0], skip),0],  temp[np.arange(0,temp.shape[0], skip),1]
     
     else:
+
         return     temp[:,0],  temp[:,1]
 
 def Find_Nearest_2D(insieme, point):
