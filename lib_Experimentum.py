@@ -200,7 +200,6 @@ class Spectrum  :
         self.x_freq     =   ((self.x_pix**3)*self.Poly2GHz[0])+ ((self.x_pix**2)*self.Poly2GHz[1]) + (self.x_pix*self.Poly2GHz[2]) + (self.Poly2GHz[3])
         #self.x_freq     =   self.x_freq - self.x_VIPA_freq [self.y_VIPA.argmax()]
 
-
         if fig:
 
             fig1  = plt.figure()
@@ -208,9 +207,10 @@ class Spectrum  :
             ax1.plot(self.x_freq, self.y)
             ax1.set_title('Spettro Exp in GHz')
 
-    def Cut_n_Estimate_Spectrum(self, altezza = 0, distanza = 2/3, **kwargs):
+    def Cut_n_Estimate_Spectrum(self, cut = True,  altezza = 0, distanza = 2/3, **kwargs):
         
-        # questa funzione esegue 
+        """
+        Funzione che esegue 
         #
         # taglio      :     trovo i valori dei picchi elastici e delle relative ampiezze 
         #                   (grazie scipy) e banalmente mi sposto di distanza rispetto 
@@ -223,9 +223,9 @@ class Spectrum  :
         #   OSS: tutto funziona perchè mi aspetto due picchi elastici ad aprire e
         #        chiudere lo spettro
         #      
+        """
 
         peaks               =   syg.find_peaks(self.y,  height = altezza, width=0.001)
-
 
         peaks_idx           =   np.array(peaks[0])#array con indici(anche pixel dunque) dei picchi
         peaks_width         =   peaks[1]['widths']
@@ -251,42 +251,43 @@ class Spectrum  :
         # STIMA PARAMETRI INIZIALI della funzione teorica
         # (quelli che posso, e devo farlo  prima di tagliare)
         
-        self.p0 = np.zeros(11)
+        #self.p0 = np.zeros(11)
         self.p0 = pd.DataFrame({})
         #       nomenclatura:   p[0] = Co
         #                       p[1] = Omega
         #                       p[2] = Gamma
         #                       p[3] = Delta
 
-        self.p0['Co']               =   1.#amplitude factor
-        self.p0['Omega']            =   np.absolute(self.x_freq[peaks_idx[2]] - self.x_freq[peaks_idx[1]])
+        self.p0['Co']               =   [1.]#amplitude factor
+        self.p0['Omega']            =   [np.absolute(self.x_freq[peaks_idx[2]] - self.x_freq[peaks_idx[1]])*0.5]
 
         #sembra esserci un fattore 10 tra questa stima di ampiezza e i parametri
-        self.p0['Gamma']            =   (peaks_width[2]+peaks_width[1])/20
-        self.p0['Delta']            =   self.p0[2]
+        self.p0['Gamma']            =   [(peaks_width[2]+peaks_width[1])/20]
+        self.p0['Delta']            =   self.p0['Gamma']
 
         # questi parametri iniziali dovrebbero andare bene sempre
 
-        self.p0['tau']              =   1.
-        self.p0['delta_amplitude']  =   
-        self.p0['delta_width']      =   0.5
+        self.p0['tau']              =   [1.]
+        self.p0['delta_amplitude']  =   [0]
+        self.p0['delta_width']      =   [0.5]
 
         if ('verbose' in kwargs):
 
-            print ("Ho stimato %d parametri iniziali per il fit che andrai a fare\n Tutti gli altri sono a zero") %(p0.)
+            print ("\n\nHo stimato %d parametri iniziali per il fit che andrai a fare\n Tutti gli altri sono a zero" %(self.p0.size))
 
-            for jj in range(p0.size):
+            for p in self.p0.T.index :
 
-                print()
+                print(p, ' = %4.3f \n' %(self.p0[p][0]))
 
 
         
-        # procedo con il taglio
-        
-        
-        self.x_freq         =   self.x_freq[idx_min:idx_max]
-        self.x_pix          =   self.x_pix[idx_min:idx_max]
-        self.y              =   self.y[idx_min:idx_max]
+        # procedo con il taglio se è voluto
+
+        if (cut == True):           
+            
+            self.x_freq         =   self.x_freq[idx_min:idx_max]
+            self.x_pix          =   self.x_pix[idx_min:idx_max]
+            self.y              =   self.y[idx_min:idx_max]
 
 
         
@@ -325,6 +326,7 @@ class Spectrum  :
             conv_range = np.linspace(fantoccio[0], fantoccio[1], 200)
 
         else:
+            
             conv_range = self.x_freq
 
         self.y_convolution      =       np.zeros(conv_range.size)
