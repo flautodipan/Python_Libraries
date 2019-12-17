@@ -34,9 +34,9 @@ def I_Dynamical_Current_1(omega, Co, Omega, Delta, tau):
 
 # --> caso rilassamento exp + Markov    :       K(p) = somma casi precedenti        'Real'
 
-def S_Dynamical_Form_Factor_2(omega, Co, Omega, Gamma, Delta, tau, delta_amplitude, delta_factor):
+def S_Dynamical_Form_Factor_2(omega, Co, Omega, Gamma, Delta, tau, delta_width, delta_amplitude):
     omega = np.array(omega)
-    return delta_function(omega, delta_amplitude, delta_factor)+(Gamma * omega ** 2 * tau ** 2 + Delta + Gamma) * Co * (omega ** 4 * tau ** 2 / 4 + (0.1e1 / 0.4e1 + (Gamma ** 2 + Omega ** 2 / 4) * tau ** 2 - Delta * tau) * omega ** 2 + Delta ** 2 + 2 * Delta * Gamma + Gamma ** 2 + Omega ** 2 / 4) / (omega ** 4 * tau ** 2 / 4 - tau ** 2 * Omega * omega ** 3 / 2 + (0.1e1 / 0.4e1 + (Gamma ** 2 + Omega ** 2 / 4) * tau ** 2 - Delta * tau) * omega ** 2 + Omega * (Delta * tau - 0.1e1 / 0.2e1) * omega + Delta ** 2 + 2 * Delta * Gamma + Gamma ** 2 + Omega ** 2 / 4) / np.pi / (omega ** 4 * tau ** 2 / 4 + tau ** 2 * Omega * omega ** 3 / 2 + (0.1e1 / 0.4e1 + (Gamma ** 2 + Omega ** 2 / 4) * tau ** 2 - Delta * tau) * omega ** 2 + (-tau * Delta * Omega + Omega / 2) * omega + Delta ** 2 + 2 * Delta * Gamma + Gamma ** 2 + Omega ** 2 / 4) / 2
+    return delta_function(omega, delta_width, delta_amplitude)+(Gamma * omega ** 2 * tau ** 2 + Delta + Gamma) * Co * (omega ** 4 * tau ** 2 / 4 + (0.1e1 / 0.4e1 + (Gamma ** 2 + Omega ** 2 / 4) * tau ** 2 - Delta * tau) * omega ** 2 + Delta ** 2 + 2 * Delta * Gamma + Gamma ** 2 + Omega ** 2 / 4) / (omega ** 4 * tau ** 2 / 4 - tau ** 2 * Omega * omega ** 3 / 2 + (0.1e1 / 0.4e1 + (Gamma ** 2 + Omega ** 2 / 4) * tau ** 2 - Delta * tau) * omega ** 2 + Omega * (Delta * tau - 0.1e1 / 0.2e1) * omega + Delta ** 2 + 2 * Delta * Gamma + Gamma ** 2 + Omega ** 2 / 4) / np.pi / (omega ** 4 * tau ** 2 / 4 + tau ** 2 * Omega * omega ** 3 / 2 + (0.1e1 / 0.4e1 + (Gamma ** 2 + Omega ** 2 / 4) * tau ** 2 - Delta * tau) * omega ** 2 + (-tau * Delta * Omega + Omega / 2) * omega + Delta ** 2 + 2 * Delta * Gamma + Gamma ** 2 + Omega ** 2 / 4) / 2
 
 #    return (delta_factor*syg.unit_impulse(omega.size, idx = 'mid'))+(Gamma * omega ** 2 * tau ** 2 + Delta + Gamma) * Co * (omega ** 4 * tau ** 2 / 4 + (0.1e1 / 0.4e1 + (Gamma ** 2 + Omega ** 2 / 4) * tau ** 2 - Delta * tau) * omega ** 2 + Delta ** 2 + 2 * Delta * Gamma + Gamma ** 2 + Omega ** 2 / 4) / (omega ** 4 * tau ** 2 / 4 - tau ** 2 * Omega * omega ** 3 / 2 + (0.1e1 / 0.4e1 + (Gamma ** 2 + Omega ** 2 / 4) * tau ** 2 - Delta * tau) * omega ** 2 + Omega * (Delta * tau - 0.1e1 / 0.2e1) * omega + Delta ** 2 + 2 * Delta * Gamma + Gamma ** 2 + Omega ** 2 / 4) / np.pi / (omega ** 4 * tau ** 2 / 4 + tau ** 2 * Omega * omega ** 3 / 2 + (0.1e1 / 0.4e1 + (Gamma ** 2 + Omega ** 2 / 4) * tau ** 2 - Delta * tau) * omega ** 2 + (-tau * Delta * Omega + Omega / 2) * omega + Delta ** 2 + 2 * Delta * Gamma + Gamma ** 2 + Omega ** 2 / 4) / 2
 
@@ -107,10 +107,10 @@ def I_1_Generate(Co, Omega, Delta, tau, x_min, x_max, density, fig = False):
 
     return (x,y)
 
-def S_2_Generate(Co, Omega, Gamma, Delta, tau, delta_amplitude, delta_factor, x_min, x_max, density, fig = False):
+def S_2_Generate(Co, Omega, Gamma, Delta, tau, delta_width, delta_amplitude, x_min, x_max, density, fig = False):
 
     x   =   np.linspace(x_min,x_max,  density)
-    y   =    S_Dynamical_Form_Factor_2(x, Co, Omega, Gamma, Delta, tau, delta_amplitude, delta_factor)
+    y   =    S_Dynamical_Form_Factor_2(x, Co, Omega, Gamma, Delta, tau, delta_width, delta_amplitude)
 
     
     if fig:
