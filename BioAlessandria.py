@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from scipy.spatial import distance as dis
+from scipy.optimize import curve_fit
 from mpl_toolkits.mplot3d import Axes3D
 
 from sklearn.decomposition import PCA
@@ -209,7 +210,7 @@ class Trajectory():
 
         _ , self.EigenValues    = Parse_xvg(path+xvg_filename)
 
-        if kwargs['fig'] :
+        if ('fig' in kwargs) :
             
             plt.figure()
             plt.plot(self.EigenValues, '.')
@@ -234,7 +235,7 @@ class Trajectory():
             print   ('Tempo iniziale =\t{} ps \nTempo finale =\t{} ps \ntime step =\t{} ps'.format(self.initial_time, self.final_time, self.timestep))
             print   ('Numero di punti nello spazio essenziale : {}\n'.format(self.n_frames))
 
-        if kwargs['fig'] :
+        if ('fig' in kwargs) :
 
             fig = plt.figure()
             c = range(self.n_frames)
@@ -248,13 +249,26 @@ class Trajectory():
 
     def Get_RMSD(self, xvg_filename, path='./', skip = False, **kwargs):
 
+        """
+        Prendo RMSD da file xvg associata alla traiettoria
+        OSS : taglia RMSD == taglia x_proj
+
+        - skip: fattore di cui si vuole ridurre numerosità
+
+        - fig solita kwarg
+
+        - histo come fig ma stampa istogramma distribuzione RMSD, da accompagnare
+          con n_bins
+
+        """
+
         _ ,  self.RMSD =  Parse_xvg_skip(xvg_filename, skip = skip, path = path)
 
         if (self.RMSD.size != self.x_proj.size):
 
            raise ValueError("Dimensione RMSD differente da #frame \n #frames = %d \t len(RMSD) = %d \n Sicuro hai scelto il file giusto?\n" %(self.n_frames, self.RMSD.size))
         
-        if kwargs['fig']:
+        if ('fig' in kwargs):
 
             plt.figure()
             plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.RMSD,  'g-.', markersize = 0.1, alpha = 0.5)
@@ -263,6 +277,191 @@ class Trajectory():
             plt.title('RMSD for '+self.__str__())
             plt.savefig(path+kwargs['fig']+'.png')
         
+
+        if ('histo' in kwargs):
+
+            plt.figure()
+            _ =   plt.hist(self.RMSD, bins = kwargs['bins'])
+            plt.xlabel('RMSD (nm)')
+            plt.title("Distribuzione RMSD per "+self.__str__())
+            plt.savefig(path+kwargs['histo']+'.png')
+            plt.show()
+
+
+    def Get_Terminals_Dist(self, xvg_filename, path='./', skip = False, **kwargs):
+
+        """
+        Prendo distanza tra terminali da file xvg associata alla traiettoria
+
+        - skip: fattore di cui si vuole ridurre numerosità
+
+        - fig solita kwarg
+
+        - histo come fig ma stampa istogramma distribuzione distanza, da accompagnare
+          con n_bins come kwarg
+
+        """
+
+        _ ,  self.ter_dist =  Parse_xvg_skip(xvg_filename, skip_lines = kwargs['skip_lines'], skip = skip, path = path)
+
+        if (self.ter_dist.size != self.x_proj.size):
+
+           raise ValueError("Dimensione ter_dist differente da #frame \n #frames = %d \t len(ter_dist) = %d \n Sicuro hai scelto il file giusto?\n" %(self.n_frames, self.ter_dist.size))
+        
+        if ('fig' in kwargs):
+
+            plt.figure()
+            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.ter_dist,  'g-.', markersize = 0.1, alpha = 0.5)
+            plt.xlabel('Time (ps)')
+            plt.ylabel('ter_dist (nm)')
+            plt.title('ter_dist for '+self.__str__())
+            plt.savefig(path+kwargs['fig']+'.png')
+        
+
+        if ('histo' in kwargs):
+
+            plt.figure()
+            _ =   plt.hist(self.ter_dist, bins = kwargs['bins'])
+            plt.xlabel('ter_dist (nm)')
+            plt.title("Distribuzione ter_dist per "+self.__str__())
+            plt.savefig(path+kwargs['histo']+'.png')
+            plt.show()
+
+    def Analyze_Traj_by_Descriptor (self, descriptor, N_gauss, p0, bins = 100, **image_kwargs):
+
+        """
+        Funzione che
+        -   fitta la distribuzione RMSD (con P0 iniziali) con N_gauss gaussiane (2 o 3)
+            --> permette di ripetere 
+        
+        OSS:
+        p0 deve essere di dimensione 3*N_gauss, nell'ordine (mu, sigma, A)
+        kwargs importanti fig, fig_fit, path
+
+        """
+        descrittore  = descriptor #nome per fig
+
+        if (descriptor == 'RMSD'):
+            descriptor = self.RMSD
+        elif (descriptor ==  'ter_dist'):
+            descriptor = self.ter_dist
+        else:
+            raise ValueError (" Scegliere descrittore per analisi traiettoria : \n 'RMSD' o  'ter_dist' ")
+
+        plt.figure()
+        descriptor_pdf, self.x_bins, _   =   plt.hist(descriptor, bins = bins)
+        x                               = (self.x_bins[1:]+self.x_bins[:-1])/2 # for len(x)==len(y)
+        self.N_gauss                    =   N_gauss
+
+        if (N_gauss == 3 ):
+                
+            self.gauss_params,cov=curve_fit(trimodal,x,descriptor_pdf, p0=p0, method = 'trf')
+            
+            if ('fig_fit' in image_kwargs):
+
+                
+                plt.plot(x, trimodal(x, *self.gauss_params), color = 'red', lw = 3, label = 'Multimodal Fit')            
+                #plt.bar(x, height = descriptor_pdf, width = 0.8 * (self.x_bins.max()-self.x_bins.min()))
+                plt.xlabel(descrittore +' (nm)')
+                plt.title(' Gaussian fit for '+descrittore+' distribution for '+self.__str__())
+                plt.legend()
+                plt.savefig(image_kwargs['path']+image_kwargs['fig_fit']+'.png')
+                plt.show()
+
+            print("Parametri del fit \n")
+            df  =   pd.DataFrame({'Values':self.gauss_params, 'StdErr':np.sqrt(np.diag(cov))}, index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2', 'mu3', 'sigma3', 'A3')) 
+            print(df)
+
+
+
+        if (N_gauss == 2 ):
+                
+            self.gauss_params,cov=curve_fit(bimodal,x,descriptor_pdf, p0=p0, method = 'trf')
+            
+            if ('fig_fit' in image_kwargs):
+
+                
+                plt.plot(x, bimodal(x, *self.gauss_params), color = 'red', lw = 3, label = 'Multimodal Fit')            
+                #plt.bar(x, height = descriptor_pdf, width = 0.8 * (self.x_bins.max()-self.x_bins.min()))
+                plt.xlabel(descrittore+' (nm)')
+                plt.title(' Gaussian fit for '+descrittore+' distribution for '+self.__str__())
+                plt.legend()
+                plt.savefig(image_kwargs['path']+image_kwargs['fig_fit']+'.png')
+                plt.show()
+
+            print("Parametri del fit \n")
+            df  =   pd.DataFrame({'Values':self.gauss_params, 'StdErr':np.sqrt(np.diag(cov))}, index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2')) 
+            print(df)
+
+    def Divide_Traj_by_Descriptor (self, descriptor, sigma_factor, **image_kwargs):
+
+        """
+        -   suddivide lo spazio essenziale in base al treshold = mu - sigma*factor della 
+            gaussiana con RMSD più alto (corrispondente a stato UNFOLD)
+
+        
+        """
+        descrittore  = descriptor #nome per fig
+
+        if (descriptor == 'RMSD'):
+            descriptor = self.RMSD
+        elif (descriptor ==  'ter_dist'):
+            descriptor = self.ter_dist
+        else:
+            raise ValueError (" Scegliere descrittore per analisi traiettoria : \n 'RMSD' o  'ter_dist' ")
+
+        if (self.N_gauss == 3):
+
+            treshold = self.gauss_params[6] - self.gauss_params[7]*sigma_factor
+
+        elif (self.N_gauss == 2):
+
+            treshold = self.gauss_params[3] - self.gauss_params[4]*sigma_factor
+
+        print("Treshold data dalla gaussiana con "+descrittore + " più alto:\nmu - simga*%3.2f = %3.2f\n\n" %(sigma_factor, treshold))  
+        
+        self.x_fold     =   self.x_proj[descriptor <= treshold]
+        self.y_fold     =   self.y_proj[descriptor <= treshold]
+
+        self.x_unfold   =   self.x_proj[descriptor > treshold]
+        self.y_unfold   =   self.y_proj[descriptor > treshold]
+
+        print("Percentuale di popolazione stimata unfold = {} ".format(self.x_unfold.size/(self.x_fold.size+self.x_unfold.size)))
+
+        if ('fig' in image_kwargs) :
+
+            fig     =   plt.figure()
+            mask    =   descriptor > treshold
+            plt.scatter(self.x_proj,self.y_proj, c=mask, cmap= 'viridis', s = 10)
+            plt.colorbar()
+            plt.xlabel(' PC 1 ')
+            plt.ylabel(' PC 2 ')
+            plt.title('Division by %3.2f treshold of '%(treshold)+descrittore+' for '+self.__str__())
+            fig.savefig(image_kwargs['path']+image_kwargs['fig']+'.png')  
+            plt.show()
+      
+    def Which_Part_of_Traj(self, points):
+
+        """
+
+        Funzione che stampa i valori di frame, time, descrittore associati i punti nello spazio essenziale points
+        Pensata per i risultati della clustering analyis, quindi su valori numerici esattamente uguali (no bisogno find_nearest)
+
+        Funzionamento : compara la x di ogni riga di points, tanto l'y è allo stesso indice
+
+        """
+        for jj in range(len(points)):
+            
+            idx =   int(np.nonzero(self.x_proj == points[jj][0])[0])
+
+            if (idx != int(np.nonzero(self.y_proj == points[jj][1])[0])):
+                raise ValueError("Qualcosa di strano: indice x e y non corrispondono.\n x: %d \t y: %d\n\n"%(idx, np.nonzero(self.y_proj == points[jj][1])))
+            
+            x   =   self.x_proj[idx]
+            y   =   self.y_proj[idx]
+
+            print("Il punto nello spazio essenziale corrispondente al clusterchief %d è (%3.2f, %3.2f)\n"%(jj+1, x, y))
+            print("\nCorrisponde al frame {}\nOssia al tempo {} ps\ned ha un valore di RMSD pari a {}\nun valore di distanza dei terminali di {}\n".format(idx+1, (idx+1)*self.timestep, self.RMSD[idx], self.ter_dist[idx]))   
 
     def Analyze_Variance_Explained_Ratio(self, percent_sigma):
 
@@ -315,17 +514,25 @@ class Trajectory():
 
 class Cluster_2DAnalysis():
 
-    def __init__(self, traj, clustype, name):
+    def __init__(self, clustype, name):
         
-        self.xy         =   np.array([traj.x_proj,traj.y_proj]).T
-        self.timestep   =   traj.timestep
         self.clustype   =   clustype
-        self.name       =   name
-    
+        self.name       =   name        
+          
     def __str__(self):
 
         return "{}".format(self.name)
 
+    def Get_by_Traj(self, traj):
+
+        self.xy         =   np.array([traj.x_proj,traj.y_proj]).T
+        self.timestep   =   traj.timestep
+
+    def Get_by_Passing(self, xy, timestep):
+
+            self.xy         =   xy
+            self.timestep   =   timestep
+        
     def Elbow_KMeans(self, kmax):
 
         """ Funzione che implementa il metodo "Elbow" sull'algoritmo k_means
@@ -378,7 +585,7 @@ class Cluster_2DAnalysis():
 
         self.silhouette_max =  np.array(self.Silh).argmax() + 2 
         
-        if kwargs['fig']:
+        if ('fig' in kwargs):
                 
             plt.figure()
             plt.plot(np.arange(0,kmax-1,1)+2, self.Silh)
@@ -423,10 +630,10 @@ class Cluster_2DAnalysis():
                           
                 if kwargs['verbose']:
 
-                    print("Il punto più vicino al centroide del cluster " + str(jj+1) + " è \n" +str(self.clusterchiefs[jj])+"\nCorrisponde al frame %d\nOssia al tempo %f ps\n" %((self.clusterchiefs_idx[jj]+1), (self.clusterchiefs_idx[jj]+1)*self.timestep))
+                    print("Il punto più vicino al centroide del cluster " + str(jj+1) + " è \n" +str(self.clusterchiefs[jj])+'\n')
 
                     
-            if kwargs['fig']:
+            if ('fig' in kwargs):
 
                 fig = plt.figure()
 
@@ -434,7 +641,7 @@ class Cluster_2DAnalysis():
                 plt.scatter(self.Cluster.cluster_centers_[:,0],self.Cluster.cluster_centers_[:,1], marker='*', edgecolors='black')
                 plt.xlabel(' PC 1 ')
                 plt.ylabel(' PC 2 ')
-                plt.title(str(self.n_clusters)+ 'Cluster representation for '+self.__str__())
+                plt.title(str(self.n_clusters)+ ' Cluster representation for '+self.__str__())
                 fig.savefig(kwargs['path']+kwargs['fig']+'.png')
                 plt.show()
 
@@ -445,22 +652,30 @@ class Cluster_2DAnalysis():
         
     def Cluster_RMSD_Division (self, RMSD, histo = False, **kwargs):
         
-        "Funzione che individua il cluster il cui centroide ha RMSD più alto, assumendolo rappresentativo dello stato unfold"
+        """
+        Funzione che individua il cluster il cui centroide ha RMSD più alto, 
+        assumendolo rappresentativo dello stato unfold
 
-        if histo:
+        histo se True va accompagnato dai kwargs bins, etc della funzione plt.histo()
+        essendo una fig, va passato anche il path di salvataggio
 
-            pass
+        verbose stampa un po' di cose
+
+
+        """
+
+                
+        if (RMSD.size != self.xy.shape[0]):
+
+           raise ValueError("Dimensione RMSD differente da #frame \n #frames = %d \t len(RMSD) = %d \n Sicuro hai scelto il file giusto?\n" %(self.xy.shape[0], RMSD.size))
         
         # get cluster idx with the higher RMSD
-        
-        if (self.RMSD.size != self.xy.shape[0]):
 
-           raise ValueError("Dimensione RMSD differente da #frame \n #frames = %d \t len(RMSD) = %d \n Sicuro hai scelto il file giusto?\n" %(self.xy.shape[0], self.RMSD.size))
-        
         self.unfoldest_idx  =   RMSD[list(self.clusterchiefs_idx)].argmax()
         
-        if kwargs['verbose']:
-            print("Cluster con RMSD maggiore è il %d \n con RMSD = %f\n" %(self.unfoldest_idx +1, self.RMSD[list(self.clusterchiefs_idx)].max()))
+        if ('verbose' in kwargs):
+
+            print("Cluster con RMSD maggiore è il %d \n con RMSD = %f\n" %(self.unfoldest_idx +1, RMSD[list(self.clusterchiefs_idx)].max()))
 
 
 def BioStructure (pdb_filename, n_structures, structures_names, structures_type, structures_chain_ids, structures_models):
@@ -733,3 +948,12 @@ def Find_Nearest_2D(insieme, point):
 
     return (insieme[idx, :], idx)
 
+def gauss(x,mu,sigma,A):
+    return A*np.exp(-(x-mu)**2/2/sigma**2)
+
+def bimodal(x,mu1,sigma1,A1,mu2,sigma2,A2):
+    return gauss(x,mu1,sigma1,A1)+gauss(x,mu2,sigma2,A2)
+    
+def trimodal(x,mu1,sigma1,A1,mu2,sigma2,A2, mu3, sigma3, A3):
+    
+    return gauss(x,mu1,sigma1,A1)+gauss(x,mu2,sigma2,A2)+gauss(x, mu3, sigma3, A3)
