@@ -11,7 +11,7 @@ from    scipy.optimize      import least_squares
 
 from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate        
 from    Alessandria         import *
-
+from    lmfit               import Model
 
 free_spectral_range =   29.9702547 #GHz
 
@@ -22,7 +22,20 @@ class Spectrum  :
 
     #   Oggetto che sarà alla base di ogni spettro sperimentale
 
-    def __init__(self):
+    def __init__(self, name, n_params = 12):
+
+        """
+        Definisci il nome dell'oggetto per le stampe e il numero di parametri del tuo modello
+
+        """
+        self.name       =   name
+        self.n_params   =   n_params
+
+    def __str__(self):
+
+        return '{}'.format(self.name)
+        
+    def Get_Spectrum(self, y, offset = 183., **img_kwargs):
 
         #   y       è l'array dello spettro
         #   
@@ -30,40 +43,22 @@ class Spectrum  :
         #           lo spettro è stato acquisito
         #           (in realtà probably numero associato, v. parametro v Claudia)
         #           
-        #   model   0 = senza rilassamento  'Simple'
-        #           1 = solo rilassamento exp   'Exp'
-        #           2 = rilassamento più costante 'Real'
-        #
-        #   VIPA_model  'Gaussian' <--> inviluppo gaussiano
-        #               'Sinc'     <--> inviluppo sinc
-
-        pass
-
-
-    def Get_Spectrum(self, y, model='Model', nu0=None, offset = 0.):
-
-        #   y       è l'array dello spettro
-        #   
-        #   nu0     è la frequenza del laser con cui 
-        #           lo spettro è stato acquisito
-        #           (in realtà probably numero associato, v. parametro v Claudia)
-        #           
-        #   model   0 = senza rilassamento  'Simple'
-        #           1 = solo rilassamento exp   'Exp'
-        #           2 = rilassamento più costante 'Real'
-        #
-        #   VIPA_model  'Gaussian' <--> inviluppo gaussiano
-        #               'Sinc'     <--> inviluppo sinc
 
         print ("Cojone  modifica le cose in modo che la funzione apra da sola il file.mat\n\n")
 
         self.x_pix      =   np.arange(1, len(y)+1, 1)
-        self.model      =   model
         self.offset     =   offset
         self.y          =   y - self.offset
 
-        if (offset == 0):
-            print("Fais gaffe mec: \n offset = 0\n\n")
+        if 'fig' in img_kwargs :
+
+            plt.figure()
+            plt.plot(self.x_pix, self.y)
+            plt.xlabel('Pixels')
+            plt.title('Experimental spectrum for '+self.__str__())
+            plt.savefig(img_kwargs['save_path']+img_kwargs['fig']+'.png')
+            plt.show()
+
 
     def Get_VIPA_mat(self, mat_filename, path='./', tunable = None, offset = 'same', fig = False):
         
@@ -113,16 +108,65 @@ class Spectrum  :
 
 
 
-    def Get_VIPA_tif(self, tif_filename, path='./'):
+    def Get_VIPA_tif(self, tif_filename, path='', offset = 'same', **img_kwargs):
 
         print ('ATTENZIONE funzione da aggiornare\n\n\n\nATTENZIONE guarda Get_VIPA_mat')
 
         VIPA                =   Import_TIF(path+tif_filename)
+        
+        if (offset != 'same'):
 
+            self.offset =   offset
+            
         self.y_VIPA         =   np.mean(VIPA,1) - self.offset
         self.x_VIPA         =   np.arange(1, len(self.y_VIPA)+1, 1)
 
-    def Fit_Pixel2GHz(self, altezza = 0, dist = 100, fig = False):
+        if 'fig' in img_kwargs:
+            
+            plt.figure()
+            plt.plot(self.x_VIPA, self.y_VIPA)
+            plt.xlabel('Pixels')
+            plt.ylabel('VIPA transfer function')
+            plt.title('Funzione di trasferimento VIPA in pixel da '+tif_filename)
+            plt.savefig(img_kwargs['save_path']+img_kwargs['fig']+'.png')
+            plt.show()
+
+    
+    def Fit_VIPA_Gaussian(self, fig = False, **syg_kwargs):
+
+        peaks_idx, _    =   Analyze_Peaks(self.x_VIPA_freq, self.y_VIPA, 'GHz', **syg_kwargs)
+    
+        gmod = Model(gaussian)
+        result = gmod.fit(self.y_VIPA[peaks_idx], x = self.x_VIPA_freq[peaks_idx], A = 1., mu = 1, sigma = 1)
+        
+        A = result.values['A']
+        mu = result.values['mu']
+        sigma = result.values['sigma']
+
+        #mi salvo anche i valori della gaussiana come valori iniziali per il fit
+
+        self.p0['A']        =   [A]
+        self.p0['mu']       =   [mu]
+        self.p0['sigma']    =   [sigma]   
+
+        print ('Ho stimato i parametri della gaussiana come A = %3.2f\tmu  = %3.2f\tsigma = %3.2f' %(A, mu, sigma))
+        print ('E li ho aggiunti ai parametri iniziali per il fit. Ora conosco %d parametri su %d \n' %(self.p0.size, self.n_params))
+
+        if fig:
+
+            x = np.linspace(self.x_VIPA_freq[peaks_idx].min()*3/2, self.x_VIPA_freq[peaks_idx].max()*3/2, 1000)
+            y = gaussian(x, A, mu, sigma)
+            plot(self.x_VIPA_freq[peaks_idx], self.y_VIPA[peaks_idx], '*', label = 'VIPA Max')
+            plot(x,y,label = 'Gauss_fit for VIPA \nA = %3.2f mu = %3.2f sigma = %3.2f' %(A, mu, sigma))
+            plot(self.x_VIPA_freq, self.y_VIPA, label = 'VIPA transfer function')
+            plt.plot(self.x_freq, self.y, label = 'Exp Spectrum')
+            plt.legend(loc='upper center', bbox_to_anchor=(1.5, 1.05), fancybox=True, shadow=True)
+            plt.xlim(-50,50)
+            plt.show()
+
+   
+
+    def Fit_Pixel2GHz(self,  fig = False, **syg_kwargs):
 
         """
         Dai dati VIPA calcolo funzione di conversione in GHz
@@ -141,7 +185,7 @@ class Spectrum  :
 
         #1)     trovo picchi elastici dello spettro e li salvo
 
-        peaks               =   syg.find_peaks(self.y_VIPA, height=altezza, distance = dist)
+        peaks               =   syg.find_peaks(self.y_VIPA, **syg_kwargs)
         peaks_pix           =   np.array(peaks[0])+1 #array con indici(anche pixel dunque) dei picchi
         peaks_counts        =   self.y_VIPA[peaks_pix]
         peaks_ref           =   peaks_pix[peaks_counts.argmax()]
@@ -187,30 +231,31 @@ class Spectrum  :
         if fig:
 
             fig  = plt.figure()
-            ax   = fig.add_subplot(111)
-            ax.plot(self.x_VIPA_freq, self.y_VIPA)
-            ax.set_title('Funzione di trasf VIPA in GHz')
+            plt.plot(self.x_VIPA_freq, self.y_VIPA)
+            plt.title('Funzione di trasf VIPA in GHz')
+            plt.xlabel('GHz')
+            plt.xlim(-100,100)
             plt.show()
 
     def Spectrum_Pix2GHz (self, fig = False):
 
         #modifico in GHz le ascisse dello spettro
         # --> prima devo convertire in DeltaPixel
+
         self.x_pix      =   self.x_pix  -   self.x_pix[self.y.argmax()]
         self.x_freq     =   ((self.x_pix**3)*self.Poly2GHz[0])+ ((self.x_pix**2)*self.Poly2GHz[1]) + (self.x_pix*self.Poly2GHz[2]) + (self.Poly2GHz[3])
-        #self.x_freq     =   self.x_freq - self.x_VIPA_freq [self.y_VIPA.argmax()]
-
-
+        
         if fig:
 
             fig1  = plt.figure()
-            ax1   = fig1.add_subplot(111)
-            ax1.plot(self.x_freq, self.y)
-            ax1.set_title('Spettro Exp in GHz')
+            plt.xlabel('GHz')
+            plt.plot(self.x_freq, self.y)
+            plt.title('Spettro Exp in GHz')
 
-    def Cut_n_Estimate_Spectrum(self, altezza = 0, distanza = 2/3, **kwargs):
+    def Cut_n_Estimate_Spectrum(self, cut = True, distanza = 2/3, verbose = False, **syg_kwargs ):
         
-        # questa funzione esegue 
+        """
+        Funzione che esegue 
         #
         # taglio      :     trovo i valori dei picchi elastici e delle relative ampiezze 
         #                   (grazie scipy) e banalmente mi sposto di distanza rispetto 
@@ -223,70 +268,56 @@ class Spectrum  :
         #   OSS: tutto funziona perchè mi aspetto due picchi elastici ad aprire e
         #        chiudere lo spettro
         #      
+        """
 
-        peaks               =   syg.find_peaks(self.y,  height = altezza, width=0.001)
+        peaks_idx, peaks_width  =   Analyze_Peaks(self.x_freq, self.y, 'GHz', verbose = True, fig = False, **syg_kwargs)
 
-
-        peaks_idx           =   np.array(peaks[0])#array con indici(anche pixel dunque) dei picchi
-        peaks_width         =   peaks[1]['widths']
-
-        query_min           =  self.x_freq[peaks_idx[0]] + (peaks_width[0]*distanza)
-        _, idx_min          =   Find_Nearest(self.x_freq, query_min)
+        query_min               =   self.x_freq[peaks_idx[0]] + (peaks_width[0]*distanza)
+        _, idx_min              =   Find_Nearest(self.x_freq, query_min)
             
-        query_max           =   self.x_freq[peaks_idx[3]] - (peaks_width[3]*distanza)
-        _, idx_max          =   Find_Nearest(self.x_freq, query_max)
-        
-
-        #Considerazioni "verbose" un po' di  informazioni sulle operazioni effettuate 
-
-        if ('verbose' in kwargs):
-
-            print("\n\n Ho trovato %d picchi nel tuo spettro sperimentale\n" %(peaks_idx.size))
-        
-            for kk in range(len(peaks_idx)):
-
-                print("\n Il picco %d ha \t indice = %d \t frequenza(GHz) = %3.2f \t ampiezza(GHz) = %3.2f \n" %(kk+1, peaks_idx[kk], self.x_freq[peaks_idx[kk]], peaks_width[kk]))
-        
+        query_max               =   self.x_freq[peaks_idx[3]] - (peaks_width[3]*distanza)
+        _, idx_max              =   Find_Nearest(self.x_freq, query_max)
         
         # STIMA PARAMETRI INIZIALI della funzione teorica
         # (quelli che posso, e devo farlo  prima di tagliare)
         
-        self.p0 = np.zeros(11)
+        
         self.p0 = pd.DataFrame({})
-        #       nomenclatura:   p[0] = Co
-        #                       p[1] = Omega
-        #                       p[2] = Gamma
-        #                       p[3] = Delta
+        # 1)    stima dei parametri dai dati
+        #       Omega come la media della posizione dei massimi brillouin
+        #       Gamma (=Delta)come la media dell'ampiezza restituita da find_peaks per i Brillouin /10 (mah..)
+        #       offset come la media dei valori dello spettro nella zona tra i due picchi
 
-        self.p0['Co']               =   1.#amplitude factor
-        self.p0['Omega']            =   np.absolute(self.x_freq[peaks_idx[2]] - self.x_freq[peaks_idx[1]])
+        self.p0['Omega']            =   [np.absolute(self.x_freq[peaks_idx[2]] - self.x_freq[peaks_idx[1]])*0.5]
+        self.p0['Gamma']            =   [(peaks_width[2]+peaks_width[1])/20]
+        self.p0['Delta']            =   self.p0['Gamma']
+        self.p0['offset']           =   np.mean(self.y[peaks_idx[1]:peaks_idx[2]])
+        
 
-        #sembra esserci un fattore 10 tra questa stima di ampiezza e i parametri
-        self.p0['Gamma']            =   (peaks_width[2]+peaks_width[1])/20
-        self.p0['Delta']            =   self.p0[2]
+        # 2)i parametri iniziali che dovrebbero andare bene sempre
+        self.p0['Co']               =   [1000.]#amplitude factor
+        self.p0['shift']            =   [0.]
+        self.p0['tau']              =   [1.]
+        self.p0['delta_amplitude']  =   self.y[[peaks_idx[self.y[peaks_idx].argmax()]]]
+        self.p0['delta_width']      =   [0.5]
 
-        # questi parametri iniziali dovrebbero andare bene sempre
+        if verbose:
 
-        self.p0['tau']              =   1.
-        self.p0['delta_amplitude']  =   
-        self.p0['delta_width']      =   0.5
+            print ("\n\nHo stimato %d parametri iniziali per il fit che andrai a fare\n" %(self.p0.size))
 
-        if ('verbose' in kwargs):
+            for p in self.p0.T.index :
 
-            print ("Ho stimato %d parametri iniziali per il fit che andrai a fare\n Tutti gli altri sono a zero") %(p0.)
-
-            for jj in range(p0.size):
-
-                print()
+                print(p, ' = %4.3f \n' %(self.p0[p][0]))
 
 
         
-        # procedo con il taglio
-        
-        
-        self.x_freq         =   self.x_freq[idx_min:idx_max]
-        self.x_pix          =   self.x_pix[idx_min:idx_max]
-        self.y              =   self.y[idx_min:idx_max]
+        # procedo con il taglio se è voluto
+
+        if (cut == True):           
+            
+            self.x_freq         =   self.x_freq[idx_min:idx_max]
+            self.x_pix          =   self.x_pix[idx_min:idx_max]
+            self.y              =   self.y[idx_min:idx_max]
 
 
         
@@ -325,30 +356,31 @@ class Spectrum  :
             conv_range = np.linspace(fantoccio[0], fantoccio[1], 200)
 
         else:
+            
             conv_range = self.x_freq
 
         self.y_convolution      =       np.zeros(conv_range.size)
-        #w_j                     =       np.linspace(-15,15,conv_range.size)
         w_j_VIPA                =       np.linspace(-35,35, self.x_VIPA_freq.size)
         kernel                  =       self.Interpolate_VIPA(w_j_VIPA)
-        kernel                  =       kernel/(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2))))
+        kernel                  =       kernel/(p[7]*(np.exp(-((w_j_VIPA-p[8])**2)/(2*(p[9]**2)))))
         
         for  ii in range(len(conv_range)):
 
             delta_w                 =   conv_range[ii] -   w_j_VIPA
-            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[5], p[0], p[1], p[2], p[3], p[4], p[9], p[10])
-           
+            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[10], *p[0:7])
             self.y_convolution[ii]  =   np.sum(theor*kernel)
 
         if fig:
 
                 plt.figure()
                 plt.plot(conv_range, self.y_convolution)
-                plt.title('convoluzione dati VIPA con funz S2')
+                plt.xlabel('GHz')
+                plt.title('convoluzione dati VIPA con funz S2 for '+self.__str__())
+                plt.show
         
  
 
-        self.y_Gauss_convolution   =   p[6] + self.y_convolution*np.exp(-((conv_range - p[7])**2)/(2*(p[8]**2)))
+        self.y_Gauss_convolution   =   p[11] + self.y_convolution*p[7]*np.exp(-((conv_range - p[8])**2)/(2*(p[9]**2)))
 
         if fig:
 
@@ -358,12 +390,12 @@ class Spectrum  :
 
         #return necessario per Residuals in least_squares
         return self.y_Gauss_convolution
-    
+        """
     def Sinc_Convolve_Theoretical_Response (self, p, conv_range, fig = False):
 
-        """
+       
         Versione funzione Convolve con inviluppo Sinc invece che Gaussiano
-        """
+       
 
         self.y_convolution      =       np.zeros(self.x_freq.size)
         w_j                     =       np.linspace(-15,15,self.x_freq.size)
@@ -393,7 +425,7 @@ class Spectrum  :
             plt.plot(self.x_freq, self.y_Gauss_convolution)
             plt.title('convoluzione dati VIPA con funz S2 più moltiplicazione Gauss')
             plt.savefig(fig)
-
+    """
 
 
     def Interpolate_VIPA (self, freq):
@@ -434,12 +466,24 @@ class Spectrum  :
     
     def Non_Linear_Least_Squares (self, p0, my_method = None, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
 
+        if (p0 == 'auto'):
+            
+            #riordino le colonne e le assumo nel vettore p0 da passare alla funzione
+
+            p0  =   pd.DataFrame(self.p0, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma'))
+            p0  =   self.p0.values[0]
+
+            print("\nAssumo vettore dei parametri iniziali da quelli stimati\n", p0, '\n')
+        
+        else:  print("\nAssumo vettore dei parametri iniziali da quello inserito come arg\n", p0, '\n')
+
+
         start            =    time.process_time()
         
         if ( my_method == 'lsq'):
             
             self.res_lsq     =    leastsq(self.Residuals, p0, args= self.y, full_output = True, **kwargs)
-            print("s impiegati a fare la convoluzione ", time.process_time()-start, '\n')
+            print("s impiegati a fare il fit ", time.process_time()-start, '\n')
             Parameters       =   self.res_lsq[0]
             Delta_Parameters =   np.zeros(Parameters.size)
             
@@ -454,17 +498,18 @@ class Spectrum  :
             
         else : raise ValueError("Specificare se usare metodo scipy.optimize.least_squares() o scipy.optimize.lsq()\n")
            
-        self.y_fit  = self.Gauss_Convolve_Theoretical_Response(Parameters)
+        y_fit  = self.Gauss_Convolve_Theoretical_Response(Parameters)
 
         if fig:
 
             plt.figure()
+            plt.title('Fit for '+self.__str__())
             plot(self.x_freq, self.y, '+', label='Data')
-            plot(self.x_freq, self.y_fit, label= 'Fit')
+            plot(self.x_freq, y_fit, label= 'Fit')
             plt.legend()
         
         
-        df = pd.DataFrame((Parameters, Delta_Parameters), index = ('Values', 'StdErrs'), columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset', 'Mu_Sinc', 'Sigma_Sinc', 'Delta_Width', 'Delta_Factor'))
-        df.T
+        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset', 'Mu_Sinc', 'Sigma_Sinc', 'Delta_Width', 'Delta_Factor'))
+        
         
 

@@ -2,9 +2,11 @@
 import  numpy               as      np
 import  matplotlib.pyplot   as      plt
 from    PIL                 import  Image
+from    scipy.signal        import  find_peaks
 
 
-"""                     
+"""    
+
 ##############################################################################################
 ##############################################################################################
 
@@ -13,6 +15,39 @@ Insieme di funzioni utili per vari scopi in tutto il lavoro
 
 
 """
+
+def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
+
+    """
+    Grazie a scipy.signal.find_peaks, la funzione analizza i picchi della funzione campionata da y
+    passare i parametri di find_peaks voluti come kwargs
+
+    > stampa le cose che trova se verbose == True
+    > Ritorna (indici_picchi, ampiezze picchi)
+
+    """
+
+    peaks               =   find_peaks(y, **syg_kwargs)
+    peaks_idx           =   np.array(peaks[0])
+    peaks_width         =   peaks[1]['widths']
+
+    print("\n\n Ho trovato %d picchi nel tuo spettro sperimentale con le caratteristiche richieste\n Altezza > %3.2f \n Spessore > %3.2f \n\n" %(peaks_idx.size, syg_kwargs['height'], syg_kwargs['width']))
+    
+    if fig:
+
+        plt.figure()
+        plt.plot(x, y, label = 'Signal')
+        plt.plot(peaks_idx, y[peaks_idx], '*', label = 'Peaks')
+
+    if verbose:
+            
+        for kk in range(len(peaks_idx)):
+
+            print("\n Il picco %d ha: \t indice = %d \t x_value (%s) = %3.2f \t ampiezza(%s) = %3.2f \n" %(kk+1, peaks_idx[kk], x_dim, x[peaks_idx[kk]], x_dim, peaks_width[kk]))
+                
+    return (peaks_idx, peaks_width)
+
+
 
 def Get_Around(value, factor):
 
@@ -90,11 +125,11 @@ def Find_Nearest_Array(array, value):
 def Import_from_Matlab ():
     pass
 
-def Import_TIF(filename):
+def Import_TIF(filename, path = './'):
 
     #   funzione che prende file TIF e lo riporta sotto forma di np.array
 
-    image   =   Image.open(filename)
+    image   =   Image.open(path+filename)
     imarray =   np.array(image)
 
     return  imarray
@@ -108,6 +143,9 @@ Funzioni matematiche assenti dalle librerie varie
 
 """
 
+def gaussian  (x,A, mu, sigma):
+
+    return (A*np.exp(-0.5*((x-mu)/sigma)**2))
 
 def lorentian (x, A, mu, sigma):
     return (A/np.pi)*(sigma/((x - mu)**2 + sigma**2))
