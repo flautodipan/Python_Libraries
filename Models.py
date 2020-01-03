@@ -18,8 +18,8 @@ from    Alessandria         import  *
 #                                   OSS: è il valore nei tempi, non freq
 # 
 
-def S_Dynamical_Form_Factor_0(omega, Co, Omega, Gamma):
-    return (Co * Gamma * (4 * Gamma ** 2 + Omega ** 2 + omega ** 2) / (Gamma ** 2 + (Omega - omega) ** 2 / 4) / np.pi / (Gamma ** 2 + (Omega + omega) ** 2 / 4) / 8)
+def S_Dynamical_Form_Factor_0(omega, Co, Omega, Gamma, delta_width, delta_amplitude):
+    return delta_function(omega, delta_width, delta_amplitude)+(Co * Gamma * (4 * Gamma ** 2 + Omega ** 2 + omega ** 2) / (Gamma ** 2 + (Omega - omega) ** 2 / 4) / np.pi / (Gamma ** 2 + (Omega + omega) ** 2 / 4) / 8)
 
 def I_Dynamical_Current_0(omega, Co, Omega, Gamma):
         return (omega**2)*(Co * Gamma * (4 * Gamma ** 2 + Omega ** 2 + omega ** 2) / (Gamma ** 2 + (Omega - omega) ** 2 / 4) / np.pi / (Gamma ** 2 + (Omega + omega) ** 2 / 4) / 8)
@@ -47,10 +47,10 @@ def I_Dynamical_Current_2 (omega, Co, Omega, Gamma, Delta, tau):
 #       PARTE   1.2     Generatrici delle funzioni teoriche di cui sopra
 #                       generano in un intervallo dato e con densità di punti data
 
-def S_0_Generate(Co, Omega, Gamma, x_min, x_max, density, fig = False):
+def S_0_Generate(Co, Omega, Gamma, delta_width, delta_factor, x_min,  x_max, density, fig = False):
     
     x   =   np.linspace(x_min,x_max, density)
-    y   =    S_Dynamical_Form_Factor_0(x, Co, Omega, Gamma)
+    y   =    S_Dynamical_Form_Factor_0(x, Co, Omega, Gamma,delta_width, delta_factor)
 
     
     if fig:

@@ -16,6 +16,20 @@ Insieme di funzioni utili per vari scopi in tutto il lavoro
 
 """
 
+def Get_Delta_Between_Array_Elements(a):
+
+    """
+    Restituisce un array di lunghezza N-1 con gli intervalli tra i valori di a
+
+    """
+
+    
+    a_up    =   a[1:]
+    a_down  =   a[:a.size-1]
+
+    return  a_up-a_down 
+
+    
 def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
 
     """
@@ -26,7 +40,7 @@ def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
     > Ritorna (indici_picchi, ampiezze picchi)
 
     """
-
+    y                   =   np.asarray(y)
     peaks               =   find_peaks(y, **syg_kwargs)
     peaks_idx           =   np.array(peaks[0])
     peaks_width         =   peaks[1]['widths']
@@ -58,12 +72,11 @@ def Get_Around(value, factor):
     Utile per bounds nei fit
 
     """
-    inf     =   value - (value*factor)
-    sup     =   value - (value*factor)
-
+    inf     =   value - np.abs(value*factor)
+    sup     =   value + np.abs(value*factor)
+    
     return (inf, sup)
-
-
+    
 def Estimate_FWHM (x,y):
 
     half    =   (np.max(y)+np.min(y))/2
