@@ -1,7 +1,9 @@
+
 import  numpy               as      np
 import  matplotlib.pyplot   as      plt
 from    PIL                 import  Image
 from    scipy.signal        import  find_peaks
+from    scipy.io            import  loadmat
 
 
 """    
@@ -36,13 +38,14 @@ def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
     passare i parametri di find_peaks voluti come kwargs
 
     > stampa le cose che trova se verbose == True
-    > Ritorna (indici_picchi, ampiezze picchi)
-
+    > Ritorna dizionario {#picchi, indici_picchi nell'array y, ampiezza, altezza}
+    
     """
     y                   =   np.asarray(y)
     peaks               =   find_peaks(y, **syg_kwargs)
     peaks_idx           =   np.array(peaks[0])
     peaks_width         =   peaks[1]['widths']
+    peaks_height        =   peaks[1]['peak_heights']
 
     print("\n\n Ho trovato %d picchi nel tuo spettro sperimentale con le caratteristiche richieste\n Altezza > %3.2f \n Spessore > %3.2f \n\n" %(peaks_idx.size, syg_kwargs['height'], syg_kwargs['width']))
     
@@ -50,15 +53,16 @@ def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
 
         plt.figure()
         plt.plot(x, y, label = 'Signal')
-        plt.plot(peaks_idx, y[peaks_idx], '*', label = 'Peaks')
+        plt.plot(x[peaks_idx], y[peaks_idx], '*', label = 'Peaks')
+        plt.legend()
 
     if verbose:
             
         for kk in range(len(peaks_idx)):
 
-            print("\n Il picco %d ha: \t indice = %d \t x_value (%s) = %3.2f \t ampiezza(%s) = %3.2f \n" %(kk+1, peaks_idx[kk], x_dim, x[peaks_idx[kk]], x_dim, peaks_width[kk]))
+            print("\n Il picco %d ha: \t indice = %d \t x_value (%s) = %3.2f \t ampiezza(%s) = %3.2f \t altezza = %3.2f \n" %(kk+1, peaks_idx[kk], x_dim, x[peaks_idx[kk]], x_dim, peaks_width[kk], peaks_height[kk]))
                 
-    return (peaks_idx, peaks_width)
+    return {'n_peaks' : peaks_idx.size, 'peaks_idx' : peaks_idx, 'peaks_width' : peaks_width, 'peaks_height' : peaks_height}
 
 
 
@@ -134,8 +138,25 @@ def Find_Nearest_Array(array, value):
 
     return (array[idx], idx)
 
-def Import_from_Matlab ():
-    pass
+def Import_from_Matlab (mat_filename, path, **kwargs):
+
+    """
+    Funzione che importa da matlab, file 'path+matfilename'
+    a seconda del tipo di dato, va strutturata con kwargs
+
+    -   matlab cell     =       tensori, vuole una key per il dictionary
+                                es.  loadmat(..)['y']
+
+    """
+
+    dati    =   loadmat(path+mat_filename)
+
+    if 'var_name' in kwargs:
+
+        dati    =   dati[kwargs['var_name']]
+    
+    return dati
+
 
 def Import_TIF(filename, path = './'):
 

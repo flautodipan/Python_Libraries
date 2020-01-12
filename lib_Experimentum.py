@@ -1,10 +1,9 @@
 import  time
 import  numpy               as np
 import  pandas              as pd
-import  h5py
 from    matplotlib.pyplot   import plot
 import  matplotlib.pyplot   as plt
-import  scipy.signal        as syg
+from    scipy.signal        import find_peaks
 from    scipy.optimize      import leastsq
 from    scipy.optimize      import least_squares
 from    scipy.optimize      import curve_fit
@@ -36,30 +35,26 @@ class Spectrum  :
 
         return '{}'.format(self.name)
         
-    def Get_Spectrum(self, how_to_get = None, mat_filename = None, path = './', y = None, offset = 183., **img_kwargs):
+    def Get_Spectrum(self, y, offset = 183., cut = False, cut_range = None, **img_kwargs):
         
 
         """
 
-        #  Acquisisce spettro : o tramite file.mat o tramite passaggio
-        #  Scegliere how_to_get = 'mat' o 'by_passing'
-        #
-            'by_passing' va associata alle kwargs mat_filename and path
-            'mat' va associata ad un array y
+        #  Acquisisce spettro : o tramite passaggio
+
+
+            'cut' = True è per gli spettri troppo lunghi e va associata a cut_range (min, max)
 
         """
 
         self.x_pix      =   np.arange(1, len(y)+1, 1)
-        self.offset     =   offset
+        self.offset     =   offset     
+        self.y          =   y - self.offset
+  
+        if cut:
 
-      
-        if (how_to_get == 'by_passing'):
-                
-            self.y          =   y - self.offset
-        
-        elif (how_to_get=='mat'):
-
-            self.y          =   loadmat(path+mat_filename) - self.offset
+            self.x_pix      =   self.x_pix[cut_range[0]:cut_range[1]]
+            self.y          =   self.y[cut_range[0]:cut_range[1]]
 
         else : raise ValueError ("Scegliere modalità di acquisizione: 'by_passing' o 'mat'\n")
 
@@ -117,7 +112,6 @@ class Spectrum  :
             plt.ylabel('VIPA transfer function')
             plt.title('Funzione di trasferimento VIPA in pixel da %s' %(mat_filename))
             plt.savefig(fig+'.png')
-            
 
 
 
@@ -144,10 +138,79 @@ class Spectrum  :
             plt.savefig(img_kwargs['save_path']+img_kwargs['fig']+'.png')
             plt.show()
 
-    
-    def Fit_VIPA_Gaussian(self, fig = False, **syg_kwargs):
+    def How_Many_Peaks_To(self, n_peaks = 4, delta = 1., distance = 5., width = 0.01, treshold = 500, fig = False, verbose = False, i_know_it_is = False):
 
-        peaks_idx, _    =   Analyze_Peaks(self.x_VIPA_freq, self.y_VIPA, 'GHz', **syg_kwargs)
+        pk      =   find_peaks(self.y, height = treshold, distance = distance, width = width)
+        height  =   np.max(pk[1]['peak_heights'])/2
+        
+        while True:
+
+            pk      =   find_peaks(self.y, height = height, distance = distance, width = width)
+
+            if (height > treshold) & (pk[0].size == n_peaks):
+                if verbose:
+                    print("Ho trovato valore dell'altezza per avere %d picchi: %f\n"%(n_peaks, height), pk)
+                    _ = Analyze_Peaks(self.x_freq, self.y, 'GHz', fig = fig, verbose = verbose, height= height, distance = distance, width = width )
+    
+                break
+            
+            elif (height <= treshold):
+
+                print(pk)
+                raise ValueError('Errore: superata altezza minima %f\nQualcosa è andato storto'%(treshold))
+
+            else: 
+
+                height-=delta
+        
+        #check che i picchi Brillouin siano dentro agli elastici, premesso che so che possano essere più alti degli elastici
+
+        condition_peaks =   ((self.y[pk[0][0]] < self.y[pk[0][1]]) | ((self.y[pk[0][3]] < self.y[pk[0][2]])))
+        
+        if condition_peaks &  (i_know_it_is == False):
+            raise ValueError("Picchi Brillouin non sono interni o sono più alti degli elastici, controllare")
+
+        self.spectrum_cut_height    =   height
+        self.spectrum_peaks_dist        =distance
+        
+    def How_Many_Peaks_To_VIPA(self, n_GHz_peaks = 5, n_gauss_peaks = 3, delta = 1., distance = 150., width = 0.01, treshold = 500, fig = False, verbose = False):
+
+        h_save = ()
+
+        for n_peaks in (n_GHz_peaks, n_gauss_peaks):
+                
+            pk      =   find_peaks(self.y_VIPA, height = treshold, distance = distance, width = width)
+            height  =   np.max(pk[1]['peak_heights'])/2
+            
+            while True:
+
+                pk      =   find_peaks(self.y_VIPA, height = height, distance = distance, width = width)
+
+                if (height > treshold) & (pk[0].size == n_peaks):
+
+                    h_save  =   h_save + (height,)
+
+                    if verbose:
+                        print("Ho trovato valore dell'altezza per avere %d picchi: %f\n"%(n_peaks, height), pk)
+                        _ = Analyze_Peaks(self.x_VIPA, self.y_VIPA, 'GHz', fig = fig, verbose = verbose, height= height, distance = distance, width = width )
+                    break
+                
+                elif (height <= treshold):
+
+                    print(pk)
+                    raise ValueError('Errore: superata altezza minima %f\nQualcosa è andato storto'%(treshold))
+
+                else: 
+
+                    height-=delta
+
+        self.GHz_fit_height     =   h_save[0]
+        self.gauss_fit_height   =   h_save[1]
+        self.VIPA_peaks_dist    =   distance
+
+    def Fit_VIPA_Gaussian(self, fig = False, verbose = False):
+
+        peaks_idx   =   find_peaks(self.y_VIPA, height = self.gauss_fit_height, distance = self.VIPA_peaks_dist, width = 0.01)[0]
     
         gmod = Model(gaussian)
         result = gmod.fit(self.y_VIPA[peaks_idx], x = self.x_VIPA_freq[peaks_idx], A = 1., mu = 1, sigma = 1)
@@ -162,8 +225,10 @@ class Spectrum  :
         self.p0['mu']       =   [mu]
         self.p0['sigma']    =   [sigma]   
 
-        print ('Ho stimato i parametri della gaussiana come A = %3.2f\tmu  = %3.2f\tsigma = %3.2f' %(A, mu, sigma))
-        print ('E li ho aggiunti ai parametri iniziali per il fit. Ora conosco %d parametri su %d \n' %(self.p0.size, self.n_params))
+        if verbose:
+
+            print ('Ho stimato i parametri della gaussiana come A = %3.2f\tmu  = %3.2f\tsigma = %3.2f' %(A, mu, sigma))
+            print ('E li ho aggiunti ai parametri iniziali per il fit. Ora conosco %d parametri su %d \n' %(self.p0.size, self.n_params))
 
         if fig:
 
@@ -176,10 +241,8 @@ class Spectrum  :
             plt.legend(loc='upper center', bbox_to_anchor=(1.5, 1.05), fancybox=True, shadow=True)
             plt.xlim(-50,50)
             plt.show()
-
    
-
-    def Fit_Pixel2GHz(self,  fig = False, **syg_kwargs):
+    def Fit_Pixel2GHz(self,  fig = False):
 
         """
         Dai dati VIPA calcolo funzione di conversione in GHz
@@ -198,9 +261,10 @@ class Spectrum  :
 
         #1)     trovo picchi elastici dello spettro e li salvo
 
-        peaks               =   syg.find_peaks(self.y_VIPA, **syg_kwargs)
-        peaks_pix           =   np.array(peaks[0])+1 #array con indici(anche pixel dunque) dei picchi
-        peaks_counts        =   self.y_VIPA[peaks_pix]
+        peaks               =   find_peaks(self.y_VIPA, height=self.GHz_fit_height, distance = self.VIPA_peaks_dist, width = 0.01)
+        peaks_idx           =   peaks[0]
+        peaks_pix           =   self.x_VIPA[peaks_idx]
+        peaks_counts        =   self.y_VIPA[peaks_idx]
         peaks_ref           =   peaks_pix[peaks_counts.argmax()]
 
         #2)     costruisco
@@ -247,7 +311,6 @@ class Spectrum  :
             plt.plot(self.x_VIPA_freq, self.y_VIPA)
             plt.title('Funzione di trasf VIPA in GHz')
             plt.xlabel('GHz')
-            plt.xlim(-100,100)
             plt.show()
 
     def Spectrum_Pix2GHz (self, fig = False):
@@ -265,7 +328,7 @@ class Spectrum  :
             plt.plot(self.x_freq, self.y)
             plt.title('Spettro Exp in GHz')
 
-    def Cut_n_Estimate_Spectrum(self, cut = True, distanza = 2/3, verbose = False, **syg_kwargs ):
+    def Cut_n_Estimate_Spectrum(self, cut = True, estimate = False, distanza = 2/3, verbose = False ):
         
         """
         Funzione che esegue 
@@ -282,9 +345,9 @@ class Spectrum  :
         #        chiudere lo spettro
         #      
         """
-
-        peaks_idx, peaks_width  =   Analyze_Peaks(self.x_freq, self.y, 'GHz', verbose = True, fig = False, **syg_kwargs)
-
+        pk              =   find_peaks(self.y, height = self.spectrum_cut_height, distance = self.spectrum_peaks_dist, width = 0.01)
+        peaks_idx       =   pk[0]
+        peaks_width     =   pk[1]['widths']
         query_min               =   self.x_freq[peaks_idx[0]] + (peaks_width[0]*distanza)
         _, idx_min              =   Find_Nearest(self.x_freq, query_min)
             
@@ -682,3 +745,21 @@ class Spectrum  :
         self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
         print(self.Fit_Params)
 
+def Initialize_Matrix(n_rows, n_cols):
+
+    matrix = ()
+    
+    for ii in range(n_rows):
+
+        riga = ()
+
+        for jj in range(n_cols):
+
+            riga  = riga + (Spectrum('Element ('+str(ii)+str(jj)+')'),)
+    
+
+        matrix = matrix + (riga,)
+
+    print('Ho inizializzato una matrice %dx%d, per un totale di %d spettri'%(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])  ))
+
+    return matrix
