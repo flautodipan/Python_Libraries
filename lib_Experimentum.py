@@ -30,6 +30,7 @@ class Spectrum  :
         """
         self.name       =   name
         self.n_params   =   n_params
+        self.saturation =   False
 
     def __str__(self):
 
@@ -56,8 +57,7 @@ class Spectrum  :
             self.x_pix      =   self.x_pix[cut_range[0]:cut_range[1]]
             self.y          =   self.y[cut_range[0]:cut_range[1]]
 
-        else : raise ValueError ("Scegliere modalità di acquisizione: 'by_passing' o 'mat'\n")
-
+        
         if 'fig' in img_kwargs :
 
             plt.figure()
@@ -138,6 +138,12 @@ class Spectrum  :
             plt.savefig(img_kwargs['save_path']+img_kwargs['fig']+'.png')
             plt.show()
 
+    def Is_Saturated(self, treshold):
+
+        if self.y.max() >= treshold:
+            self.saturation =   True
+            return  True
+            
     def How_Many_Peaks_To(self, n_peaks = 4, delta = 1., distance = 5., width = 0.01, treshold = 500, fig = False, verbose = False, i_know_it_is = False):
 
         pk      =   find_peaks(self.y, height = treshold, distance = distance, width = width)
