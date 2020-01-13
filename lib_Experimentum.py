@@ -31,13 +31,13 @@ class Spectrum  :
         self.name       =   name
         self.n_params   =   n_params
         self.saturation =   False
+        self.Brillouin_HIgher   = False
 
     def __str__(self):
 
         return '{}'.format(self.name)
         
-    def Get_Spectrum(self, y, offset = 183., cut = False, cut_range = None, **img_kwargs):
-        
+    def Get_Spectrum(self, y, offset = 183., cut = False, cut_range = None, fig = False):
 
         """
 
@@ -58,34 +58,52 @@ class Spectrum  :
             self.y          =   self.y[cut_range[0]:cut_range[1]]
 
 
-        if 'fig' in img_kwargs :
+        if fig:
 
             plt.figure()
             plt.plot(self.x_pix, self.y)
+            plt.plot(self.x_pix[self.peaks[0]], self.y[self.peaks[0]], '*')
             plt.xlabel('Pixels')
             plt.title('Experimental spectrum for '+self.__str__())
-            plt.savefig(img_kwargs['save_path']+img_kwargs['fig']+'.png')
+            plt.savefig(fig+'.png')
             plt.show()
 
     def Get_Spectrum_Peaks(self, **syg_kwargs):
+
+        self.peaks      =   find_peaks(self.y, **syg_kwargs)
+        self.n_peaks    =   self.peaks[0].size
+
+
+    def Get_Spectrum_4_Peaks_by_Height(self):
 
         """
         Funzione che in ogni caso mi ritorna un dict con informazioni sui 4 picchi dello spettro, disposti in ordine 
         elastico, brillouin stockes, brillouin antistockes, elastico
 
         """
-        pk            =   find_peaks(self.y, **syg_kwargs)
-
-        self.n_peaks  =   pk[0]
-
-        if  (self.n_peaks.size <= 5):
-
-            self.peaks  =   Find_Highest_n_peaks(pk, 4)
+        self.peaks      =   Find_Highest_n_peaks(self.peaks, 4)
+        self.n_peaks    =   self.peaks['peaks_idx'].size
         
-        elif (self.n_peaks.size > 5):
+    def Get_Spectrum_4_Peaks_by_Order(self):
 
-            self.peaks  =   Find_First_n_peaks(pk, 5, [3])
+        if self.n_peaks ==  6:
+            
+            self.peaks  =   Find_First_n_peaks(self.peaks, 5, exclude = [3])
 
+        elif    self.n_peaks == 5:
+
+            self.peaks  =   Find_First_n_peaks(self.peaks, 4)
+
+        elif    self.n_peaks == 7:
+
+            self.peaks  =   Find_First_n_peaks(self.peaks, 6, exclude = [1, 3])
+
+        else:
+
+            raise ValueError("Problema: numero di picchi non previsto dal codice %d"%(self.n_peaks))
+
+
+        self.n_peaks    =   self.peaks['peaks_idx'].size
 
     def Get_VIPA_mat(self, mat_filename, path='./', tunable = None, offset = 'same', fig = False):
         
@@ -157,20 +175,41 @@ class Spectrum  :
 
     def Check_Spectrum(self, saturation_height = 40000, saturation_width = 15.):
 
-        pk_max_idx  =   np.argmax(self.peaks['peaks_height'])
-        
-        condition_peaks =   ((self.y[self.peaks['peaks_idx'][0]] < self.y[self.peaks['peaks_idx'][1]]) | (self.y[self.peaks['peaks_idx'][3]] < self.y[self.peaks['peaks_idx'][2]]))
-        
-        if condition_peaks:
 
-            print('Spettro con Brillouin più alti o qualcosaltro?')
-            return          2
-
-        if (self.y.max() >= saturation_height)  &  (self.peaks['peaks_width'][pk_max_idx] > saturation_width):
+        if (self.n_peaks <= 3) | (self.n_peaks >= 7):
             
-            print('spettro saturato')
-            self.saturation =   True
-            return          1
+            print('Spettro invisibile')
+
+            return  3
+
+        elif (self.n_peaks >= 4) | (self.n_peaks < 7):
+
+
+            pk_max_idx  =   np.argmax(self.peaks[1]['peak_heights'])
+            condition_peaks_pos     =   ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][3]] < self.y[self.peaks[0][2]]))
+            condition_peaks_height  =   (self.peaks[1]['peak_heights'] < 1000).all()
+
+            if (self.y.max() >= saturation_height)  &  (self.peaks[1]['widths'][pk_max_idx] > saturation_width):
+                
+                print('spettro saturato')
+                self.saturation =   True
+                return          1
+
+            if condition_peaks_pos:
+                
+                if condition_peaks_height:
+                        
+                    print('Spettro con Brillouin più alti')
+                    self.Brillouin_Higher   = True
+                    return          2
+                
+                else:
+
+                    print('Spettro invisibile')
+                    return  3
+
+        
+
 
     def Knowing_Spectrum_Peaks(self):
 
@@ -191,7 +230,7 @@ class Spectrum  :
         self.peaks     =   peaks[0]
         self.VIPA_peaks         =   peaks[1]
 
-    def How_Many_Peaks_To(self, n_peaks = 4, delta = 1., distance = 20., width = 1., treshold = 5, fig = False, verbose = False, i_know_it_is = False):
+    def How_Many_Peaks_To(self, n_peaks = 4, delta = 1., distance = 20., width = 5., treshold = 5, fig = False, verbose = False, i_know_it_is = False):
 
         pk      =   find_peaks(self.y, height = treshold, distance = distance, width = width)
         height  =   np.max(pk[1]['peak_heights'])/2
@@ -201,6 +240,7 @@ class Spectrum  :
             pk      =   find_peaks(self.y, height = height, distance = distance, width = width)
 
             if (height > treshold) & (pk[0].size == n_peaks):
+
                 if verbose:
                     print("Ho trovato valore dell'altezza per avere %d picchi: %f\n"%(n_peaks, height), pk)
                     _ = Analyze_Peaks(self.x_freq, self.y, 'GHz', fig = fig, verbose = verbose, height= height, distance = distance, width = width )
@@ -383,6 +423,7 @@ class Spectrum  :
     def Cut_n_Estimate_Spectrum(self, cut = True, estimate = False, distanza = 2/3, verbose = False ):
         
         """
+
         Funzione che esegue 
         #
         # taglio      :     trovo i valori dei picchi elastici e delle relative ampiezze 
@@ -396,14 +437,13 @@ class Spectrum  :
         #   OSS: tutto funziona perchè mi aspetto due picchi elastici ad aprire e
         #        chiudere lo spettro
         #      
+
         """
-        pk              =   find_peaks(self.y, height = self.spectrum_cut_height, distance = self.spectrum_peaks_dist, width = 1)
-        peaks_idx       =   pk[0]
-        peaks_width     =   pk[1]['widths']
-        query_min               =   self.x_freq[peaks_idx[0]] + (peaks_width[0]*distanza)
+
+        query_min               =   self.x_freq[self.peaks['peaks_idx'][0]] + (self.peaks['peaks_width'][0]*distanza)
         _, idx_min              =   Find_Nearest(self.x_freq, query_min)
             
-        query_max               =   self.x_freq[peaks_idx[3]] - (peaks_width[3]*distanza)
+        query_max               =   self.x_freq[self.peaks['peaks_idx'][3]] - (self.peaks['peaks_width'][3]*distanza)
         _, idx_max              =   Find_Nearest(self.x_freq, query_max)
         
         # STIMA PARAMETRI INIZIALI della funzione teorica
@@ -418,9 +458,9 @@ class Spectrum  :
 
         if  estimate:
                 
-            self.p0['Omega']            =   [np.absolute(self.x_freq[peaks_idx[2]] - self.x_freq[peaks_idx[1]])*0.5]
-            self.p0['Gamma']            =   [(peaks_width[2]+peaks_width[1])/20]
-            self.p0['offset']           =   np.mean(self.y[peaks_idx[1]:peaks_idx[2]])
+            self.p0['Omega']            =   [np.absolute(self.x_freq[self.peaks['peaks_idx'][2]] - self.x_freq[self.peaks['peaks_idx'][1]])*0.5]
+            self.p0['Gamma']            =   [(self.peaks['peaks_width'][2]+self.peaks['peaks_width'][1])/20]
+            self.p0['offset']           =   np.mean(self.y[self.peaks['peaks_idx'][1]:self.peaks['peaks_idx'][2]])
             
 
             # 2)i parametri iniziali che dovrebbero andare bene sempre
@@ -448,7 +488,7 @@ class Spectrum  :
             self.x_pix          =   self.x_pix[idx_min:idx_max]
             self.y              =   self.y[idx_min:idx_max]
 
-    def Estimate_Initial_Parameters(self):
+    def Estimate_Initial_Parameters(self, p0):
 
         """
 
@@ -691,9 +731,9 @@ class Spectrum  :
 
         return              interpolate
 
-    def Residuals(self, p, y):
+    def Residuals(self, p, y, y_err):
         
-        return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)
+        return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)/y_err
     
     def Non_Linear_Least_Squares (self, p0, my_method = None, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
 
@@ -744,9 +784,9 @@ class Spectrum  :
         self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
         print(self.Fit_Params)
 
-    def Residuals_Markov(self, p, y):
+    def Residuals_Markov(self, p, y, y_err):
         
-        return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)
+        return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/y_err
     
     def Non_Linear_Least_Squares_Markov (self, p0, my_method = None, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
 

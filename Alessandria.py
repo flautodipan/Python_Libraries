@@ -31,22 +31,35 @@ def Get_Delta_Between_Array_Elements(a):
 
 def Find_First_n_peaks(pk, n_peaks, exclude = None):
 
+    """
+
+    exclude deve essere sotto forma di iterabile
+
+    """
 
     if exclude:
+            
+        idx      =   range(pk[0].size)
 
-        pk[0]   =   np.delete(pk[0], int(exclude[0]-1))
+        for ii in exclude:
 
-    pk[0]   =   pk[0][:n_peaks]
-        
+            idx      =   np.delete(idx, ii-1)
     
-    return          {'peaks_idx' : pk[0], 'peaks_height': pk[1]['peak_heights'], 'peaks_width' : pk[1]['widths']}
+        idx      =   idx[:n_peaks]
+    
+    else:
+
+        idx     =   range(n_peaks)
+
+    return          {'peaks_idx' : pk[0][idx], 'peak_heights': pk[1]['peak_heights'][idx], 'peaks_width' : pk[1]['widths'][idx]}
 
 def Find_Highest_n_peaks(pk, n_peaks):
+
     from_heighest    =   np.flip(pk[1]['peak_heights'].argsort())
     from_heighest    =   from_heighest[:n_peaks]
     idx              =   np.sort(from_heighest)
 
-    return          {'peaks_idx' : pk[0][idx], 'peaks_height': pk[1]['peak_heights'], 'peaks_width' : pk[1]['widths'][idx]}
+    return          {'peaks_idx' : pk[0][idx], 'peak_heights': pk[1]['peak_heights'], 'peaks_width' : pk[1]['widths'][idx]}
 
 def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
 
@@ -62,7 +75,7 @@ def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
     peaks               =   find_peaks(y, **syg_kwargs)
     peaks_idx           =   np.array(peaks[0])
     peaks_width         =   peaks[1]['widths']
-    peaks_height        =   peaks[1]['peak_heights']
+    peak_heights        =   peaks[1]['peak_heights']
 
     print("\n\n Ho trovato %d picchi nel tuo spettro sperimentale con le caratteristiche richieste\n Altezza > %3.2f \n Spessore > %3.2f \n\n" %(peaks_idx.size, syg_kwargs['height'], syg_kwargs['width']))
     
@@ -77,9 +90,9 @@ def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
             
         for kk in range(len(peaks_idx)):
 
-            print("\n Il picco %d ha: \t indice = %d \t x_value (%s) = %3.2f \t ampiezza(%s) = %3.2f \t altezza = %3.2f \n" %(kk+1, peaks_idx[kk], x_dim, x[peaks_idx[kk]], x_dim, peaks_width[kk], peaks_height[kk]))
+            print("\n Il picco %d ha: \t indice = %d \t x_value (%s) = %3.2f \t ampiezza(%s) = %3.2f \t altezza = %3.2f \n" %(kk+1, peaks_idx[kk], x_dim, x[peaks_idx[kk]], x_dim, peaks_width[kk], peak_heights[kk]))
                 
-    return {'n_peaks' : peaks_idx.size, 'peaks_idx' : peaks_idx, 'peaks_width' : peaks_width, 'peaks_height' : peaks_height}
+    return {'n_peaks' : peaks_idx.size, 'peaks_idx' : peaks_idx, 'peaks_width' : peaks_width, 'peak_heights' : peak_heights}
 
 
 
