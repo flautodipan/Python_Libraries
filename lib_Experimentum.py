@@ -57,7 +57,7 @@ class Spectrum  :
             self.x_pix      =   self.x_pix[cut_range[0]:cut_range[1]]
             self.y          =   self.y[cut_range[0]:cut_range[1]]
 
-        
+
         if 'fig' in img_kwargs :
 
             plt.figure()
@@ -66,6 +66,25 @@ class Spectrum  :
             plt.title('Experimental spectrum for '+self.__str__())
             plt.savefig(img_kwargs['save_path']+img_kwargs['fig']+'.png')
             plt.show()
+
+    def Get_Spectrum_Peaks(self, **syg_kwargs):
+
+        """
+        Funzione che in ogni caso mi ritorna un dict con informazioni sui 4 picchi dello spettro, disposti in ordine 
+        elastico, brillouin stockes, brillouin antistockes, elastico
+
+        """
+        pk            =   find_peaks(self.y, **syg_kwargs)
+
+        self.n_peaks  =   pk[0]
+
+        if  (self.n_peaks.size <= 5):
+
+            self.peaks  =   Find_Highest_n_peaks(pk, 4)
+        
+        elif (self.n_peaks.size > 5):
+
+            self.peaks  =   Find_First_n_peaks(pk, 5, [3])
 
 
     def Get_VIPA_mat(self, mat_filename, path='./', tunable = None, offset = 'same', fig = False):
@@ -113,8 +132,6 @@ class Spectrum  :
             plt.title('Funzione di trasferimento VIPA in pixel da %s' %(mat_filename))
             plt.savefig(fig+'.png')
 
-
-
     def Get_VIPA_tif(self, tif_filename, path='', offset = 'same', **img_kwargs):
 
         print ('ATTENZIONE funzione da aggiornare\n\n\n\nATTENZIONE guarda Get_VIPA_mat')
@@ -138,13 +155,43 @@ class Spectrum  :
             plt.savefig(img_kwargs['save_path']+img_kwargs['fig']+'.png')
             plt.show()
 
-    def Is_Saturated(self, treshold):
+    def Check_Spectrum(self, saturation_height = 40000, saturation_width = 15.):
 
-        if self.y.max() >= treshold:
-            self.saturation =   True
-            return  True
+        pk_max_idx  =   np.argmax(self.peaks['peaks_height'])
+        
+        condition_peaks =   ((self.y[self.peaks['peaks_idx'][0]] < self.y[self.peaks['peaks_idx'][1]]) | (self.y[self.peaks['peaks_idx'][3]] < self.y[self.peaks['peaks_idx'][2]]))
+        
+        if condition_peaks:
+
+            print('Spettro con Brillouin più alti o qualcosaltro?')
+            return          2
+
+        if (self.y.max() >= saturation_height)  &  (self.peaks['peaks_width'][pk_max_idx] > saturation_width):
             
-    def How_Many_Peaks_To(self, n_peaks = 4, delta = 1., distance = 5., width = 0.01, treshold = 500, fig = False, verbose = False, i_know_it_is = False):
+            print('spettro saturato')
+            self.saturation =   True
+            return          1
+
+    def Knowing_Spectrum_Peaks(self):
+
+        self.peaks      =   Find_Highest_n_peaks(self.y, 4, height = 10., distance = 20, width = 1.)
+
+    def Knowing_VIPA_Peaks(self):
+
+        self.VIPA_peaks =   Find_Highest_n_peaks(self.y_VIPA, 5, height = 10., distance = 100, width = 1.)
+
+    def Knowing_Peaks(self):
+
+        peaks    =   ()
+
+        for (n_peaks, y, dist)    in      zip((4,5),(self.y, self.y_VIPA), (20, 100)):
+
+            peaks    =   peaks    +   (Find_Highest_n_peaks(y, n_peaks, height = 10., distance = dist, width = 1.),)
+
+        self.peaks     =   peaks[0]
+        self.VIPA_peaks         =   peaks[1]
+
+    def How_Many_Peaks_To(self, n_peaks = 4, delta = 1., distance = 20., width = 1., treshold = 5, fig = False, verbose = False, i_know_it_is = False):
 
         pk      =   find_peaks(self.y, height = treshold, distance = distance, width = width)
         height  =   np.max(pk[1]['peak_heights'])/2
@@ -176,10 +223,10 @@ class Spectrum  :
         if condition_peaks &  (i_know_it_is == False):
             raise ValueError("Picchi Brillouin non sono interni o sono più alti degli elastici, controllare")
 
-        self.spectrum_cut_height    =   height
-        self.spectrum_peaks_dist        =distance
+        self.spectrum_cut_height        =   height
+        self.spectrum_peaks_dist        =   distance
         
-    def How_Many_Peaks_To_VIPA(self, n_GHz_peaks = 5, n_gauss_peaks = 3, delta = 1., distance = 150., width = 0.01, treshold = 500, fig = False, verbose = False):
+    def How_Many_Peaks_To_VIPA(self, n_GHz_peaks = 5, n_gauss_peaks = 3, delta = 1., distance = 150., width = 1, treshold = 50, fig = False, verbose = False):
 
         h_save = ()
 
@@ -216,7 +263,7 @@ class Spectrum  :
 
     def Fit_VIPA_Gaussian(self, fig = False, verbose = False):
 
-        peaks_idx   =   find_peaks(self.y_VIPA, height = self.gauss_fit_height, distance = self.VIPA_peaks_dist, width = 0.01)[0]
+        peaks_idx   =   find_peaks(self.y_VIPA, height = self.gauss_fit_height, distance = self.VIPA_peaks_dist, width = 1)[0]
     
         gmod = Model(gaussian)
         result = gmod.fit(self.y_VIPA[peaks_idx], x = self.x_VIPA_freq[peaks_idx], A = 1., mu = 1, sigma = 1)
@@ -267,7 +314,7 @@ class Spectrum  :
 
         #1)     trovo picchi elastici dello spettro e li salvo
 
-        peaks               =   find_peaks(self.y_VIPA, height=self.GHz_fit_height, distance = self.VIPA_peaks_dist, width = 0.01)
+        peaks               =   find_peaks(self.y_VIPA, height=self.GHz_fit_height, distance = self.VIPA_peaks_dist, width = 1)
         peaks_idx           =   peaks[0]
         peaks_pix           =   self.x_VIPA[peaks_idx]
         peaks_counts        =   self.y_VIPA[peaks_idx]
@@ -302,7 +349,6 @@ class Spectrum  :
             #plt.savefig('figure/'+fig+'.png')
             plt.show()
         
-
     def VIPA_Pix2GHz (self, fig = False):
             
         #modifico in GHz le ascisse della funz trasf 
@@ -351,7 +397,7 @@ class Spectrum  :
         #        chiudere lo spettro
         #      
         """
-        pk              =   find_peaks(self.y, height = self.spectrum_cut_height, distance = self.spectrum_peaks_dist, width = 0.01)
+        pk              =   find_peaks(self.y, height = self.spectrum_cut_height, distance = self.spectrum_peaks_dist, width = 1)
         peaks_idx       =   pk[0]
         peaks_width     =   pk[1]['widths']
         query_min               =   self.x_freq[peaks_idx[0]] + (peaks_width[0]*distanza)
@@ -370,17 +416,19 @@ class Spectrum  :
         #       Gamma (=Delta)come la media dell'ampiezza restituita da find_peaks per i Brillouin /10 (mah..)
         #       offset come la media dei valori dello spettro nella zona tra i due picchi
 
-        self.p0['Omega']            =   [np.absolute(self.x_freq[peaks_idx[2]] - self.x_freq[peaks_idx[1]])*0.5]
-        self.p0['Gamma']            =   [(peaks_width[2]+peaks_width[1])/20]
-        self.p0['offset']           =   np.mean(self.y[peaks_idx[1]:peaks_idx[2]])
-        
+        if  estimate:
+                
+            self.p0['Omega']            =   [np.absolute(self.x_freq[peaks_idx[2]] - self.x_freq[peaks_idx[1]])*0.5]
+            self.p0['Gamma']            =   [(peaks_width[2]+peaks_width[1])/20]
+            self.p0['offset']           =   np.mean(self.y[peaks_idx[1]:peaks_idx[2]])
+            
 
-        # 2)i parametri iniziali che dovrebbero andare bene sempre
-        self.p0['Co']               =   [1.]#amplitude factor
-        self.p0['shift']            =   [0.]
-        #self.p0['delta_amplitude']  =   self.y[[peaks_idx[self.y[peaks_idx].argmax()]]]
-        self.p0['delta_amplitude']  =   [1.]
-        self.p0['delta_width']      =   [0.5]
+            # 2)i parametri iniziali che dovrebbero andare bene sempre
+            self.p0['Co']               =   [1.]#amplitude factor
+            self.p0['shift']            =   [0.]
+            #self.p0['delta_amplitude']  =   self.y[[peaks_idx[self.y[peaks_idx].argmax()]]]
+            self.p0['delta_amplitude']  =   [1.]
+            self.p0['delta_width']      =   [0.5]
 
         if verbose:
 
@@ -394,7 +442,7 @@ class Spectrum  :
         
         # procedo con il taglio se è voluto
 
-        if (cut == True):           
+        if cut:           
             
             self.x_freq         =   self.x_freq[idx_min:idx_max]
             self.x_pix          =   self.x_pix[idx_min:idx_max]
@@ -432,9 +480,6 @@ class Spectrum  :
         plt.show()
 
         return cost_guess
-
-
- 
 
     def Gauss_Convolve_Theoretical_Response (self, p, fantoccio = False, fig = False):
 
@@ -769,3 +814,4 @@ def Initialize_Matrix(n_rows, n_cols):
     print('Ho inizializzato una matrice %dx%d, per un totale di %d spettri'%(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])  ))
 
     return matrix
+

@@ -9,7 +9,7 @@ from    scipy.io            import  loadmat
 """    
 
 ##############################################################################################
-##############################################################################################
+#############################################################################################
 
 Funzioni generiche 
 Insieme di funzioni utili per vari scopi in tutto il lavoro
@@ -24,13 +24,30 @@ def Get_Delta_Between_Array_Elements(a):
 
     """
 
-    
     a_up    =   a[1:]
     a_down  =   a[:a.size-1]
 
     return  a_up-a_down 
 
+def Find_First_n_peaks(pk, n_peaks, exclude = None):
+
+
+    if exclude:
+
+        pk[0]   =   np.delete(pk[0], int(exclude[0]-1))
+
+    pk[0]   =   pk[0][:n_peaks]
+        
     
+    return          {'peaks_idx' : pk[0], 'peaks_height': pk[1]['peak_heights'], 'peaks_width' : pk[1]['widths']}
+
+def Find_Highest_n_peaks(pk, n_peaks):
+    from_heighest    =   np.flip(pk[1]['peak_heights'].argsort())
+    from_heighest    =   from_heighest[:n_peaks]
+    idx              =   np.sort(from_heighest)
+
+    return          {'peaks_idx' : pk[0][idx], 'peaks_height': pk[1]['peak_heights'], 'peaks_width' : pk[1]['widths'][idx]}
+
 def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
 
     """
