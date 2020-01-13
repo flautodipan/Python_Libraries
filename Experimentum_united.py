@@ -30,9 +30,6 @@ matrix = Exp.Initialize_Matrix(n_rows,n_cols)
 #definisco quantità di interesse
 
 invisible           =   () 
-fitted              =   ()  
-non_fitted          =   ()
-failed              =   ()
 saturated           =   () 
 brillouin_higher    =   ()
 boni                =   ()
@@ -104,7 +101,7 @@ for ii in range(n_rows):
 
         if ((ii,jj) != (0,0)) & ((ii,jj) not in excluded):
                     
-            matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA_freq
+            matrix[ii][jj].x_VIPA_freq   =   matrix[0][0].x_VIPA_freq
             matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
             
             matrix[ii][jj].Poly2GHz =   matrix[0][0].Poly2GHz
@@ -129,7 +126,36 @@ print('tempo impiegato per modifica spettri: %f s'%(time.process_time()-start))
 #%%
 #3) faccio il primo fit markoviano
 
+fit                 =   ()
+fitted              =   ()  
+non_fitted          =   ()
+failed              =   ()
+isolated = Exp.Get_Isolated_Elements(excluded)
 
+#prima riga, stimo da sx, eccetto il primo
+start = time.process_time()
+
+ii = 0
+for jj in range(n_cols):
+    print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+    if (ii,jj) in boni:
+        if (ii,jj) in isolated:
+            fit = fit + (matrix[ii][jj].Estimate_Initial_Parameters(matrix[0][0].p0.values[0], 1000), (ii,jj),)
+        else:
+            fit = fit + (matrix[ii][jj].Estimate_Initial_Parameters(matrix[ii][jj-1].p0.values[0], 1000), (ii,jj),)
+
+#tutto il resto
+#%%
+for ii in range(1, n_rows,1 ):
+    for jj in range(n_cols):
+        print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+        if (ii,jj) in boni:
+            if (ii,jj) in isolated:
+                fit =   fit + (matrix[ii][jj].Estimate_Initial_Parameters(matrix[0][0].p0.values[0], 1000), (ii,jj),)
+            else: 
+                fit =   fit + (matrix[ii][jj].Estimate_Initial_Parameters(matrix[ii-1][jj].p0.values[0], 1000), (ii,jj),)
+
+print('tempo impiegato per fit markoviani: %f s'%(time.process_time()-start))
 
 
 

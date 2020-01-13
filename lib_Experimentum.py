@@ -14,6 +14,10 @@ from    Alessandria         import *
 from    lmfit               import Model
 
 free_spectral_range =   29.9702547 #GHz
+cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+
+
 
 #       PARTE   2       Classi 
 
@@ -48,21 +52,27 @@ class Spectrum  :
 
         """
 
-        self.x_pix      =   np.arange(1, len(y)+1, 1)
+        self.x      =   np.arange(1, len(y)+1, 1)
         self.offset     =   offset     
         self.y          =   y - self.offset
-  
+
+        ###levo elementi == 0, problematici per le incertezze poissoniane
+
+        self.x          =   self.x[self.y != 0.]
+        self.y          =   self.y[self.y != 0.]
+
         if cut:
 
-            self.x_pix      =   self.x_pix[cut_range[0]:cut_range[1]]
+            self.x      =   self.x[cut_range[0]:cut_range[1]]
             self.y          =   self.y[cut_range[0]:cut_range[1]]
 
+        self.y_err      =   np.sqrt(self.y)
 
         if fig:
 
             plt.figure()
-            plt.plot(self.x_pix, self.y)
-            plt.plot(self.x_pix[self.peaks[0]], self.y[self.peaks[0]], '*')
+            plt.plot(self.x, self.y)
+            plt.plot(self.x[self.peaks[0]], self.y[self.peaks[0]], '*')
             plt.xlabel('Pixels')
             plt.title('Experimental spectrum for '+self.__str__())
             plt.savefig(fig+'.png')
@@ -175,14 +185,13 @@ class Spectrum  :
 
     def Check_Spectrum(self, saturation_height = 40000, saturation_width = 15.):
 
-
         if (self.n_peaks <= 3) | (self.n_peaks >= 7):
             
             print('Spettro invisibile')
 
             return  3
 
-        elif (self.n_peaks >= 4) | (self.n_peaks < 7):
+        elif (self.n_peaks >= 4) & (self.n_peaks < 7):
 
 
             pk_max_idx  =   np.argmax(self.peaks[1]['peak_heights'])
@@ -410,8 +419,8 @@ class Spectrum  :
         #modifico in GHz le ascisse dello spettro
         # --> prima devo convertire in DeltaPixel
 
-        self.x_pix      =   self.x_pix  -   self.x_pix[self.y.argmax()]
-        self.x_freq     =   ((self.x_pix**3)*self.Poly2GHz[0])+ ((self.x_pix**2)*self.Poly2GHz[1]) + (self.x_pix*self.Poly2GHz[2]) + (self.Poly2GHz[3])
+        self.x      =   self.x  -   self.x[self.y.argmax()]
+        self.x_freq     =   ((self.x**3)*self.Poly2GHz[0])+ ((self.x**2)*self.Poly2GHz[1]) + (self.x*self.Poly2GHz[2]) + (self.Poly2GHz[3])
         
         if fig:
 
@@ -449,8 +458,8 @@ class Spectrum  :
         # STIMA PARAMETRI INIZIALI della funzione teorica
         # (quelli che posso, e devo farlo  prima di tagliare)
         
-        
-        self.p0 = pd.DataFrame({})
+        self.p0  =   pd.DataFrame({}, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+
         # 1)    stima dei parametri dai dati
         #       Omega come la media della posizione dei massimi brillouin
         #       Gamma (=Delta)come la media dell'ampiezza restituita da find_peaks per i Brillouin /10 (mah..)
@@ -460,15 +469,17 @@ class Spectrum  :
                 
             self.p0['Omega']            =   [np.absolute(self.x_freq[self.peaks['peaks_idx'][2]] - self.x_freq[self.peaks['peaks_idx'][1]])*0.5]
             self.p0['Gamma']            =   [(self.peaks['peaks_width'][2]+self.peaks['peaks_width'][1])/20]
+            self.p0['Delta']            =   self.p0['Gamma']
+            self.p0['tau'  ]            =   [100.]
             self.p0['offset']           =   np.mean(self.y[self.peaks['peaks_idx'][1]:self.peaks['peaks_idx'][2]])
             
 
             # 2)i parametri iniziali che dovrebbero andare bene sempre
             self.p0['Co']               =   [1.]#amplitude factor
             self.p0['shift']            =   [0.]
-            #self.p0['delta_amplitude']  =   self.y[[peaks_idx[self.y[peaks_idx].argmax()]]]
             self.p0['delta_amplitude']  =   [1.]
             self.p0['delta_width']      =   [0.5]
+
 
         if verbose:
 
@@ -485,10 +496,11 @@ class Spectrum  :
         if cut:           
             
             self.x_freq         =   self.x_freq[idx_min:idx_max]
-            self.x_pix          =   self.x_pix[idx_min:idx_max]
+            self.x          =   self.x[idx_min:idx_max]
             self.y              =   self.y[idx_min:idx_max]
+            self.y_err          =   self.y_err[idx_min:idx_max]
 
-    def Estimate_Initial_Parameters(self, p0):
+    def Estimate_Initial_Parameters(self, p0, treshold):
 
         """
 
@@ -498,13 +510,40 @@ class Spectrum  :
         FUNZIONE DA AGGIORNARE con possibile scelta tra markov fitting e vicino dell'array
 
         """
-        print(self.p0)
-        self.p0             = pd.DataFrame(self.Fit_Params.T['Values']).T
-        self.p0['Delta']    = self.p0['Gamma']
-        self.p0['tau']     = [100.]
-        #riordino
-        self.p0  =   pd.DataFrame(self.p0, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
-        print(self.p0)
+        self.cost           =   0.5*np.sum(self.Residuals(p0, self.y)**2)
+        print('costo = '+str(self.cost))
+
+        if self.cost >= treshold:
+
+            Omega_bounds    =   Get_Around(p0[1], 0.1)
+            A_bounds        =   Get_Around(p0[7], 0.1)
+            Mu_bounds       =   Get_Around(p0[8], 0.1)
+            Sigma_bounds    =   Get_Around(p0[9], 0.1)
+
+            bounds_down     =   (0      , Omega_bounds[0], 0,       0,      0,      A_bounds[0], Mu_bounds[0], Sigma_bounds[0], 0,       0)
+            bounds_up       =   (np.inf , Omega_bounds[1], np.inf,  np.inf, np.inf, A_bounds[1], Mu_bounds[1], Sigma_bounds[1], np.inf, np.inf)
+            p0              =   np.concatenate((p0[:3], p0[5:]))
+
+            self.Non_Linear_Least_Squares_Markov(p0, my_method = 'least_squares', bound = (bounds_down, bounds_up))
+
+            self.p0             = pd.DataFrame(self.Fit_Params.T['Values']).T
+            self.p0['Delta']    = self.p0['Gamma']
+            self.p0['tau']     = [100.]
+
+            self.p0  =   pd.DataFrame(self.p0, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+            self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
+            print('costo dopo fit = '+str(self.cost))
+            
+            if self.res_lsq['success']:
+                return  1
+            else:
+                return  2
+
+        else:
+            
+            self.p0         =   pd.DataFrame({idx : value for (idx, value) in zip(cols, p0)}, index = ['Initials'])
+            return  0
+
 
     def Take_A_Look_Before_Fitting(self):
         
@@ -731,23 +770,11 @@ class Spectrum  :
 
         return              interpolate
 
-    def Residuals(self, p, y, y_err):
+    def Residuals(self, p, y):
         
-        return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)/y_err
+        return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)/self.y_err
     
     def Non_Linear_Least_Squares (self, p0, my_method = None, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
-
-        if (p0 == 'auto'):
-            
-            #riordino le colonne e le assumo nel vettore p0 da passare alla funzione
-
-            self.p0  =   pd.DataFrame(self.p0, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
-            p0  =   self.p0.values[0]
-
-            print("\nAssumo vettore dei parametri iniziali da quelli stimati\n", p0, '\n')
-        
-        else:  print("\nAssumo vettore dei parametri iniziali da quello inserito come arg\n", p0, '\n')
-
 
         start            =    time.process_time()
         
@@ -782,59 +809,48 @@ class Spectrum  :
         
         
         self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
-        print(self.Fit_Params)
-
-    def Residuals_Markov(self, p, y, y_err):
         
-        return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/y_err
+    
+
+    def Residuals_Markov(self, p, y):
+        
+        return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/self.y_err
     
     def Non_Linear_Least_Squares_Markov (self, p0, my_method = None, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
 
-        if (p0 == 'auto'):
-            
-            #riordino le colonne e le assumo nel vettore p0 da passare alla funzione
-
-            self.p0     =   pd.DataFrame(self.p0, columns = ('Co', 'Omega', 'Gamma', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
-            p0          =   self.p0.values[0]
-
-            print("\nAssumo vettore dei parametri iniziali da quelli stimati\n", p0, '\n')
-        
-        else:  print("\nAssumo vettore dei parametri iniziali da quello inserito come arg\n", p0, '\n')
-
-
         start            =    time.process_time()
         
-        if ( my_method == 'lsq'):
+        if (my_method == 'least_squares'):
             
-            self.res_lsq     =    leastsq(self.Residuals_Markov, p0, args= self.y, full_output = True, **kwargs)
+            self.res_lsq     =    least_squares(self.Residuals_Markov, p0, args= ([self.y]), bounds = bound, max_nfev = max_iter, verbose = verbose, **kwargs)
+            print("s impiegati a fare il fit ", time.process_time()-start, '\n')
+            Parameters       =    self.res_lsq.x
+
+        elif ( my_method == 'lsq'):
+            
+            self.res_lsq     =    leastsq(self.Residuals_Markov, p0, args= (self.y), full_output = True, **kwargs)
             print("s impiegati a fare il fit ", time.process_time()-start, '\n')
             Parameters       =   self.res_lsq[0]
             Delta_Parameters =   np.zeros(Parameters.size)
-            
-        elif (my_method == 'least_squares'):
-            
-            self.res_lsq     =    least_squares(self.Residuals_Markov, p0, args= ([self.y]), bounds = bound, max_nfev = max_iter, verbose = verbose, **kwargs)
-            print("s impiegati a fare la convoluzione ", time.process_time()-start, '\n')
-            Parameters       =    self.res_lsq.x
-            J                =    self.res_lsq.jac
-            cov              =    np.linalg.inv(J.T.dot(J))
-            Delta_Parameters =    np.sqrt(np.diagonal(cov))
 
         else : raise ValueError("Specificare se usare metodo scipy.optimize.least_squares() o scipy.optimize.lsq() o scipy.optimize.curve_fit()\n")
            
-        y_fit  = self.Gauss_Convolve_Markovian_Response_Fast(Parameters)
+        self.y_fit  = self.Gauss_Convolve_Markovian_Response_Fast(Parameters)
       
         if fig:
 
             plt.figure()
             plt.title('Fit for '+self.__str__())
             plot(self.x_freq, self.y, '+', label='Data')
-            plot(self.x_freq, y_fit, label= 'Fit')
+            plot(self.x_freq, self.y_fit, label= 'Fit')
             plt.legend()
         
         
-        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
-        print(self.Fit_Params)
+        self.Fit_Params = pd.DataFrame((Parameters, p0), index = ('Values', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+        
+        if verbose:
+
+            print(self.Fit_Params)
 
 def Initialize_Matrix(n_rows, n_cols):
 
@@ -855,3 +871,27 @@ def Initialize_Matrix(n_rows, n_cols):
 
     return matrix
 
+def Get_Isolated_Elements(excluded):
+
+    """
+
+    Essendo il fit basato su prendere condizioni iniziali da elemento a sx per la prima riga, elemento sopra per tutti gli altri
+    Questa funzione ritorna una tupla con tutti gli (ii,jj) affetti da mancanza di questo vicino
+
+    (0,0) isolato per def -> di conseguenza 
+
+    """
+
+    isolated = ((0,0),)
+
+    for (ii,jj) in excluded:
+
+        if (ii == 0):
+
+            isolated    =   isolated    +   ((ii, jj+1),)
+        else :
+
+            isolated    =   isolated    +   ((ii+1, jj),)
+
+    return isolated
+    
