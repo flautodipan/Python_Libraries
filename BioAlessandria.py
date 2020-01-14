@@ -48,17 +48,26 @@ class Protein:
 
         if model:
 
+
             n= model-1 #aggiusto per combaciare indici
+
+            if model == 1:
+
+                models = self.pdb.df['OTHERS']
+
+                start_index = np.array(models[self.pdb.df['OTHERS']['record_name']== 'MODEL']['line_idx'])[n]
+                stop_index  = np.array(models[self.pdb.df['OTHERS']['record_name']== 'ENDMDL']['line_idx'])[n]
 
             #estraggo indici partenza/arresto lettura dal pdb
             # lo faccio facendo la query delle righe con MODEL e prendendo gli 
             #indici di linea --> a meno di un addendo costante è la numerosità da prendere
             # per i valori identificati dalle keys ['ATOM']
-    
-            models = self.pdb.df['OTHERS'][self.pdb.df['OTHERS']['record_name']== 'MODEL']
-            start_index = np.array(models['line_idx'])[n]
-            stop_index = np.array(models['line_idx'])[n+1]
-            
+
+            elif (model >1):
+                models = self.pdb.df['OTHERS'][self.pdb.df['OTHERS']['record_name']== 'MODEL']
+                start_index = np.array(models['line_idx'])[n]
+                stop_index = np.array(models['line_idx'])[n+1]
+                
             # ho contato a mano che sbaglia di 4 righe considerando MODEL,ENDMDL e TER
             # che ignora perchè io gli chiedo ATOM come key e costruisco start e stop
             # in base a MODEL
@@ -142,10 +151,20 @@ class RNA:
         if model:
 
             n= model-1
-            models = self.pdb.df['OTHERS'][self.pdb.df['OTHERS']['record_name']== 'MODEL']
-            start_index = np.array(models['line_idx'])[n]
-            stop_index = np.array(models['line_idx'])[n+1]
             
+            if model == 1:
+
+                models = self.pdb.df['OTHERS']
+
+                start_index = np.array(models[self.pdb.df['OTHERS']['record_name']== 'MODEL']['line_idx'])[n]
+                stop_index  = np.array(models[self.pdb.df['OTHERS']['record_name']== 'ENDMDL']['line_idx'])[n]
+
+
+            elif model > 1:
+                models = self.pdb.df['OTHERS'][self.pdb.df['OTHERS']['record_name']== 'MODEL']
+                start_index = np.array(models['line_idx'])[n]
+                stop_index = np.array(models['line_idx'])[n+1]
+                
             # ho contato a mano che sbaglia di 4 righe considerando MODEL,ENDMDL e TER
             # che ignora perchè io gli chiedo ATOM come key e costruisco start e stop
             # in base a MODEL
@@ -773,7 +792,7 @@ def Contacts_Matrix (Dist, treshold, fig = False):
 
     return Cont_Matrix
 
-def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first = ('Proteina', 0), second = ('RNA', 0)):
+def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first = ('Proteina', 0), second = ('RNA', 0), fig = False, verbose = False):
 
     #1) estrarre matrice dei contatti nella parte che interessa 
     # per ora a due poi servirà giocare meglio su sizes e numero strutture
@@ -786,14 +805,15 @@ def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first 
 
     Asym_Cont = Cont_Matrix[structure_sizes[0]:, :structure_sizes[0]]
 
+    if fig:
 
-    plt.figure()
-    plt.matshow(Asym_Cont)
-    plt.xlabel(structure_names[0]+" residue index")
-    plt.ylabel(structure_names[1]+" residue index")
-    plt.title("Asym_Cont Matrix of "+structure_names[0]+" + "+structure_names[1])
-    plt.savefig(structure_names[0]+"+"+structure_names[1]+"_Asym_Cont_Matrix")
-    plt.show()
+        plt.figure()
+        plt.matshow(Asym_Cont)
+        plt.xlabel(structure_names[0]+" residue index")
+        plt.ylabel(structure_names[1]+" residue index")
+        plt.title("Asym_Cont Matrix of "+structure_names[0]+" + "+structure_names[1])
+        plt.savefig(structure_names[0]+"+"+structure_names[1]+"_Asym_Cont_Matrix")
+        plt.show()
 
     #2) estraggo informazioni dalla tupla di array ritornata da np.nonzero()
     
@@ -816,17 +836,13 @@ def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first 
                 Bond_i = Bond_i + (int(NonZero[1][j]+1+second[1]),)
 
         if (cont_next!=0):
-
-            print ("Il "+str(i+1+first[1])+" residuo di "+first[0]+" lega con "+str(cont_next)+" residui di "+second[0]+ "\n I residui \n", np.array(Bond_i)+1,'\n')
+            if verbose:
+                print ("Il "+str(i+1+first[1])+" residuo di "+first[0]+" lega con "+str(cont_next)+" residui di "+second[0]+ "\n I residui \n", np.array(Bond_i)+1,'\n')
             cont_prev = cont_prev + cont_next #aggiorno
-
+            Bonds = Bonds + (Bond_i,)
         if (cont_next != len(Bond_i)):
                 
             raise ValueError("Qualcosa è andato storto: taglia della tupla dei residui di contatto non coincide con il numero dei cont_nonzero\n\n")
-        
-        Bonds = Bonds + (Bond_i,)  
- 
-    
         
     return Bonds
 
