@@ -544,6 +544,16 @@ class Spectrum  :
             self.p0         =   pd.DataFrame({idx : value for (idx, value) in zip(cols, p0)}, index = ['Initials'])
             return  0
 
+    def Recover_Initial_Parameters(self, p0):
+
+        self.p0         =   pd.DataFrame(p0, index = cols_mark).T
+        self.p0['Delta']    = self.p0['Gamma']
+        self.p0['tau']     = [100.]
+        self.p0  =   pd.DataFrame(self.p0, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+        self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
+        print('costo dopo fit = '+str(self.cost))
+            
+
 
     def Take_A_Look_Before_Fitting(self):
         
@@ -774,30 +784,32 @@ class Spectrum  :
         
         return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)/self.y_err
     
-    def Non_Linear_Least_Squares (self, p0, my_method = None, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
+    def Non_Linear_Least_Squares (self, p0, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
 
         start            =    time.process_time()
+
         
-        if ( my_method == 'lsq'):
-            
-            self.res_lsq     =    leastsq(self.Residuals, p0, args= self.y, full_output = True, **kwargs)
-            print("s impiegati a fare il fit ", time.process_time()-start, '\n')
-            Parameters       =   self.res_lsq[0]
-            Delta_Parameters =   np.zeros(Parameters.size)
-            
-        elif (my_method == 'least_squares'):
-            
-            self.res_lsq     =    least_squares(self.Residuals, p0, args= ([self.y]), bounds = bound, max_nfev = max_iter, verbose = verbose, **kwargs)
-            print("s impiegati a fare la convoluzione ", time.process_time()-start, '\n')
-            Parameters       =    self.res_lsq.x
+        self.res_lsq     =    least_squares(self.Residuals, p0, args= ([self.y]), bounds = bound, max_nfev = max_iter, verbose = verbose, **kwargs)
+        print("s impiegati a fare la convoluzione ", time.process_time()-start, '\n')
+
+        Parameters       =    self.res_lsq.x
+
+        try:
             J                =    self.res_lsq.jac
             cov              =    np.linalg.inv(J.T.dot(J))
             Delta_Parameters =    np.sqrt(np.diagonal(cov))
 
+        except  np.linalg.LinAlgError as err:
 
-        else : raise ValueError("Specificare se usare metodo scipy.optimize.least_squares() o scipy.optimize.lsq() o scipy.optimize.curve_fit()\n")
-           
-        y_fit  = self.Gauss_Convolve_Theoretical_Response_Fast(Parameters)
+            if 'Singular matrix' in str(err):
+                print('Ho trovato matrice singolare')
+                Delta_Parameters    =   np.empty(len(p0))
+                Delta_Parameters[:]    =   np.nan
+            else :
+                raise
+
+
+        self.y_fit  = self.Gauss_Convolve_Theoretical_Response_Fast(Parameters)
 
         if fig:
 
@@ -810,7 +822,51 @@ class Spectrum  :
         
         self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
         
+        if (self.res_lsq['success'] == False):
+            return 2
+        else: return 1
+
+
+
+    def Get_Fit_Bounds(self, percents, columns): 
+
+        """
+        Funzione che definisce un attributo self.bounds, un dataframe con le colonne up and down
+        ogni valore di self.p0 ha due elementi associati che corrispondono ai limiti che si vogliono imporre nel fit
+
+        il calcolo dei bounds si basa sulla funzione Get_Around e sul parametro da passare percents, il quale DEVE essere di lunghezza uguale al 
+        p0 di riferimento, con quell'ordine di paramentri
+
+        se un elemento di percents è np.inf, la funzione ritorna l'asse reale come limiti per il parametro corrispondente
+        se un elemento di percents è 'positive', la funzione ritorna [0, np.inf] come limiti #
+
+        la funzione funziona sia per Markov che per Real
+
+        """
+
+        if len(percents) != len(self.p0.values[0]):
+
+            raise ValueError ("Lunghezza della tupla percents = %d errata, deve essere uguale alla dimensione di p0 = %d"%(len(percents), len(self.p0.values[0])))
+                
+        self.bounds = pd.DataFrame( {}, index= columns, columns=('down', 'up'))
+
+        for (values, col, frac) in zip(self.p0.values[0], cols, percents):
     
+            if  frac    ==  np.inf:
+
+                self.bounds['down'][col]     =    -np.inf
+                self.bounds['up'][col]       =    np.inf
+            
+            elif    frac == 'positive':
+
+                self.bounds['down'][col]     =    0
+                self.bounds['up'][col]       =    np.inf
+            
+            else:
+                    
+                bound   =   Get_Around(values, frac)
+                self.bounds['down'][col]     =   bound[0]
+                self.bounds['up'][col]       =   bound[1]
 
     def Residuals_Markov(self, p, y):
         
@@ -835,7 +891,7 @@ class Spectrum  :
 
         else : raise ValueError("Specificare se usare metodo scipy.optimize.least_squares() o scipy.optimize.lsq() o scipy.optimize.curve_fit()\n")
            
-        self.y_fit  = self.Gauss_Convolve_Markovian_Response_Fast(Parameters)
+        self.y_markov_fit  = self.Gauss_Convolve_Markovian_Response_Fast(Parameters)
       
         if fig:
 
@@ -895,3 +951,185 @@ def Get_Isolated_Elements(excluded):
 
     return isolated
     
+    
+def Unpack_Fit(fit):
+
+    non_fitted  =   ()
+    fitted      =   ()
+    exceded      =   ()
+
+    for (what, (ii,jj)) in fit:
+
+        if  what == 0:
+
+            non_fitted  =    non_fitted +   ((ii,jj),)
+
+        elif what == 1:
+            
+            fitted      =   fitted  +   ((ii,jj),)
+
+        elif what == 2:
+
+            exceded      =   exceded  +   ((ii,jj),)
+    
+    return (non_fitted, fitted, exceded)
+
+def Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = False, path = ''):
+
+    """
+    Funzione che ritorna e stampa matrice i cui valori sono
+
+    0   se il fit non è stato svolto per quel (ii,jj) perchè già buona stima (solo per fit Markov)
+
+    1   se il fit è stato fatto ed è stato portato a buon termine
+
+    2   se il fit è stato fatto ma ha superato numero max di iterazioni senza convergere
+
+    3   se il fit non è stato svolto perchè elemento escluso
+
+    OSS: essendo che mi aspetto max di fit fatti, genero np.ones()
+
+
+    """
+    fit_map =  np.ones((n_rows, n_cols))
+
+    for ii in range(n_rows):
+        for jj in range(n_cols):
+
+            if (ii,jj) in non_fitted:
+
+                fit_map[ii,jj]  =   0.
+            
+            elif (ii, jj) in exceded:
+
+                fit_map[ii,jj]  =   2.
+            
+            elif (ii,jj) in excluded:
+
+                fit_map[ii,jj]  =   3.
+    
+    print('Completata Fit_Map')
+    
+    if fig:
+
+       
+        plt.matshow(fit_map, cmap = 'ocean')
+        plt.title('Fit Map')
+        plt.colorbar()
+        plt.xlabel('Row Index')
+        plt.ylabel('Col Idx')
+        plt.savefig(path + fig+'.png')
+        plt.close()
+
+
+def Gamma_Verify_Markov_Fit(matrix, fitted):
+
+    for (ii, jj) in fitted:
+
+        if matrix[ii][jj].Fit_Params['Gamma']['Values'] > 1.:
+
+            plt.figure()
+            plt.plot(matrix[ii][jj].y)
+            plt.plot(matrix[ii][jj].y_fit)
+            plt.title(str((ii,jj)) +' successo: '+ str(matrix[ii][jj].res_lsq['success']))
+            print(matrix[ii][jj].res_lsq['message'])
+
+
+def Get_Parameter_Map(parameter, matrix, n_rows, n_cols, fitted, exceded, excluded, fig = False, path = ''):
+
+    if parameter not in matrix[fitted[0][0]][fitted[0][1]].Fit_Params.columns:
+            
+            print ('Parametro scelto non in quelli fittati: scegliere uno tra\n', cols_red, '\nse si sta mappando dopo fit totale, markoviano leva tau e delta\n')
+            raise ValueError('COJONE')
+
+    p_map   =   np.zeros((n_rows, n_cols))
+    
+    for ii in range(n_rows):
+        for jj in range (n_cols):
+            if (ii,jj)  in fitted+exceded:     
+                if  (ii, jj) not in excluded:
+                    p_map[ii,jj]    =   matrix[ii][jj].Fit_Params[parameter]['Values']
+
+    print('Completata Paramter_Map per '+parameter)
+    
+    if fig:
+
+        plt.matshow(p_map, cmap = 'ocean')
+        plt.title(parameter+' Map')
+        plt.colorbar()
+        plt.xlabel('Row Index')
+        plt.ylabel('Col Idx')
+        plt.savefig(path + fig+'.png')
+        plt.close()
+
+
+def Escludi_a_Mano(to_add, excluded):
+
+    for (ii, jj) in to_add:
+
+        excluded = excluded + ((ii,jj),)
+
+    return excluded
+
+def Whose_Gamma_Too_High(treshold, matrix, fitted, exceded):
+
+    too_high    =   ()
+    for (ii,jj) in (fitted+exceded):
+        if matrix[ii][jj].Fit_Params['Gamma']['Values'] > treshold:
+            too_high    =   too_high    +   ((ii,jj),)
+            print(str((ii,jj))+' ha gamma = %3.2f'%(matrix[ii][jj].Fit_Params['Gamma']['Values']))
+
+    return too_high
+
+
+
+def Save_Params(path, n_rows, n_cols, matrix, fitted):
+
+    f = open(path+'save_params.txt', 'w')
+
+    for ii in range(0, n_rows,1 ):
+        for jj in range(n_cols):
+            if (ii,jj) in fitted:
+                f.write(str(matrix[ii][jj].Fit_Params.values[0])+'\n')
+    f.close()
+
+def Save_Fitted_Info(path, n_rows, n_cols, fitted):
+
+    f = open(path+'fitted.txt', 'w')
+    f.write('(')
+    for ii in range(0, n_rows,1):
+        for jj in range(n_cols):
+            if (ii,jj) in fitted:
+                f.write(str((ii,jj))+',')
+    f.write(')')
+    f.close()
+
+
+
+def Save_Fit_Info(path, n_rows, n_cols, fit):
+
+    f = open(path+'fit.txt', 'w')
+    f.write('(')
+    for ft in fit:
+                f.write(str(ft)+',')
+    f.write(')')
+    f.close()
+
+
+def Parse_Parameter_Save(parameter_file = 'save_params.txt', path = ''):
+
+    parameters  = ()
+    f   =   open(path+parameter_file, 'r')
+    lines   =   f.readlines()
+    f.close()
+    indices =   np.arange(0,len(lines), 3)
+    for ii in indices:
+            
+        
+        a   =   np.array(lines[ii].split()[1:], dtype= np.float64)
+        b   =   np.array(lines[ii+1].split()[:], dtype= np.float64)
+        c   =   np.array(lines[ii+2].replace(']', ' ').split()[:], dtype= np.float64)
+
+        parameters  =   parameters  +   (np.concatenate((a,b,c)),)
+
+    return parameters
