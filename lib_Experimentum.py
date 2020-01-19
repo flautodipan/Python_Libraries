@@ -14,9 +14,10 @@ from    Alessandria         import *
 from    lmfit               import Model
 
 free_spectral_range =   29.9702547 #GHz
-cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-
+cols_real   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols_gauss  = ( 'A', 'mu', 'sigma')
 
 
 #       PARTE   2       Classi 
@@ -500,7 +501,7 @@ class Spectrum  :
             self.y              =   self.y[idx_min:idx_max]
             self.y_err          =   self.y_err[idx_min:idx_max]
 
-    def Estimate_Initial_Parameters(self, p0, treshold):
+    def Estimate_Initial_Parameters(self, p0, treshold, **kwargs):
 
         """
 
@@ -524,7 +525,7 @@ class Spectrum  :
             bounds_up       =   (np.inf , Omega_bounds[1], np.inf,  np.inf, np.inf, A_bounds[1], Mu_bounds[1], Sigma_bounds[1], np.inf, np.inf)
             p0              =   np.concatenate((p0[:3], p0[5:]))
 
-            self.Non_Linear_Least_Squares_Markov(p0, my_method = 'least_squares', bound = (bounds_down, bounds_up))
+            self.Non_Linear_Least_Squares_Markov(p0, my_method = 'least_squares', bound = (bounds_down, bounds_up), **kwargs)
 
             self.p0             = pd.DataFrame(self.Fit_Params.T['Values']).T
             self.p0['Delta']    = self.p0['Gamma']
@@ -541,7 +542,7 @@ class Spectrum  :
 
         else:
             
-            self.p0         =   pd.DataFrame({idx : value for (idx, value) in zip(cols, p0)}, index = ['Initials'])
+            self.p0         =   pd.DataFrame({idx : value for (idx, value) in zip(columns, p0)}, index = ['Initials'])
             return  0
 
     def Recover_Initial_Parameters(self, p0):
@@ -637,6 +638,33 @@ class Spectrum  :
             plt.figure()
             plt.plot(conv_range, self.y_Gauss_convolution)
             plt.title('convoluzione dati VIPA con funz S2 più moltiplicazione Gauss')
+
+    def Convolve_Theoretical_Response_Fast (self, p, p_gauss):
+
+        """
+        Versione per non fittare parametri della gaussiana nel fit totale
+
+        Funziona con modello Real (Markov + Rilassamento exp) --> 12 parametri
+        """
+
+        self.y_convolution      =       np.zeros(self.x_freq.size)
+        _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
+        _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
+        w_j_VIPA                =       self.x_VIPA_freq[idx_min:idx_max]#-1 per azzeccare dim coi bins
+        VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
+        Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
+        w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
+        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/(p_gauss[0]*(np.exp(-((w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
+        
+        for  ii in range(len(self.x_freq)):
+
+            delta_w                 =   self.x_freq[ii] -   w_j_VIPA
+            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[7], *p[0:7])
+            self.y_convolution[ii]  =   np.sum(theor*kernel)
+
+        self.y_Gauss_convolution   =   p[8] + self.y_convolution*p_gauss[0]*np.exp(-((self.x_freq - p_gauss[1])**2)/(2*(p_gauss[2]**2)))
+
+        return self.y_Gauss_convolution
 
     def Gauss_Convolve_Theoretical_Response_Fast (self, p):
 
@@ -744,9 +772,9 @@ class Spectrum  :
             theor                   =   S_Dynamical_Form_Factor_0(delta_w-p[8], *p[0:5])
             self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
  
-        self.y_Gauss_convolution   =   p[9] + self.y_markov_convolution*p[5]*np.exp(-((self.x_freq - p[6])**2)/(2*(p[7]**2)))
+        self.y_Gauss_markov_convolution   =   p[9] + self.y_markov_convolution*p[5]*np.exp(-((self.x_freq - p[6])**2)/(2*(p[7]**2)))
 
-        return self.y_Gauss_convolution
+        return self.y_Gauss_markov_convolution
 
     def Interpolate_VIPA (self, freq):
 
@@ -783,14 +811,23 @@ class Spectrum  :
     def Residuals(self, p, y):
         
         return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)/self.y_err
-    
-    def Non_Linear_Least_Squares (self, p0, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
 
-        start            =    time.process_time()
 
+    def Residuals_Real(self, p, y, p_gauss):
         
-        self.res_lsq     =    least_squares(self.Residuals, p0, args= ([self.y]), bounds = bound, max_nfev = max_iter, verbose = verbose, **kwargs)
-        print("s impiegati a fare la convoluzione ", time.process_time()-start, '\n')
+        return (self.Convolve_Theoretical_Response_Fast(p, p_gauss) - y)/self.y_err
+    
+    def Non_Linear_Least_Squares (self, p0, p_gauss, columns, bound = (-np.inf, np.inf), fig = False, **kwargs):
+
+        """
+
+        OSS le kwargs sono quelle di least_squares() di scipy.optimize
+
+        """
+
+        start            =    time.process_time()        
+        self.res_lsq     =    least_squares(self.Residuals_Real, p0, args= ([self.y, p_gauss]), bounds = bound, **kwargs)
+        print("s impiegati a fare il fit totale ", time.process_time()-start, '\n')
 
         Parameters       =    self.res_lsq.x
 
@@ -809,19 +846,18 @@ class Spectrum  :
                 raise
 
 
-        self.y_fit  = self.Gauss_Convolve_Theoretical_Response_Fast(Parameters)
+        self.y_fit  = self.y_Gauss_convolution
 
         if fig:
 
             plt.figure()
             plt.title('Fit for '+self.__str__())
             plot(self.x_freq, self.y, '+', label='Data')
-            plot(self.x_freq, y_fit, label= 'Fit')
+            plot(self.x_freq, self.y_fit, label= 'Fit')
             plt.legend()
         
         
-        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
-        
+        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
         if (self.res_lsq['success'] == False):
             return 2
         else: return 1
@@ -844,13 +880,13 @@ class Spectrum  :
 
         """
 
-        if len(percents) != len(self.p0.values[0]):
+        if len(percents) != len(columns):
 
-            raise ValueError ("Lunghezza della tupla percents = %d errata, deve essere uguale alla dimensione di p0 = %d"%(len(percents), len(self.p0.values[0])))
+            raise ValueError ("Lunghezza della tupla percents = %d errata, deve essere uguale alla dimensione delle colonne passate = %d"%(len(percents), len(columns)))
                 
         self.bounds = pd.DataFrame( {}, index= columns, columns=('down', 'up'))
 
-        for (values, col, frac) in zip(self.p0.values[0], cols, percents):
+        for (col, frac) in zip(columns, percents):
     
             if  frac    ==  np.inf:
 
@@ -864,7 +900,7 @@ class Spectrum  :
             
             else:
                     
-                bound   =   Get_Around(values, frac)
+                bound   =   Get_Around(self.p0[col]['Values'], frac)
                 self.bounds['down'][col]     =   bound[0]
                 self.bounds['up'][col]       =   bound[1]
 
@@ -891,14 +927,14 @@ class Spectrum  :
 
         else : raise ValueError("Specificare se usare metodo scipy.optimize.least_squares() o scipy.optimize.lsq() o scipy.optimize.curve_fit()\n")
            
-        self.y_markov_fit  = self.Gauss_Convolve_Markovian_Response_Fast(Parameters)
+        self.y_markov_fit  = self.y_Gauss_markov_convolution
       
         if fig:
 
             plt.figure()
             plt.title('Fit for '+self.__str__())
             plot(self.x_freq, self.y, '+', label='Data')
-            plot(self.x_freq, self.y_fit, label= 'Fit')
+            plot(self.x_freq, self.y_markov_fit, label= 'Fit')
             plt.legend()
         
         
@@ -955,7 +991,7 @@ def Get_Isolated_Elements(excluded):
 def Unpack_Fit(fit):
 
     non_fitted  =   ()
-    fitted      =   ()
+    accomplished      =   ()
     exceded      =   ()
 
     for (what, (ii,jj)) in fit:
@@ -966,13 +1002,13 @@ def Unpack_Fit(fit):
 
         elif what == 1:
             
-            fitted      =   fitted  +   ((ii,jj),)
+            accomplished      =   accomplished  +   ((ii,jj),)
 
         elif what == 2:
 
             exceded      =   exceded  +   ((ii,jj),)
     
-    return (non_fitted, fitted, exceded)
+    return (non_fitted, accomplished, exceded)
 
 def Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = False, path = ''):
 
@@ -1020,7 +1056,8 @@ def Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = False, path
         plt.ylabel('Col Idx')
         plt.savefig(path + fig+'.png')
         plt.close()
-
+    
+    return fit_map
 
 def Gamma_Verify_Markov_Fit(matrix, fitted):
 
@@ -1035,18 +1072,18 @@ def Gamma_Verify_Markov_Fit(matrix, fitted):
             print(matrix[ii][jj].res_lsq['message'])
 
 
-def Get_Parameter_Map(parameter, matrix, n_rows, n_cols, fitted, exceded, excluded, fig = False, path = ''):
+def Get_Parameter_Map(parameter, columns, matrix, n_rows, n_cols, fitted, excluded, fig = False, path = ''):
 
     if parameter not in matrix[fitted[0][0]][fitted[0][1]].Fit_Params.columns:
             
-            print ('Parametro scelto non in quelli fittati: scegliere uno tra\n', cols_red, '\nse si sta mappando dopo fit totale, markoviano leva tau e delta\n')
+            print ('Parametro scelto non in quelli fittati: scegliere uno tra\n', columns, '\nse si sta mappando dopo fit totale, markoviano leva tau e delta\n')
             raise ValueError('COJONE')
 
     p_map   =   np.zeros((n_rows, n_cols))
     
     for ii in range(n_rows):
         for jj in range (n_cols):
-            if (ii,jj)  in fitted+exceded:     
+            if (ii,jj)  in fitted:     
                 if  (ii, jj) not in excluded:
                     p_map[ii,jj]    =   matrix[ii][jj].Fit_Params[parameter]['Values']
 
@@ -1062,6 +1099,8 @@ def Get_Parameter_Map(parameter, matrix, n_rows, n_cols, fitted, exceded, exclud
         plt.savefig(path + fig+'.png')
         plt.close()
 
+    return  p_map
+
 
 def Escludi_a_Mano(to_add, excluded):
 
@@ -1071,10 +1110,10 @@ def Escludi_a_Mano(to_add, excluded):
 
     return excluded
 
-def Whose_Gamma_Too_High(treshold, matrix, fitted, exceded):
+def Whose_Gamma_Too_High(treshold, matrix, fitted):
 
     too_high    =   ()
-    for (ii,jj) in (fitted+exceded):
+    for (ii,jj) in (fitted):
         if matrix[ii][jj].Fit_Params['Gamma']['Values'] > treshold:
             too_high    =   too_high    +   ((ii,jj),)
             print(str((ii,jj))+' ha gamma = %3.2f'%(matrix[ii][jj].Fit_Params['Gamma']['Values']))
