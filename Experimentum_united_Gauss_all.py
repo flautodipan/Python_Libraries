@@ -1,19 +1,17 @@
 #%%
 import      os
-spectra_path        =   '../BRILLOUIN/Claudia/DaticellBoniPuntiDoppi/'
+spectra_path        =   '../Claudia/DaticellBoniPuntiDoppi/'
 spectra_filename    =   '20191218_K27M'
 
-VIPA_path           =   '../BRILLOUIN/Claudia/DaticellBoniPuntiDoppi/picchi_elastici_con_filtro_100msexp/Pos0/'
+VIPA_path           =   '../Claudia/DaticellBoniPuntiDoppi/picchi_elastici_con_filtro_100msexp/Pos0/'
 VIPA_filename       =   'img_000000000_Default_000.tif'
 
 os.system('cd .. & mkdir '+ spectra_filename+'_analysis')
 now_path            =   '../'+spectra_filename+'_analysis/'
 
 
-cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude','shift', 'offset')
-cols_gauss  = ( 'A', 'mu', 'sigma')
 
 #%%
 import      numpy               as      np
@@ -23,15 +21,15 @@ from        Alessandria         import  *
 import      time
 
 super_start         =   time.process_time()
-tempo               =   ()
+
 # %%
 #0) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
 #   e compio alcune operazioni di sistema utili per salvataggio dati
 
 #import dati spettro
 dati    =   Import_from_Matlab(spectra_filename, spectra_path, var_name = 'y')
-n_rows  =   5#len(dati)
-n_cols  =   5#len(dati[0])
+n_rows  =   len(dati)
+n_cols  =   len(dati[0])
 dim     =   n_cols*n_rows
 matrix = Initialize_Matrix(n_rows,n_cols)
 
@@ -79,12 +77,8 @@ for ii in range(n_rows):
             boni                =   boni                +   ((ii,jj),)
 
 
-acq_time    =   time.process_time()-start
-tempo       =   tempo + (('acquisizione', acq_time),)
-print('tempo impiegato per acquisizione spettri: %f s'%(acq_time))
+print('tempo impiegato per acquisizione spettri: %f s'%(time.process_time()-start))
 print('Totale spettri saturati : %d\n'%(len(saturated)), saturated)
-
-
 print('Totale spettri con Brillouin più alti : %d\n'%(len(brillouin_higher)), brillouin_higher)
 print('Totale spettri con Brillouin invisibili: %d\n'%(len(invisible)), invisible)
 print('Totale spettri boni :   %d'%(len(boni)))
@@ -114,9 +108,9 @@ for ii in range(n_rows):
         if ((ii,jj) != (0,0)) & ((ii,jj) not in excluded):
                     
             matrix[ii][jj].x_VIPA_freq   =   matrix[0][0].x_VIPA_freq
-            matrix[ii][jj].y_VIPA        =   matrix[0][0].y_VIPA
+            matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
             
-            matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
+            matrix[ii][jj].Poly2GHz =   matrix[0][0].Poly2GHz
             matrix[ii][jj].Spectrum_Pix2GHz()
 
             if (ii,jj) in brillouin_higher:
@@ -131,9 +125,8 @@ for ii in range(n_rows):
 
             matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = 0.25)
 
-mod_time    =   time.process_time()-start
-tempo       =   tempo + (('modifica',mod_time), )
-print('tempo impiegato per modifica spettri: %f s'%(mod_time))
+
+print('tempo impiegato per modifica spettri: %f s'%(time.process_time()-start))
 
 
 #%%
@@ -141,7 +134,6 @@ print('tempo impiegato per modifica spettri: %f s'%(mod_time))
 fit                 =   ()
 start = time.process_time()
 recover = False
-
 
 if recover:
 
@@ -165,9 +157,9 @@ else:
         print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
         if (ii,jj) in boni:
             if (ii,jj) in isolated:
-                fit = fit + ((matrix[ii][jj].Estimate_Initial_Parameters(p0 = matrix[0][0].p0.values[0], treshold = 1000, columns = cols_mark), (ii,jj)),)
+                fit = fit + ((matrix[ii][jj].Estimate_Initial_Parameters(matrix[0][0].p0.values[0], 1000), (ii,jj)),)
             else:
-                fit = fit + ((matrix[ii][jj].Estimate_Initial_Parameters(p0 = matrix[ii][jj-1].p0.values[0], treshold = 1000,columns = cols_mark), (ii,jj)),)
+                fit = fit + ((matrix[ii][jj].Estimate_Initial_Parameters(matrix[ii][jj-1].p0.values[0], 1000), (ii,jj)),)
 
     #tutto il resto
 
@@ -177,15 +169,13 @@ else:
             if (ii,jj) in boni:
                 
                 if (ii,jj) in isolated:
-                    fit =   fit + ((matrix[ii][jj].Estimate_Initial_Parameters(p0 = matrix[0][0].p0.values[0], treshold = 1000,columns = cols_mark), (ii,jj)),)
+                    fit =   fit + ((matrix[ii][jj].Estimate_Initial_Parameters(matrix[0][0].p0.values[0], 1000), (ii,jj)),)
                 else: 
-                    fit =   fit + ((matrix[ii][jj].Estimate_Initial_Parameters(p0 = matrix[ii-1][jj].p0.values[0], treshold =  1000,columns = cols_mark), (ii,jj)),)
+                    fit =   fit + ((matrix[ii][jj].Estimate_Initial_Parameters(matrix[ii-1][jj].p0.values[0], 1000), (ii,jj)),)
 
-markov_time     =   time.process_time()-start
-tempo           =   tempo + (('fit markoviano', markov_time),)
-
-print('tempo impiegato per fit markoviani: %f s'%(markov_time))
-print('tempo impiegato ore = %3.2f'%(markov_time/3600))
+tot_time    = time.process_time()-start
+print('tempo impiegato per fit markoviani: %f s'%(tot_time))
+print('tempo impiegato ore = %3.2f'%(tot_time/3600))
 
 #%%
 
@@ -194,8 +184,8 @@ print('tempo impiegato ore = %3.2f'%(markov_time/3600))
 non_fitted, accomplished, exceded = Unpack_Fit(fit)
 
 Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = 'Markov_Fit_Map', path = now_path)
-Omega_Map   =   Get_Parameter_Map('Omega', cols_mark, matrix, n_rows, n_cols, accomplished+exceded, excluded ,fig = 'Markov_Omega_Map', path = now_path)
-Gamma_Map   =   Get_Parameter_Map('Gamma', cols_mark, matrix, n_rows, n_cols, accomplished+exceded, excluded ,fig = 'Markov_Gamma_Map', path = now_path)
+Omega_Map   =   Get_Parameter_Map('Omega', matrix, n_rows, n_cols, accomplished+exceded, excluded ,fig = 'Markov_Omega_Map', path = now_path)
+Gamma_Map   =   Get_Parameter_Map('Gamma', matrix, n_rows, n_cols, accomplished+exceded, excluded ,fig = 'Markov_Gamma_Map', path = now_path)
 
 #%%
 # 5)fit completo
@@ -204,28 +194,14 @@ fit_tot                    =   ()
 percents                    =   (0.2, 0.1, 0.15, 'positive', 'positive', 0.15, 0.15, 0.05, 0.05, 0.05, np.inf, np.inf)
 start = time.process_time()
 
-###necessari al fit: non fitto gaussiane#####
-
-percents                    =   (0.2, 0.1, 0.15, 'positive', 'positive', 0.15, 0.15, np.inf, np.inf)
-p_gauss = matrix[0][0].p0[list(cols_gauss)].values[0]
-
-########################
-
-
 for ii in range(n_rows):
     for jj in range(n_cols):
         print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
-        if (ii,jj) in boni:
-
-            matrix[ii][jj].Get_Fit_Bounds(percents, columns = cols_real)
-            p0      = matrix[ii][jj].p0[list(cols_real)].values[0]
-            
-            fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p0, p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 200)), (ii,jj)),)
-
+        if (ii,jj) in accomplished:
+            matrix[ii][jj].Get_Fit_Bounds(percents, columns = cols)
+            fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(matrix[ii][jj].p0.values[0], bound = (matrix[ii][jj].bounds['down'].values,matrix[ii][jj].bounds['up'].values), ftol = None)), (ii,jj)),)
 
 tot_time    = time.process_time()-start
-tempo       = tempo +(('fit totale',tot_time),)
-
 print('tempo impiegato per fit totali: %f s'%(tot_time))
 print('tempo impiegato ore = %3.2f'%(tot_time/3600))
 
@@ -236,18 +212,59 @@ non_fitted_tot, accomplished_tot, exceded_tot = Unpack_Fit(fit_tot)
 
 Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted_tot, exceded_tot, excluded, fig = 'Total_Fit_Map', path = now_path)
 Omega_Map   =   Get_Parameter_Map('Omega', cols_red, matrix, n_rows, n_cols, accomplished_tot+exceded_tot, excluded ,fig = 'Omega_Map', path = now_path)
-Gamma_Map   =   Get_Parameter_Map('Gamma', cols_red, matrix, n_rows, n_cols, accomplished_tot+exceded_tot, excluded ,fig = 'Gamma_Map', path = now_path)
+Gamma_Map   =   Get_Parameter_Map('Gamma', cols_red,colmatrix, n_rows, n_cols, accomplished_tot+exceded_tot, excluded ,fig = 'Gamma_Map', path = now_path)
 
-Save_Params(now_path, n_rows, n_cols, matrix, fitted_tot+exceded_tot)
+Save_Params(now_path, n_rows, n_cols, matrix, accomplished_tot+exceded_tot)
 Save_Fit_Info(now_path, n_rows, n_cols, fit_tot)
-
-
-###########     STAMPA PERFORMANCE   #####################
 
 super_time    = time.process_time()-super_start
 print('tempo impiegato per esecuzione dello script ore = %3.2f'%(tot_time/3600))
+#%%
+#pre accomplished cambia accomplished in boni
+#VERIFICHE DA QUI IN POI
+""" 
+#ESCLUSIONE A MANO
+to_add  = Whose_Gamma_Too_High(5., matrix, accomplished, exceded)
+excluded = Escludi_a_Mano(to_add, excluded)
+#stima dei recuperati, ma anche scialla: problema è come li distingui
+# idee  : sicuramente quelli con un picco a sx dell'elastico
+#         e sicuramente quelli con picchi Brillouin troppo vicini a elastici, o troppo vicini tra loro
 
-for (what,t) in tempo:
+for (ii,jj) in invisible:
+    print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+    matrix[ii][jj].How_Many_Peaks_To(width = 1)
+    plt.figure()
+    plt.plot(matrix[ii][jj].x_pix, matrix[ii][jj].y)
+    plt.title(str((ii,jj)))
+    idx     = find_peaks(matrix[ii][jj].y, height = matrix[ii][jj].spectrum_cut_height, distance = matrix[ii][jj].spectrum_peaks_dist, width = 1.)[0]
+    plt.plot(matrix[ii][jj].x_pix[idx],matrix[ii][jj].y[idx], '*' )
 
-    print('di cui {} secondi =  {} ore in {}'.format(t[1], t[1]/3600, t[0]))
+# %%
+for (ii,jj) in brillouin_higher[0:20]:
+    matrix[ii][jj].Get_Spectrum_Peaks(height = 5, distance = 50, width = 5.)
+    plt.figure()
+    plt.plot(matrix[ii][jj].x_pix, matrix[ii][jj].y)
+    plt.plot(matrix[ii][jj].x_pix[matrix[ii][jj].peaks[0]], matrix[ii][jj].y[matrix[ii][jj].peaks[0]], '*')
+    plt.title(str((ii,jj))+str(matrix[ii][jj].peaks[1]['widths'][matrix[ii][jj].peaks[1]['peak_heights'].argmax()]))
+# %%
+a = ()
+for (ii,jj) in brillouin_higher:
 
+    matrix[ii][jj].Get_Spectrum_Peaks(height = 5., distance = 50, width = 5)
+    a = a + (matrix[ii][jj].n_peaks, )
+    
+    if matrix[ii][jj].n_peaks == 7:
+        print(str((ii,jj)))
+
+
+
+# %%
+
+for (ii,jj) in boni[640:660]:
+    plt.figure()
+    plt.plot(matrix[ii][jj].x_freq, matrix[ii][jj].y)
+    plt.title(str((ii,jj)))
+    #plt.plot(matrix[ii][jj].x_freq[matrix[ii][jj].peaks['peaks_idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx']], '*')
+
+# %%
+"""

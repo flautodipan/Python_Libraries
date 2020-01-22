@@ -16,7 +16,7 @@ from    lmfit               import Model
 free_spectral_range =   29.9702547 #GHz
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_real   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude','shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
 
 
@@ -459,7 +459,7 @@ class Spectrum  :
         # STIMA PARAMETRI INIZIALI della funzione teorica
         # (quelli che posso, e devo farlo  prima di tagliare)
         
-        self.p0  =   pd.DataFrame({}, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+        self.p0  =   pd.DataFrame({}, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'), index = ['Initials'])
 
         # 1)    stima dei parametri dai dati
         #       Omega come la media della posizione dei massimi brillouin
@@ -501,7 +501,7 @@ class Spectrum  :
             self.y              =   self.y[idx_min:idx_max]
             self.y_err          =   self.y_err[idx_min:idx_max]
 
-    def Estimate_Initial_Parameters(self, p0, treshold, **kwargs):
+    def Estimate_Initial_Parameters(self, p0, treshold, columns, **kwargs):
 
         """
 
@@ -531,7 +531,8 @@ class Spectrum  :
             self.p0['Delta']    = self.p0['Gamma']
             self.p0['tau']     = [100.]
 
-            self.p0  =   pd.DataFrame(self.p0, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+            self.p0  =   pd.DataFrame(self.p0, columns = cols)
+            print (self.p0)
             self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
             print('costo dopo fit = '+str(self.cost))
             
@@ -542,7 +543,7 @@ class Spectrum  :
 
         else:
             
-            self.p0         =   pd.DataFrame({idx : value for (idx, value) in zip(columns, p0)}, index = ['Initials'])
+            self.p0         =   pd.DataFrame({idx : value for (idx, value) in zip(cols, p0)}, index = ['Values'])
             return  0
 
     def Recover_Initial_Parameters(self, p0):
@@ -1172,3 +1173,11 @@ def Parse_Parameter_Save(parameter_file = 'save_params.txt', path = ''):
         parameters  =   parameters  +   (np.concatenate((a,b,c)),)
 
     return parameters
+
+def Verify_Initial_Conditions(matrix, ver = (), init = ()):
+    
+    plt.title('Verify Initial Conditions for '+str((ver[0],ver[1]))+'with '+ str((init[0],init[1]))+ 'parameters')
+    plt.plot(matrix[ver[0]][ver[1]].x_freq, matrix[ver[0]][ver[1]].y, '+', label = 'dati')
+    plt.plot(matrix[ver[0]][ver[1]].x_freq, matrix[init[0]][init[1]].Gauss_Convolve_Theoretical_Response_Fast(matrix[init[0]][init[1]].p0.values[0]))
+
+    print("Il parametro è :", matrix[init[0]][init[1]].p0.values[0])
