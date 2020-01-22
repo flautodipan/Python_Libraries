@@ -264,5 +264,4 @@ for (ii,jj) in fitted[40:60]:
     plt.title(str((ii,jj)))
     #plt.plot(matrix[ii][jj].x_freq[matrix[ii][jj].peaks['peaks_idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx']], '*')
 
-
 # %%
