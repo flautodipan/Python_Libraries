@@ -946,6 +946,15 @@ class Spectrum  :
 
             print(self.Fit_Params)
 
+    def Recover_Fit_Params(self, dictio_string)
+
+        """
+        Funzione che tramite libreria json ricostruisce DataFrame Fit_Params per l'oggetto
+        dictio_string contiene sotto forma di stringa le info in formato json (che sono un dizionario)
+
+        """
+        self.Fit_Params =   pd.DataFrame(json.loads(dictio_string))
+
 def Initialize_Matrix(n_rows, n_cols):
 
     matrix = ()
@@ -1150,9 +1159,9 @@ def Save_Fitted_Info(path, n_rows, n_cols, fitted):
 
 
 
-def Save_Fit_Info(path, n_rows, n_cols, fit):
+def Save_Fit_Info(fit, filename = 'fit.txt', path = './'):
 
-    f = open(path+'fit.txt', 'w')
+    f = open(path+filename, 'w')
     f.write('(')
     for ft in fit:
                 f.write(str(ft)+',')
@@ -1202,6 +1211,7 @@ def Save_Fit_Parameters(matrix, fitted, out_filename = 'fit_params.txt' , path =
         for (ii,jj) in fitted:
    
             f_out.write(json.dumps(matrix[ii][jj].Fit_Params.to_dict())+'\n')
+
 
 
 
