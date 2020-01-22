@@ -8,6 +8,7 @@ from    scipy.optimize      import leastsq
 from    scipy.optimize      import least_squares
 from    scipy.optimize      import curve_fit
 from    scipy.io            import loadmat
+import  json
 
 from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate, S_Dynamical_Form_Factor_0, S_0_Generate        
 from    Alessandria         import *
@@ -991,9 +992,10 @@ def Get_Isolated_Elements(excluded):
     
 def Unpack_Fit(fit):
 
-    non_fitted  =   ()
-    accomplished      =   ()
+    non_fitted   =   ()
+    accomplished =   ()
     exceded      =   ()
+    fitted       =   ()
 
     for (what, (ii,jj)) in fit:
 
@@ -1004,12 +1006,14 @@ def Unpack_Fit(fit):
         elif what == 1:
             
             accomplished      =   accomplished  +   ((ii,jj),)
+            fitted            =   fitted + ((ii,jj),)
 
         elif what == 2:
 
             exceded      =   exceded  +   ((ii,jj),)
+            fitted            =   fitted + ((ii,jj),)
     
-    return (non_fitted, accomplished, exceded)
+    return (non_fitted, accomplished, exceded, fitted)
 
 def Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = False, path = ''):
 
@@ -1181,3 +1185,23 @@ def Verify_Initial_Conditions(matrix, ver = (), init = ()):
     plt.plot(matrix[ver[0]][ver[1]].x_freq, matrix[init[0]][init[1]].Gauss_Convolve_Theoretical_Response_Fast(matrix[init[0]][init[1]].p0.values[0]))
 
     print("Il parametro è :", matrix[init[0]][init[1]].p0.values[0])
+
+def Save_Fit_Parameters(matrix, fitted, out_filename = 'fit_params.txt' , path = './'):
+
+    """
+    Salvo nella cartella di analisi un file di nome 'fit_params.txt' nella cartella di analisi associata alla presa dati
+    la struttura è 
+    ogni riga contiene un dizionario già strutturato per file .json che DataFrame è in grado di acquisire
+
+    FONDAMENTALE è l'ordine delle righe che corrisponde a quello di fitted()
+
+    """
+
+    with open(path+out_filename, 'w') as f_out:
+
+        for (ii,jj) in fitted:
+   
+            f_out.write(json.dumps(matrix[ii][jj].Fit_Params.to_dict())+'\n')
+
+
+

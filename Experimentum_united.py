@@ -191,11 +191,11 @@ print('tempo impiegato ore = %3.2f'%(markov_time/3600))
 
 # 4) after - fit markoviano
 
-non_fitted, accomplished, exceded = Unpack_Fit(fit)
+non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
 
 Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = 'Markov_Fit_Map', path = now_path)
-Omega_Map   =   Get_Parameter_Map('Omega', cols_mark, matrix, n_rows, n_cols, accomplished+exceded, excluded ,fig = 'Markov_Omega_Map', path = now_path)
-Gamma_Map   =   Get_Parameter_Map('Gamma', cols_mark, matrix, n_rows, n_cols, accomplished+exceded, excluded ,fig = 'Markov_Gamma_Map', path = now_path)
+Omega_Map   =   Get_Parameter_Map('Omega', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Omega_Map', path = now_path)
+Gamma_Map   =   Get_Parameter_Map('Gamma', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Gamma_Map', path = now_path)
 
 #%%
 # 5)fit completo
@@ -232,22 +232,25 @@ print('tempo impiegato ore = %3.2f'%(tot_time/3600))
 #%%
 #6) after fit
 
-non_fitted_tot, accomplished_tot, exceded_tot = Unpack_Fit(fit_tot)
+non_fitted_tot, accomplished_tot, exceded_tot, fitted_tot = Unpack_Fit(fit_tot)
 
 Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted_tot, exceded_tot, excluded, fig = 'Total_Fit_Map', path = now_path)
-Omega_Map   =   Get_Parameter_Map('Omega', cols_red, matrix, n_rows, n_cols, accomplished_tot+exceded_tot, excluded ,fig = 'Omega_Map', path = now_path)
-Gamma_Map   =   Get_Parameter_Map('Gamma', cols_red, matrix, n_rows, n_cols, accomplished_tot+exceded_tot, excluded ,fig = 'Gamma_Map', path = now_path)
+Omega_Map   =   Get_Parameter_Map('Omega', cols_real, matrix, n_rows, n_cols, fitted_tot, excluded ,fig = 'Omega_Map', path = now_path)
+Gamma_Map   =   Get_Parameter_Map('Gamma', cols_real, matrix, n_rows, n_cols, fitted_tot, excluded ,fig = 'Gamma_Map', path = now_path)
 
-Save_Params(now_path, n_rows, n_cols, matrix, fitted_tot+exceded_tot)
+Save_Params(now_path, n_rows, n_cols, matrix, fitted_tot)
 Save_Fit_Info(now_path, n_rows, n_cols, fit_tot)
 
 
 ###########     STAMPA PERFORMANCE   #####################
 
 super_time    = time.process_time()-super_start
-print('tempo impiegato per esecuzione dello script ore = %3.2f'%(tot_time/3600))
+print('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(tot_time/3600))
 
 for (what,t) in tempo:
 
-    print('di cui {} secondi =  {} ore in {}'.format(t[1], t[1]/3600, t[0]))
+    print('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
 
+
+
+# %%
