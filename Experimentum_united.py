@@ -30,8 +30,8 @@ tempo               =   ()
 
 #import dati spettro
 dati    =   Import_from_Matlab(spectra_filename, spectra_path, var_name = 'y')
-n_rows  =   5#len(dati)
-n_cols  =   5#len(dati[0])
+n_rows  =   len(dati)
+n_cols  =   len(dati[0])
 dim     =   n_cols*n_rows
 matrix = Initialize_Matrix(n_rows,n_cols)
 

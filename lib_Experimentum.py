@@ -58,10 +58,11 @@ class Spectrum  :
         self.offset     =   offset     
         self.y          =   y - self.offset
 
-        ###levo elementi == 0, problematici per le incertezze poissoniane
+        ###levo elementi <0.01 problematici per le incertezze poissoniane (ne escono alcuni negativi)
+        ### (W la fi(si)ca)
 
-        self.x          =   self.x[self.y != 0.]
-        self.y          =   self.y[self.y != 0.]
+        self.x          =   self.x[self.y >= 0.01]
+        self.y          =   self.y[self.y >= 0.01]
 
         if cut:
 
@@ -509,31 +510,24 @@ class Spectrum  :
         Passo a p0 i parametri ottenuti dal primo Fit
         In più aggiundo un  delta uguale a Gamma e un Tau infinito
 
-        FUNZIONE DA AGGIORNARE con possibile scelta tra markov fitting e vicino dell'array
-
         """
         self.cost           =   0.5*np.sum(self.Residuals(p0, self.y)**2)
         print('costo = '+str(self.cost))
+        self.p0         =   pd.DataFrame({idx : value for (idx, value) in zip(cols, p0)}, index = ['Values'])
 
         if self.cost >= treshold:
-
-            Omega_bounds    =   Get_Around(p0[1], 0.1)
-            A_bounds        =   Get_Around(p0[7], 0.1)
-            Mu_bounds       =   Get_Around(p0[8], 0.1)
-            Sigma_bounds    =   Get_Around(p0[9], 0.1)
-
-            bounds_down     =   (0      , Omega_bounds[0], 0,       0,      0,      A_bounds[0], Mu_bounds[0], Sigma_bounds[0], 0,       0)
-            bounds_up       =   (np.inf , Omega_bounds[1], np.inf,  np.inf, np.inf, A_bounds[1], Mu_bounds[1], Sigma_bounds[1], np.inf, np.inf)
+            
+            percents        =   ('positive', 0.2, 'positive', 'positive', 'positive', 0.1, 0.1, 0.1,  np.inf, np.inf)
+            self.Get_Fit_Bounds(percents, columns = cols_mark)
             p0              =   np.concatenate((p0[:3], p0[5:]))
 
-            self.Non_Linear_Least_Squares_Markov(p0, my_method = 'least_squares', bound = (bounds_down, bounds_up), **kwargs)
+            self.Non_Linear_Least_Squares_Markov(p0, bound = (self.bounds['down'].values, self.bounds['up'].values), **kwargs)
 
             self.p0             = pd.DataFrame(self.Fit_Params.T['Values']).T
             self.p0['Delta']    = self.p0['Gamma']
             self.p0['tau']     = [100.]
 
             self.p0  =   pd.DataFrame(self.p0, columns = cols)
-            print (self.p0)
             self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
             print('costo dopo fit = '+str(self.cost))
             
@@ -543,8 +537,6 @@ class Spectrum  :
                 return  2
 
         else:
-            
-            self.p0         =   pd.DataFrame({idx : value for (idx, value) in zip(cols, p0)}, index = ['Values'])
             return  0
 
     def Recover_Initial_Parameters(self, p0):
@@ -561,17 +553,15 @@ class Spectrum  :
     def Take_A_Look_Before_Fitting(self):
         
         self.y_Gauss_convolution = self.Gauss_Convolve_Theoretical_Response_Fast(self.p0.values[0])
-        cost_guess  =   np.sum(0.5*(self.y_Gauss_convolution - self.y)**2)
-        print("Valore stimato della cost function prima del fit:\n{}".format(0.5*(cost_guess)))
+        
+        print("Valore stimato della cost function prima del fit:\n{}".format(self.cost))
 
         plt.figure()
         plt.plot(self.x_freq, self.y_Gauss_convolution, '-', label = 'Initial_Guess')
-        plt.plot(self.x_freq, self.y, label = 'Data')
-        plt.title('Goodness of initial guess, cost = %f'%(cost_guess))
+        plt.plot(self.x_freq, self.y, '*', label = 'Data')
+        plt.title('Goodness of initial guess, cost = %f'%(self.cost))
         plt.xlabel('Freq(GHz)')
         plt.show()
-
-        return cost_guess
 
     def Gauss_Convolve_Theoretical_Response (self, p, fantoccio = False, fig = False):
 
@@ -667,6 +657,7 @@ class Spectrum  :
         self.y_Gauss_convolution   =   p[8] + self.y_convolution*p_gauss[0]*np.exp(-((self.x_freq - p_gauss[1])**2)/(2*(p_gauss[2]**2)))
 
         return self.y_Gauss_convolution
+    
 
     def Gauss_Convolve_Theoretical_Response_Fast (self, p):
 
@@ -815,10 +806,11 @@ class Spectrum  :
         return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)/self.y_err
 
 
-    def Residuals_Real(self, p, y, p_gauss):
+    def Residuals_NoGauss(self, p, y, p_gauss):
         
         return (self.Convolve_Theoretical_Response_Fast(p, p_gauss) - y)/self.y_err
     
+
     def Non_Linear_Least_Squares (self, p0, p_gauss, columns, bound = (-np.inf, np.inf), fig = False, **kwargs):
 
         """
@@ -828,7 +820,7 @@ class Spectrum  :
         """
 
         start            =    time.process_time()        
-        self.res_lsq     =    least_squares(self.Residuals_Real, p0, args= ([self.y, p_gauss]), bounds = bound, **kwargs)
+        self.res_lsq     =    least_squares(self.Residuals_NoGauss, p0, args= ([self.y, p_gauss]), bounds = bound, **kwargs)
         print("s impiegati a fare il fit totale ", time.process_time()-start, '\n')
 
         Parameters       =    self.res_lsq.x
@@ -910,25 +902,27 @@ class Spectrum  :
         
         return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/self.y_err
     
-    def Non_Linear_Least_Squares_Markov (self, p0, my_method = None, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
+    def Non_Linear_Least_Squares_Markov (self, p0, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
 
         start            =    time.process_time()
+        self.res_lsq     =    least_squares(self.Residuals_Markov, p0, args= ([self.y]), bounds = bound, max_nfev = max_iter, verbose = verbose, **kwargs)
+        print("s impiegati a fare il fit ", time.process_time()-start, '\n')
+        Parameters       =    self.res_lsq.x
         
-        if (my_method == 'least_squares'):
-            
-            self.res_lsq     =    least_squares(self.Residuals_Markov, p0, args= ([self.y]), bounds = bound, max_nfev = max_iter, verbose = verbose, **kwargs)
-            print("s impiegati a fare il fit ", time.process_time()-start, '\n')
-            Parameters       =    self.res_lsq.x
+        try:
+            J                =    self.res_lsq.jac
+            cov              =    np.linalg.inv(J.T.dot(J))
+            Delta_Parameters =    np.sqrt(np.diagonal(cov))
 
-        elif ( my_method == 'lsq'):
-            
-            self.res_lsq     =    leastsq(self.Residuals_Markov, p0, args= (self.y), full_output = True, **kwargs)
-            print("s impiegati a fare il fit ", time.process_time()-start, '\n')
-            Parameters       =   self.res_lsq[0]
-            Delta_Parameters =   np.zeros(Parameters.size)
+        except  np.linalg.LinAlgError as err:
 
-        else : raise ValueError("Specificare se usare metodo scipy.optimize.least_squares() o scipy.optimize.lsq() o scipy.optimize.curve_fit()\n")
-           
+            if 'Singular matrix' in str(err):
+                print('Ho trovato matrice singolare')
+                Delta_Parameters        =   np.empty(len(p0))
+                Delta_Parameters[:]     =   np.nan
+            else :
+                raise
+
         self.y_markov_fit  = self.y_Gauss_markov_convolution
       
         if fig:
@@ -938,15 +932,14 @@ class Spectrum  :
             plot(self.x_freq, self.y, '+', label='Data')
             plot(self.x_freq, self.y_markov_fit, label= 'Fit')
             plt.legend()
+           
+        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
         
-        
-        self.Fit_Params = pd.DataFrame((Parameters, p0), index = ('Values', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
-        
-        if verbose:
-
-            print(self.Fit_Params)
-
-    def Recover_Fit_Params(self, dictio_string)
+        if (self.res_lsq['success'] == False):
+            return 2
+        else: return 1
+    
+    def Recover_Fit_Params(self, dictio_string):
 
         """
         Funzione che tramite libreria json ricostruisce DataFrame Fit_Params per l'oggetto
@@ -1213,5 +1206,10 @@ def Save_Fit_Parameters(matrix, fitted, out_filename = 'fit_params.txt' , path =
             f_out.write(json.dumps(matrix[ii][jj].Fit_Params.to_dict())+'\n')
 
 
+def Plot_Elements_Spectrum(matrix, elements_iterable):
 
+    for (ii,jj) in elements_iterable:
 
+        plt.figure()
+        plt.plot(matrix[ii][jj].x_freq, matrix[ii][jj].y)
+        plt.title(str((ii,jj)))
