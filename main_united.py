@@ -93,7 +93,7 @@ markov_time     =   time.process_time()-start
 tempo           =   tempo + (('fit markoviano', markov_time),)
 
 with open(analysis_path+'log.txt', 'a') as f_log:
-    f_log.write('\ntempo impiegato per fit markoviani: %f s\n'%(markov_time))
+    f_log.write('\ntempo impiegato per fit markonviani: %f s\n'%(markov_time))
     f_log.write('\ntempo impiegato ore = %3.2f\n'%(markov_time/3600))
 
 #%%

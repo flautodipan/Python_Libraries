@@ -29,12 +29,13 @@ def Exec(matrix, boni, excluded, inputs, analysis_path):
     dim     =   n_cols*n_rows
     fit = ()
 
-    if inputs['DEFAULT']['markov_recover'] == False:
+    if inputs['DEFAULT'].getboolean('markov_recover') == False:
 
         ####### faccio er fit
-
+        print('\n\n You chose to do the markovian fit\n\n')
         isolated = Get_Isolated_Elements(excluded)
         percents        =   eval(inputs['DEFAULT']['percents_bound_markov'])
+        
         for (ii,jj) in boni:
             print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
 
@@ -60,6 +61,7 @@ def Exec(matrix, boni, excluded, inputs, analysis_path):
         Save_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
 
     else:
+        print('\n\n You chose to SKIP the markovian fit and recover info \n\n')
 
         ############## faccio er ricovery
 
