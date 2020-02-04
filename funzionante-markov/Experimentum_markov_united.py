@@ -11,7 +11,7 @@ spectra_filename    =   '20191218_K27M'
 VIPA_path           =   '../BRILLOUIN/Claudia/DaticellBoniPuntiDoppi/picchi_elastici_con_filtro_100msexp/Pos0/'
 VIPA_filename       =   'img_000000000_Default_000.tif'
 
-os.system('cd ../BRILLOUIN && mkdir '+ spectra_filename+'_analysis/')
+os.system('cd ../BRILLOUIN & mkdir '+ spectra_filename+'_analysis')
 now_path            =   '../BRILLOUIN/'+spectra_filename+'_analysis/'
 
 
@@ -50,8 +50,6 @@ invisible           =   ()
 saturated           =   () 
 brillouin_higher    =   ()
 boni                =   ()
-excluded            =   ()
-
 
 
 # %%
@@ -74,7 +72,6 @@ for ii in range(n_rows):
         if (check == 1):
 
             saturated   =   saturated   +   ((ii,jj), )
-            excluded    =   excluded    +   ((ii,jj), )
 
         elif (check == 2):
 
@@ -84,7 +81,6 @@ for ii in range(n_rows):
         elif (check == 3):
 
             invisible           =   invisible           +   ((ii,jj),)
-            excluded    =   excluded    +   ((ii,jj), )
         
         else:
 
@@ -105,6 +101,7 @@ print('ossia il %3.2f percento'%(float(len(invisible)+len(saturated))*100/dim))
 
 # %%
 #2) Faccio operazioni di modifica spettro
+excluded    =   saturated + invisible
 
 start = time.process_time()
 
@@ -156,6 +153,7 @@ start = time.process_time()
 isolated = Get_Isolated_Elements(excluded)
 
 percents        =   ('positive', 0.2, 'positive', 'positive', 'positive', 0.1, 0.1, 0.1,  np.inf, np.inf)
+#prima riga, stimo da sx, eccetto il prim
 
 for (ii,jj) in boni:
     print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
@@ -179,21 +177,6 @@ tempo           =   tempo + (('fit markoviano', markov_time),)
 
 print('tempo impiegato per fit markoviani: %f s'%(markov_time))
 print('tempo impiegato ore = %3.2f'%(markov_time/3600))
-
-# 4) after - fit markoviano
-
-non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
-
-too         =   Whose_Gamma_Too_High(2., matrix, fitted)
-excluded    +=  too
-
-Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = 'Markov_Fit_Map', path = now_path)
-Omega_Map   =   Get_Parameter_Map('Omega', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Omega_Map', path = now_path)
-Gamma_Map   =   Get_Parameter_Map('Gamma', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Gamma_Map', path = now_path)
-
-Save_Fit_Info(fit, filename = 'markov_fit.txt', path=now_path)
-Save_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = now_path)
-
 
 ###################################################################################################################################
 

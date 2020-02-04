@@ -6,9 +6,9 @@ from matplotlib.pyplot import plot
 
 
 
-now_path    =   'RNA4/400K/analysis/'
-now_name    =    'RNA4'
-now_temp    =   '400K'
+now_path    =   '../../../RNA3/analysis/'
+now_name    =    'RNA3'
+now_temp    =   '350 K'
 #%%
 
 
@@ -22,8 +22,8 @@ RNA_traj.Analyze_Eig_Variance_Ratio(n_eig = 2)
 #2) acquisisco proiezione 2D sui due autovettori principali e RMSD della traiettoria
 
 RNA_traj.Get_2D_Traj(time_range = [0, 1000000], path=now_path, fig = 'Essential', verbose = True)
-RNA_traj.Get_RMSD(xvg_filename = 'rmsd.xvg', fig = 'RMSD', skip_lines = 18, histo = 'RMSD_Histogram',  bins = 100, path = now_path)
-RNA_traj.Get_Terminals_Dist(xvg_filename = 'ter_dist.xvg', skip_lines = 17, fig = 'Ter_dist', histo = 'ter_dist_Histogram',  bins = 100, path = now_path)
+RNA_traj.Get_RMSD(xvg_filename = 'rmsd.xvg', fig = now_name+'_RMSD', skip_lines = 18, histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path)
+RNA_traj.Get_Terminals_Dist(xvg_filename = 'ter_dist.xvg', skip_lines = 17, fig = now_name+'_Ter_dist', histo = now_name+'_ter_dist_Histogram', bins = 50, path = now_path)
 
 
 #%%

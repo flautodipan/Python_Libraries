@@ -2,6 +2,7 @@
 import BioAlessandria as BA
 import numpy as np
 import warnings
+import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
 now_path    =   '../MD/WTC1/zerk/'
@@ -34,7 +35,7 @@ with open  (now_path+filename, 'w') as f:
 
         BS      = BA.Print_Protein_BS_old(Bonds, TDP43.lenght, initial=TDP43.initial)
 
-        line    = "{}\t{}\n".format(ii,np.array2string(BS, max_line_width= 100))
+        line    = "{}\t{}\n".format(ii,np.array2string(BS, max_line_width= 1000))
         f.write(line)
 
 #f.close()

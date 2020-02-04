@@ -290,7 +290,7 @@ class Trajectory():
         if ('fig' in kwargs):
 
             plt.figure()
-            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.RMSD,  'g-.', markersize = 0.1, alpha = 0.5)
+            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.RMSD, ls = '--', lw = 0.3, alpha = 0.8)
             plt.xlabel('Time (ps)')
             plt.ylabel('RMSD (nm)')
             plt.title('RMSD for '+self.__str__())
@@ -300,7 +300,7 @@ class Trajectory():
         if ('histo' in kwargs):
 
             plt.figure()
-            _ =   plt.hist(self.RMSD, bins = kwargs['bins'])
+            _ =   plt.hist(self.RMSD, bins = kwargs['bins'], histtype='bar', rwidth=0.8, alpha = 0.9)
             plt.xlabel('RMSD (nm)')
             plt.title("Distribuzione RMSD per "+self.__str__())
             plt.savefig(path+kwargs['histo']+'.png')
@@ -330,19 +330,20 @@ class Trajectory():
         if ('fig' in kwargs):
 
             plt.figure()
-            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.ter_dist,  'g-.', markersize = 0.1, alpha = 0.5)
+            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.ter_dist,  ls = '--', lw = 0.3, color=(0.5098039,0.1411765,0.2), alpha = 0.8)
             plt.xlabel('Time (ps)')
             plt.ylabel('ter_dist (nm)')
-            plt.title('ter_dist for '+self.__str__())
+            plt.title('Distance of terminal elements for '+self.__str__())
             plt.savefig(path+kwargs['fig']+'.png')
         
 
         if ('histo' in kwargs):
 
             plt.figure()
-            _ =   plt.hist(self.ter_dist, bins = kwargs['bins'])
+            _ =   plt.hist(self.ter_dist, bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=(0.5098039,0.1411765,0.2) , alpha = 0.9)
             plt.xlabel('ter_dist (nm)')
-            plt.title("Distribuzione ter_dist per "+self.__str__())
+            plt.title("Distribution of terminals distance "+self.__str__())
+            plt.grid(axis = 'y', alpha = 0.45)
             plt.savefig(path+kwargs['histo']+'.png')
             plt.show()
 
@@ -696,7 +697,6 @@ class Cluster_2DAnalysis():
 
             print("Cluster con RMSD maggiore è il %d \n con RMSD = %f\n" %(self.unfoldest_idx +1, RMSD[list(self.clusterchiefs_idx)].max()))
 
-
 def BioStructure (pdb_filename, n_structures, structures_names, structures_type, structures_chain_ids, structures_models):
 
     """
@@ -861,13 +861,13 @@ def Print_Bonds_HDOCK (Bonds, filename, distance, initial):
     
     f.close()
 
-def Print_Protein_BS (Bonds, size, filename = 'BS.txt', initial = 0):
+def Print_Protein_BS_old (Bonds, size, filename = 'BS.txt', initial = 0):
 
     """
     stampa residui proteina coinvolti nel legame
 
     """
-    Binding_Site = np.zeros(size)
+    Binding_Site = ()
 
     count = 0
 
@@ -876,23 +876,27 @@ def Print_Protein_BS (Bonds, size, filename = 'BS.txt', initial = 0):
             
             if (((kk+1+initial) in Bond) & ((kk+1+initial) not in Binding_Site)):
 
-                Binding_Site[count] = kk+1+initial
+                Binding_Site = Binding_Site + (kk+1+initial,)
                 count += 1
         
-    Binding_Site = Binding_Site[Binding_Site != 0]
     Binding_Site = np.sort(Binding_Site)
 
-    #print ("La proteina utilizza nel legame (definito dalla distanza inserita) i residui\n")
+    print ("La proteina utilizza nel legame (definito dalla distanza inserita) i residui\n", Binding_Site)
+    print('per un totale di %d residui'%len(Binding_Site))
     
     f = open(filename, 'w')
-
-    for Bond in Binding_Site:
-
-        f.write("%d A\n"%Bond)
-    
+    f.write(str(Binding_Site))
     f.close()
-        
+
     return Binding_Site
+
+def Print_Protein_BS(Bonds, filename, path='./'):
+
+    pass
+
+
+
+
 
 
 

@@ -197,6 +197,17 @@ def Import_TIF(filename, path = './'):
 
     return  imarray
 
+def Get_Neighbours2D(ii_0, jj_0):
+    """
+    Dato elemento matrice, ritorna tupla con gli 8 primi vicini
+    """
+    neighbours = ()
+    for ii in range(ii_0 - 1, ii_0+2, 1):
+        for jj in range(jj_0 -1, jj_0 +2, 1):
+            if (ii,jj) != (ii_0, jj_0):
+
+                neighbours = neighbours + ((ii,jj),)
+    return neighbours
 
 """
 ########################################################################################################

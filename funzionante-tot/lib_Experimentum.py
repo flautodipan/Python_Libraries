@@ -28,13 +28,16 @@ class Spectrum  :
 
     #   Oggetto che sarà alla base di ogni spettro sperimentale
 
-    def __init__(self, name):
+    def __init__(self, name, n_params = 12):
 
         """
         Definisci il nome dell'oggetto per le stampe e il numero di parametri del tuo modello
 
         """
         self.name       =   name
+        self.n_params   =   n_params
+        self.saturation =   False
+        self.Brillouin_HIgher   = False
 
     def __str__(self):
 
@@ -82,6 +85,7 @@ class Spectrum  :
 
         self.peaks      =   find_peaks(self.y, **syg_kwargs)
         self.n_peaks    =   self.peaks[0].size
+
 
     def Get_Spectrum_4_Peaks_by_Height(self):
 
@@ -184,23 +188,23 @@ class Spectrum  :
 
     def Check_Spectrum(self, saturation_height = 40000, saturation_width = 15.):
 
-        if (self.n_peaks <= 3) | (self.n_peaks > 7):
+        if (self.n_peaks <= 3) | (self.n_peaks >= 7):
             
             print('Spettro invisibile')
 
             return  3
 
-        elif (self.n_peaks >= 4) & (self.n_peaks <= 7):
+        elif (self.n_peaks >= 4) & (self.n_peaks < 7):
 
 
             pk_max_idx  =   np.argmax(self.peaks[1]['peak_heights'])
             condition_peaks_pos     =   ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][3]] < self.y[self.peaks[0][2]]))
-            condition_peaks_numb    =   (())
             condition_peaks_height  =   (self.peaks[1]['peak_heights'] < 1000).all()
 
             if (self.y.max() >= saturation_height)  &  (self.peaks[1]['widths'][pk_max_idx] > saturation_width):
                 
                 print('spettro saturato')
+                self.saturation =   True
                 return          1
 
             if condition_peaks_pos:
@@ -208,15 +212,72 @@ class Spectrum  :
                 if condition_peaks_height:
                         
                     print('Spettro con Brillouin più alti')
+                    self.Brillouin_Higher   = True
                     return          2
                 
                 else:
 
                     print('Spettro invisibile')
                     return  3
-            
 
+        
+
+
+    def Knowing_Spectrum_Peaks(self):
+
+        self.peaks      =   Find_Highest_n_peaks(self.y, 4, height = 10., distance = 20, width = 1.)
+
+    def Knowing_VIPA_Peaks(self):
+
+        self.VIPA_peaks =   Find_Highest_n_peaks(self.y_VIPA, 5, height = 10., distance = 100, width = 1.)
+
+    def Knowing_Peaks(self):
+
+        peaks    =   ()
+
+        for (n_peaks, y, dist)    in      zip((4,5),(self.y, self.y_VIPA), (20, 100)):
+
+            peaks    =   peaks    +   (Find_Highest_n_peaks(y, n_peaks, height = 10., distance = dist, width = 1.),)
+
+        self.peaks     =   peaks[0]
+        self.VIPA_peaks         =   peaks[1]
+
+    def How_Many_Peaks_To(self, n_peaks = 4, delta = 1., distance = 20., width = 5., treshold = 5, fig = False, verbose = False, i_know_it_is = False):
+
+        pk      =   find_peaks(self.y, height = treshold, distance = distance, width = width)
+        height  =   np.max(pk[1]['peak_heights'])/2
+        
+        while True:
+
+            pk      =   find_peaks(self.y, height = height, distance = distance, width = width)
+
+            if (height > treshold) & (pk[0].size == n_peaks):
+
+                if verbose:
+                    print("Ho trovato valore dell'altezza per avere %d picchi: %f\n"%(n_peaks, height), pk)
+                    _ = Analyze_Peaks(self.x_freq, self.y, 'GHz', fig = fig, verbose = verbose, height= height, distance = distance, width = width )
     
+                break
+            
+            elif (height <= treshold):
+
+                print(pk)
+                raise ValueError('Errore: superata altezza minima %f\nQualcosa è andato storto'%(treshold))
+
+            else: 
+
+                height-=delta
+        
+        #check che i picchi Brillouin siano dentro agli elastici, premesso che so che possano essere più alti degli elastici
+
+        condition_peaks =   ((self.y[pk[0][0]] < self.y[pk[0][1]]) | ((self.y[pk[0][3]] < self.y[pk[0][2]])))
+        
+        if condition_peaks &  (i_know_it_is == False):
+            raise ValueError("Picchi Brillouin non sono interni o sono più alti degli elastici, controllare")
+
+        self.spectrum_cut_height        =   height
+        self.spectrum_peaks_dist        =   distance
+        
     def How_Many_Peaks_To_VIPA(self, n_GHz_peaks = 5, n_gauss_peaks = 3, delta = 1., distance = 150., width = 1, treshold = 50, fig = False, verbose = False):
 
         h_save = ()
@@ -371,7 +432,7 @@ class Spectrum  :
             plt.plot(self.x_freq, self.y)
             plt.title('Spettro Exp in GHz')
 
-    def Cut_n_Estimate_Spectrum(self, cut = True, estimate = False, columns = cols_mark,distanza = 2/3, verbose = False ):
+    def Cut_n_Estimate_Spectrum(self, cut = True, estimate = False, distanza = 2/3, verbose = False ):
         
         """
 
@@ -383,8 +444,7 @@ class Spectrum  :
         #                   il taglio sulle y è consequenziale, il tutto grazie agli indici
         #
         # stima dei parametri iniziali :
-        #                    riesco a stimare qualche parametro e genero un p0 tarato per fit markoc
-        #                    che in ogni caso è il primo che faccio
+        #                    riesco a stimare qualche parametro
         #  
         #   OSS: tutto funziona perchè mi aspetto due picchi elastici ad aprire e
         #        chiudere lo spettro
@@ -401,7 +461,7 @@ class Spectrum  :
         # STIMA PARAMETRI INIZIALI della funzione teorica
         # (quelli che posso, e devo farlo  prima di tagliare)
         
-        self.p0  =   pd.DataFrame({}, columns = columns, index = ['Initials'])
+        self.p0  =   pd.DataFrame({}, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'), index = ['Initials'])
 
         # 1)    stima dei parametri dai dati
         #       Omega come la media della posizione dei massimi brillouin
@@ -412,6 +472,8 @@ class Spectrum  :
                 
             self.p0['Omega']            =   [np.absolute(self.x_freq[self.peaks['peaks_idx'][2]] - self.x_freq[self.peaks['peaks_idx'][1]])*0.5]
             self.p0['Gamma']            =   [(self.peaks['peaks_width'][2]+self.peaks['peaks_width'][1])/20]
+            self.p0['Delta']            =   self.p0['Gamma']
+            self.p0['tau'  ]            =   [100.]
             self.p0['offset']           =   np.mean(self.y[self.peaks['peaks_idx'][1]:self.peaks['peaks_idx'][2]])
             
 
@@ -421,10 +483,6 @@ class Spectrum  :
             self.p0['delta_amplitude']  =   [1.]
             self.p0['delta_width']      =   [0.5]
 
-            if len(columns) == len(cols):
-
-                self.p0['Delta']        =   self.p0['Gamma']
-                self.p0['tau']          =   [100.]
 
         if verbose:
 
@@ -445,29 +503,32 @@ class Spectrum  :
             self.y              =   self.y[idx_min:idx_max]
             self.y_err          =   self.y_err[idx_min:idx_max]
 
-    def Get_p0_by_Markov(self, p0, treshold, **kwargs):
+    def Estimate_Initial_Parameters(self, p0, treshold, columns, **kwargs):
 
         """
-        Funzione che dato un p0 e una treshold, stima il valore della cost function usata dall'algoritmo di fit
-        -   se il valore è < treshold, quello è p0
-        -   se il valore è >= treshold, esegue fit markoviano, stima i parametri e poi aggiunge
-            Delta = Gamma e tau = 100.
-            
+
+        Passo a p0 i parametri ottenuti dal primo Fit
+        In più aggiundo un  delta uguale a Gamma e un Tau infinito
+
         """
-        
-        self.Get_p0(p0, cols)
         self.cost           =   0.5*np.sum(self.Residuals(p0, self.y)**2)
         print('costo = '+str(self.cost))
-        
+        self.p0         =   pd.DataFrame({idx : value for (idx, value) in zip(cols, p0)}, index = ['Values'])
+
         if self.cost >= treshold:
             
             percents        =   ('positive', 0.2, 'positive', 'positive', 'positive', 0.1, 0.1, 0.1,  np.inf, np.inf)
-            self.Get_p0(self.p0[list(cols_mark)].values[0], cols_mark)
             self.Get_Fit_Bounds(percents, columns = cols_mark)
-            self.Non_Linear_Least_Squares_Markov(bound = (self.bounds['down'].values, self.bounds['up'].values), **kwargs)
-            self.Get_p0(np.concatenate((self.Fit_Params.T['Values'].values[:2], (self.p0['Gamma'], 100.), self.Fit_Params.T['Values'].values[2:])), cols)
-            self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
+            p0              =   np.concatenate((p0[:3], p0[5:]))
 
+            self.Non_Linear_Least_Squares_Markov(p0, bound = (self.bounds['down'].values, self.bounds['up'].values), **kwargs)
+
+            self.p0             = pd.DataFrame(self.Fit_Params.T['Values']).T
+            self.p0['Delta']    = self.p0['Gamma']
+            self.p0['tau']     = [100.]
+
+            self.p0  =   pd.DataFrame(self.p0, columns = cols)
+            self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
             print('costo dopo fit = '+str(self.cost))
             
             if self.res_lsq['success']:
@@ -478,21 +539,26 @@ class Spectrum  :
         else:
             return  0
 
-    def Initials_Parameters_from_Markov(self, p0):
+    def Recover_Initial_Parameters(self, p0):
 
-        self.Get_p0(p0,cols_mark)
+        self.p0         =   pd.DataFrame(p0, index = cols_mark).T
         self.p0['Delta']    = self.p0['Gamma']
         self.p0['tau']     = [100.]
-        self.Get_p0(self.p0[list(cols_real)].values[0], cols_real)
+        self.p0  =   pd.DataFrame(self.p0, columns = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+        self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
+        print('costo dopo fit = '+str(self.cost))
+            
 
 
     def Take_A_Look_Before_Fitting(self):
         
-        print("Valore stimato della cost function prima del fit totale con fit markoviano:\n{}".format(self.cost))
+        self.y_Gauss_convolution = self.Gauss_Convolve_Theoretical_Response_Fast(self.p0.values[0])
+        
+        print("Valore stimato della cost function prima del fit:\n{}".format(self.cost))
 
         plt.figure()
-        plt.plot(self.x_freq, self.y_markov_fit, '-', label = 'Initial_Guess')
-        plt.plot(self.x_freq, self.y, '+', label = 'Data')
+        plt.plot(self.x_freq, self.y_Gauss_convolution, '-', label = 'Initial_Guess')
+        plt.plot(self.x_freq, self.y, '*', label = 'Data')
         plt.title('Goodness of initial guess, cost = %f'%(self.cost))
         plt.xlabel('Freq(GHz)')
         plt.show()
@@ -592,6 +658,7 @@ class Spectrum  :
 
         return self.y_Gauss_convolution
     
+
     def Gauss_Convolve_Theoretical_Response_Fast (self, p):
 
         """
@@ -682,6 +749,7 @@ class Spectrum  :
         Funziona con modello Markov --> 10 parametri
 
         """
+
         self.y_markov_convolution      =       np.zeros(self.x_freq.size)
         _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
         _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
@@ -701,16 +769,49 @@ class Spectrum  :
 
         return self.y_Gauss_markov_convolution
 
+    def Interpolate_VIPA (self, freq):
+
+        # funzione che interpola il valore della funzione di trasf
+        # richiesta nel valore freq a partire dai dati sperim
+        # funziona per valore singolo e per array di valori
+
+
+        freq = np.array(freq)
+
+        if (freq.size == 1):
+        
+            _ , idx             =   Find_Nearest(self.x_VIPA_freq, freq)
+            x_fittino           =   np.array([self.x_VIPA_freq[idx-1], self.x_VIPA_freq[idx], self.x_VIPA_freq[idx+1]])
+            y_fittino           =   np.array([self.y_VIPA[idx-1], self.y_VIPA[idx], self.y_VIPA[idx+1]])
+            Parameters          =   np.polyfit(x_fittino, y_fittino, 2)
+
+            interpolate         =   ((freq**2) *(Parameters[0])) + (freq * (Parameters[1])) + (Parameters[2])
+
+        else:
+
+            interpolate         =   np.zeros(np.size(freq))
+            _ , idx             =   Find_Nearest_Array(self.x_VIPA_freq, freq)
+
+            for ii in range(np.size(freq)): 
+
+                x_fittino           =   np.array([self.x_VIPA_freq[idx[ii]-1], self.x_VIPA_freq[idx[ii]], self.x_VIPA_freq[idx[ii]+1]])
+                y_fittino           =   np.array([self.y_VIPA[idx[ii]-1], self.y_VIPA[idx[ii]], self.y_VIPA[idx[ii]+1]])
+                Parameters          =   np.polyfit(x_fittino, y_fittino, 2)
+                interpolate[ii]     =   ((freq[ii]**2) *(Parameters[0])) + (freq[ii] * (Parameters[1])) + (Parameters[2])
+
+        return              interpolate
 
     def Residuals(self, p, y):
         
         return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)/self.y_err
 
+
     def Residuals_NoGauss(self, p, y, p_gauss):
         
         return (self.Convolve_Theoretical_Response_Fast(p, p_gauss) - y)/self.y_err
     
-    def Non_Linear_Least_Squares (self, p_gauss, columns, bound = (-np.inf, np.inf), fig = False, **kwargs):
+
+    def Non_Linear_Least_Squares (self, p0, p_gauss, columns, bound = (-np.inf, np.inf), fig = False, **kwargs):
 
         """
 
@@ -719,7 +820,7 @@ class Spectrum  :
         """
 
         start            =    time.process_time()        
-        self.res_lsq     =    least_squares(self.Residuals_NoGauss, self.p0.values[0], args= ([self.y, p_gauss]), bounds = bound, **kwargs)
+        self.res_lsq     =    least_squares(self.Residuals_NoGauss, p0, args= ([self.y, p_gauss]), bounds = bound, **kwargs)
         print("s impiegati a fare il fit totale ", time.process_time()-start, '\n')
 
         Parameters       =    self.res_lsq.x
@@ -733,7 +834,7 @@ class Spectrum  :
 
             if 'Singular matrix' in str(err):
                 print('Ho trovato matrice singolare')
-                Delta_Parameters    =   np.empty(len(self.p0.values[0]))
+                Delta_Parameters    =   np.empty(len(p0))
                 Delta_Parameters[:]    =   np.nan
             else :
                 raise
@@ -750,10 +851,12 @@ class Spectrum  :
             plt.legend()
         
         
-        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
+        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
         if (self.res_lsq['success'] == False):
             return 2
         else: return 1
+
+
 
     def Get_Fit_Bounds(self, percents, columns): 
 
@@ -799,10 +902,10 @@ class Spectrum  :
         
         return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/self.y_err
     
-    def Non_Linear_Least_Squares_Markov (self, bound = (-np.inf, np.inf), fig = False, **kwargs):
+    def Non_Linear_Least_Squares_Markov (self, p0, bound = (-np.inf, np.inf), max_iter = None, verbose = 0, fig = False, **kwargs):
 
         start            =    time.process_time()
-        self.res_lsq     =    least_squares(self.Residuals_Markov, self.p0.values[0], args= ([self.y]), bounds = bound,  **kwargs)
+        self.res_lsq     =    least_squares(self.Residuals_Markov, p0, args= ([self.y]), bounds = bound, max_nfev = max_iter, verbose = verbose, **kwargs)
         print("s impiegati a fare il fit ", time.process_time()-start, '\n')
         Parameters       =    self.res_lsq.x
         
@@ -815,7 +918,7 @@ class Spectrum  :
 
             if 'Singular matrix' in str(err):
                 print('Ho trovato matrice singolare')
-                Delta_Parameters        =   np.empty(len(self.p0.values[0]))
+                Delta_Parameters        =   np.empty(len(p0))
                 Delta_Parameters[:]     =   np.nan
             else :
                 raise
@@ -830,7 +933,7 @@ class Spectrum  :
             plot(self.x_freq, self.y_markov_fit, label= 'Fit')
             plt.legend()
            
-        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, p0), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
         
         if (self.res_lsq['success'] == False):
             return 2
@@ -845,21 +948,6 @@ class Spectrum  :
         """
         self.Fit_Params =   pd.DataFrame(json.loads(dictio_string))
 
-    def Recover_Gauss_Parameter(self, dictio_string):
-
-        df              =   pd.DataFrame(json.loads(dictio_string))
-
-        self.Get_p_gauss(df[list(cols_gauss)].values[0])
-
-    def Get_p0(self,p0, columns):
-
-        self.p0      =   pd.DataFrame({idx : value for (idx, value) in zip(columns, p0)}, index = ['Values'])
-
-    def Get_p_gauss(self, p_gauss):
-
-        self.p_gauss =   pd.DataFrame({idx : value for (idx, value) in zip(cols_gauss, p_gauss)}, index = ['Values'])
-   
-    
 def Initialize_Matrix(n_rows, n_cols):
 
     matrix = ()
@@ -903,13 +991,13 @@ def Get_Isolated_Elements(excluded):
 
     return isolated
     
+    
 def Unpack_Fit(fit):
 
     non_fitted   =   ()
     accomplished =   ()
     exceded      =   ()
     fitted       =   ()
-    excluded     =   ()
 
     for (what, (ii,jj)) in fit:
 
@@ -926,10 +1014,6 @@ def Unpack_Fit(fit):
 
             exceded      =   exceded  +   ((ii,jj),)
             fitted            =   fitted + ((ii,jj),)
-
-        elif what == 3:
-
-            excluded      =  excluded + ((ii,jj),)
     
     return (non_fitted, accomplished, exceded, fitted)
 
@@ -971,8 +1055,8 @@ def Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = False, path
     
     if fig:
 
-        c = plt.get_cmap('Pastel1', 3)
-        plt.matshow(fit_map, cmap = c)
+       
+        plt.matshow(fit_map, cmap = 'ocean')
         plt.title('Fit Map')
         plt.colorbar()
         plt.xlabel('Row Index')
@@ -990,11 +1074,12 @@ def Gamma_Verify_Markov_Fit(matrix, fitted):
 
             plt.figure()
             plt.plot(matrix[ii][jj].y)
-            plt.plot(matrix[ii][jj].Convolve_Theoretical_Response_Fast())
+            plt.plot(matrix[ii][jj].y_fit)
             plt.title(str((ii,jj)) +' successo: '+ str(matrix[ii][jj].res_lsq['success']))
             print(matrix[ii][jj].res_lsq['message'])
 
-def Get_Parameter_Map(parameter, columns, matrix, n_rows, n_cols, fitted, excluded, cmap, fig = False, path = ''):
+
+def Get_Parameter_Map(parameter, columns, matrix, n_rows, n_cols, fitted, excluded, fig = False, path = ''):
 
     if parameter not in matrix[fitted[0][0]][fitted[0][1]].Fit_Params.columns:
             
@@ -1002,24 +1087,18 @@ def Get_Parameter_Map(parameter, columns, matrix, n_rows, n_cols, fitted, exclud
             raise ValueError('COJONE')
 
     p_map   =   np.zeros((n_rows, n_cols))
-    nans = ()
+    
     for ii in range(n_rows):
         for jj in range (n_cols):
-            if  (ii, jj) not in excluded:
-                p_map[ii,jj]    =   matrix[ii][jj].Fit_Params[parameter]['Values']
-            else:
-                p_map[ii,jj]    = np.nan
-                nans = nans +((ii,jj),)
-
+            if (ii,jj)  in fitted:     
+                if  (ii, jj) not in excluded:
+                    p_map[ii,jj]    =   matrix[ii][jj].Fit_Params[parameter]['Values']
 
     print('Completata Paramter_Map per '+parameter)
-    print('Ho trovato {} elementi saturati'.format(len(nans)))
-
+    
     if fig:
 
-        cm = plt.get_cmap(cmap)
-        cm.set_bad(color='lime')
-        plt.matshow(p_map, cmap = cm)
+        plt.matshow(p_map, cmap = 'ocean')
         plt.title(parameter+' Map')
         plt.colorbar()
         plt.xlabel('Row Index')
@@ -1027,34 +1106,8 @@ def Get_Parameter_Map(parameter, columns, matrix, n_rows, n_cols, fitted, exclud
         plt.savefig(path + fig+'.png')
         plt.close()
 
-    return  (p_map, nans)
-
-def Interpolate_Parameter_Map(p_map, cmap, fig = False, path = ''):
-
-
-    for ii in range(p_map.shape[0]):
-        for jj in range (p_map.shape[1]):   
-            if p_map[ii,jj] == np.nan:
-                print('Entro per elemento %s'%(str((ii,jj))))
-                neigh = Get_Neighbours2D(ii,jj)
-                print('Vado a sostituire con %s'%(str(np.nanmean([matrix[kk][ll].Fit_Params[parameter]['Values'] for (kk,ll) in neigh]))))
-                p_map[ii,jj] = np.nanmean([matrix[kk][ll].Fit_Params[parameter]['Values'] for (kk,ll) in neigh])
-
-
-    print('Completata Interpolazione per elementi di parameter map che non aveano valore\n')
-
-    if fig:
-
-        cm = plt.get_cmap(cmap)
-        plt.matshow(p_map, cmap = cm)
-        plt.title(' Map Interpolated')
-        plt.colorbar()
-        plt.xlabel('Row Index')
-        plt.ylabel('Col Idx')
-        plt.savefig(path + fig+'.png')
-        plt.close()
-
     return  p_map
+
 
 def Escludi_a_Mano(to_add, excluded):
 
@@ -1064,59 +1117,68 @@ def Escludi_a_Mano(to_add, excluded):
 
     return excluded
 
-def Whose_Param_Too_High(param, treshold, matrix, fitted):
+def Whose_Gamma_Too_High(treshold, matrix, fitted):
 
     too_high    =   ()
-
     for (ii,jj) in (fitted):
-        if matrix[ii][jj].Fit_Params[param]['Values'] > treshold:
+        if matrix[ii][jj].Fit_Params['Gamma']['Values'] > treshold:
             too_high    =   too_high    +   ((ii,jj),)
-            print(str((ii,jj))+' ha '+param+'= %3.2f'%(matrix[ii][jj].Fit_Params[param]['Values']))
+            print(str((ii,jj))+' ha gamma = %3.2f'%(matrix[ii][jj].Fit_Params['Gamma']['Values']))
 
     return too_high
 
-def Whose_Param_Too_Low(param, treshold, matrix, fitted):
 
-    too_low    =   ()
-
-    for (ii,jj) in (fitted):
-        if matrix[ii][jj].Fit_Params[param]['Values'] <= treshold:
-            too_low    =   too_low    +   ((ii,jj),)
-            print(str((ii,jj))+' ha '+param+'= %3.2f'%(matrix[ii][jj].Fit_Params[param]['Values']))
-
-    return too_low
 
 def Save_Params(path, n_rows, n_cols, matrix, fitted):
 
-    with open(path+'save_params.txt', 'w') as f:
+    f = open(path+'save_params.txt', 'w')
 
-        for ii in range(0, n_rows,1 ):
-            for jj in range(n_cols):
-                if (ii,jj) in fitted:
-                    f.write(str(matrix[ii][jj].Fit_Params.values[0])+'\n')
-    
+    for ii in range(0, n_rows,1 ):
+        for jj in range(n_cols):
+            if (ii,jj) in fitted:
+                f.write(str(matrix[ii][jj].Fit_Params.values[0])+'\n')
+    f.close()
 
 def Save_Fitted_Info(path, n_rows, n_cols, fitted):
 
-    with open(path+'fitted.txt', 'w') as f:
-            
-        f.write('(')
-        for ii in range(0, n_rows,1):
-            for jj in range(n_cols):
-                if (ii,jj) in fitted:
-                    f.write(str((ii,jj))+',')
-        f.write(')')
-    print('Stampato fitted info su file')
+    f = open(path+'fitted.txt', 'w')
+    f.write('(')
+    for ii in range(0, n_rows,1):
+        for jj in range(n_cols):
+            if (ii,jj) in fitted:
+                f.write(str((ii,jj))+',')
+    f.write(')')
+    f.close()
+
+
 
 def Save_Fit_Info(fit, filename = 'fit.txt', path = './'):
 
-    with open(path+filename, 'w') as f:
-        f.write('(')
-        for ft in fit:
-                    f.write(str(ft)+',')
-        f.write(')')
-    print('Stampato fitted info su file '+path+filename)
+    f = open(path+filename, 'w')
+    f.write('(')
+    for ft in fit:
+                f.write(str(ft)+',')
+    f.write(')')
+    f.close()
 
+
+def Parse_Parameter_Save(parameter_file = 'save_params.txt', path = ''):
+
+    parameters  = ()
+    f   =   open(path+parameter_file, 'r')
+    lines   =   f.readlines()
+    f.close()
+    indices =   np.arange(0,len(lines), 3)
+    for ii in indices:
+            
+        
+        a   =   np.array(lines[ii].split()[1:], dtype= np.float64)
+        b   =   np.array(lines[ii+1].split()[:], dtype= np.float64)
+        c   =   np.array(lines[ii+2].replace(']', ' ').split()[:], dtype= np.float64)
+
+        parameters  =   parameters  +   (np.concatenate((a,b,c)),)
+
+    return parameters
 
 def Verify_Initial_Conditions(matrix, ver = (), init = ()):
     
@@ -1143,39 +1205,11 @@ def Save_Fit_Parameters(matrix, fitted, out_filename = 'fit_params.txt' , path =
    
             f_out.write(json.dumps(matrix[ii][jj].Fit_Params.to_dict())+'\n')
 
-    print('Stampato parametri fit su file '+path+out_filename)
 
-def Save_XY_VIPA(x,y, out_filename = 'xy_VIPA.txt' , path = './'):
-
-    with open(path+out_filename, 'w') as f_out:
-                f_out.write('# x,y of VIPA in couples of lines\n')
-                f_out.write(np.array2string(x, max_line_width = 100000)+'\n')
-                f_out.write(np.array2string(y, max_line_width = 100000)+'\n')
-
-
-def Save_XY_position(matrix, n_rows, n_cols, out_filename = 'xy.txt' , path = './'):
-
-    with open(path+out_filename, 'w') as f_out:
-        f_out.write('# x,y of each spectra in couples of lines\n')
-        for ii in range(n_rows):
-            for jj in range(n_cols):
-                f_out.write(np.array2string(matrix[ii][jj].x_freq, max_line_width = 10000)+'\n')
-                f_out.write(np.array2string(matrix[ii][jj].y, max_line_width = 10000)+'\n')
-
-
-def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False):
+def Plot_Elements_Spectrum(matrix, elements_iterable):
 
     for (ii,jj) in elements_iterable:
-        print(str((ii,jj)))
+
         plt.figure()
         plt.plot(matrix[ii][jj].x_freq, matrix[ii][jj].y)
-
-        if fit:
-            plt.plot(matrix[ii][jj].x_freq, matrix[ii][jj].Convolve_Theoretical_Response_Fast(matrix[ii][jj].p0.values[0], matrix[ii][jj].p_gauss.values[0]))
         plt.title(str((ii,jj)))
-
-def Interpolate_Parameter_Map(map):
-
-   pass
-
-
