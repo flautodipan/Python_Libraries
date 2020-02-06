@@ -5,14 +5,12 @@
 
 
 import      os
-spectra_path        =   '../BRILLOUIN/Claudia/DaticellBoniPuntiDoppi/'
-spectra_filename    =   '20191218_K27M'
+now_path        =   '../BRILLOUIN/K27M/'
+spectra_filename    =   'K27M'
+VIPA_filename       =   'K27M_VIPA.tif'
 
-VIPA_path           =   '../BRILLOUIN/Claudia/DaticellBoniPuntiDoppi/picchi_elastici_con_filtro_100msexp/Pos0/'
-VIPA_filename       =   'img_000000000_Default_000.tif'
-
-os.system('cd ../BRILLOUIN && mkdir '+ spectra_filename+'_analysis/')
-now_path            =   '../BRILLOUIN/'+spectra_filename+'_analysis/'
+os.system('cd ' + now_path +' && mkdir ' + now_path+'analysis/')
+analysis_path            =   now_path +'analysis/'
 
 
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
@@ -38,7 +36,7 @@ syg_kwargs   =   {'height': 20, 'distance': 20, 'width': 5.}
 #   e compio alcune operazioni di sistema utili per salvataggio dati
 
 #import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, spectra_path, var_name = 'y')
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y')
 n_rows  =   5#len(dati)
 n_cols  =   5#len(dati[0])
 dim     =   n_cols*n_rows
@@ -57,7 +55,7 @@ excluded            =   ()
 # %%
 #1) Acquisisco VIPA e Spettri
 start = time.process_time()
-matrix[0][0].Get_VIPA_tif(VIPA_filename, VIPA_path, offset = 183.)
+matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
 
 for ii in range(n_rows):
@@ -147,6 +145,13 @@ mod_time    =   time.process_time()-start
 tempo       =   tempo + (('modifica',mod_time), )
 print('tempo impiegato per modifica spettri: %f s'%(mod_time))
 
+
+# salvo info spettri e VIPA
+Save_XY_position(matrix, n_rows, n_cols, path = analysis_path)
+Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
+print('\n I saved xy info on xy.txt and xy_VIPA.txt in your analysis directory\n\n')
+
+
 #%%
 #3) faccio il fit markoviano
 
@@ -187,12 +192,12 @@ non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
 too         =   Whose_Gamma_Too_High(2., matrix, fitted)
 excluded    +=  too
 
-Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = 'Markov_Fit_Map', path = now_path)
-Omega_Map   =   Get_Parameter_Map('Omega', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Omega_Map', path = now_path)
-Gamma_Map   =   Get_Parameter_Map('Gamma', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Gamma_Map', path = now_path)
+Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = 'Markov_Fit_Map', path = analysis_path)
+Omega_Map   =   Get_Parameter_Map('Omega', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Omega_Map', path = analysis_path)
+Gamma_Map   =   Get_Parameter_Map('Gamma', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Gamma_Map', path = analysis_path)
 
-Save_Fit_Info(fit, filename = 'markov_fit.txt', path=now_path)
-Save_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = now_path)
+Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
+Save_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
 
 
 ###################################################################################################################################

@@ -445,6 +445,18 @@ class Spectrum  :
             self.y              =   self.y[idx_min:idx_max]
             self.y_err          =   self.y_err[idx_min:idx_max]
 
+    def Get_cost_markov(self, p0):
+        # senza Delta e tau, con le gauss
+
+        self.cost_markov        =   0.5*np.sum(self.Residuals_Markov(p0, self.y)**2)
+
+    
+    def Get_cost_tot(self, p0):
+        # senza le gauss
+
+        self.cost_tot           =   0.5*np.sum(self.Residuals(p0, self.y)**2)
+
+
     def Get_p0_by_Markov(self, p0, treshold, **kwargs):
 
         """

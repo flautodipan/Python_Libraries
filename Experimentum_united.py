@@ -1,19 +1,19 @@
 #%%
+
 import      os
-spectra_path        =   '../BRILLOUIN/Claudia/DaticellBoniPuntiDoppi/'
-spectra_filename    =   '20191218_K27M'
+now_path        =   '../BRILLOUIN/K27M/'
+spectra_filename    =   'K27M'
+VIPA_filename       =   'K27M_VIPA.tif'
 
-VIPA_path           =   '../BRILLOUIN/Claudia/DaticellBoniPuntiDoppi/picchi_elastici_con_filtro_100msexp/Pos0/'
-VIPA_filename       =   'img_000000000_Default_000.tif'
+os.system('cd ' + now_path +' && mkdir ' + now_path+'analysis/')
+analysis_path            =   now_path +'analysis/'
 
-os.system('cd ../BRILLOUIN && mkdir '+ spectra_filename+'_analysis_all_fast')
-now_path            =   '../BRILLOUIN/'+spectra_filename+'_analysis_all_fast/'
-recover_path        =   '../BRILLOUIN/'+spectra_filename+'_analysis_onlymarkov/'
 
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude','shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
+
 
 #%%
 import      numpy               as      np
@@ -29,9 +29,9 @@ tempo               =   ()
 #   e compio alcune operazioni di sistema utili per salvataggio dati
 
 #import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, spectra_path, var_name = 'y')
-n_rows  =   len(dati)
-n_cols  =   len(dati[0])
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y')
+n_rows  =   6#len(dati)
+n_cols  =   6#len(dati[0])
 dim     =   n_cols*n_rows
 matrix = Initialize_Matrix(n_rows,n_cols)
 
@@ -44,11 +44,12 @@ boni                =   ()
 excluded            =   ()
 
 syg_kwargs   =   {'height': 20, 'distance': 20, 'width': 5.}
+
 # %%
 ###########################################################################################################################
 #1) Acquisisco VIPA e Spettri
 start = time.process_time()
-matrix[0][0].Get_VIPA_tif(VIPA_filename, VIPA_path, offset = 183.)
+matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
 
 for ii in range(n_rows):
@@ -130,125 +131,68 @@ for ii in range(n_rows):
                 #boni
                 matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
                 
-
             matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = 0.25)
+            
+            del matrix[ii][jj].x, matrix[ii][jj].x_VIPA, matrix[ii][jj].Poly2GHz, matrix[ii][jj].peaks, matrix[ii][jj].offset
+
 
 mod_time    =   time.process_time()-start
 tempo       =   tempo + (('modifica',mod_time), )
 print('tempo impiegato per modifica spettri: %f s'%(mod_time))
 
 
+# salvo info spettri e VIPA
+Save_XY_position(matrix, n_rows, n_cols, path = analysis_path)
+Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
+print('\n I saved xy info on xy.txt and xy_VIPA.txt in your analysis directory\n\n')
+
 #%%
-#3) faccio il primo fit markoviano
+#3) faccio il fit markoviano
+
 fit                 =   ()
 start = time.process_time()
-recover_markov  =   True
 
-if recover_markov == False:
-        
-    isolated = Get_Isolated_Elements(excluded)
-    for (ii,jj) in boni:
-        print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+isolated = Get_Isolated_Elements(excluded)
 
-        if (ii,jj) in isolated:
-            fit = fit + ((matrix[ii][jj].Get_p0_by_Markov(p0 = matrix[0][0].p0.values[0], treshold = 1000), (ii,jj)),)
-        else:
-            if ii == 0:
-                fit = fit + ((matrix[ii][jj].Get_p0_by_Markov(p0 = matrix[ii][jj-1].p0.values[0], treshold = 1000), (ii,jj)),)
-            else:
-                fit = fit + ((matrix[ii][jj].Get_p0_by_Markov(p0 = matrix[ii-1][jj].p0.values[0], treshold = 1000), (ii,jj)),)
-    
-    markov_time     =   time.process_time()-start
-    tempo           =   tempo + (('fit markoviano', markov_time),)
-
-    print('tempo impiegato per fit markoviani: %f s'%(markov_time))
-    print('tempo impiegato ore = %3.2f'%(markov_time/3600))
-
-    non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
-
-    too         =   Whose_Gamma_Too_High(2., matrix, fitted)
-    excluded    +=  too
-
-else:
-    
-    with open(recover_path+'fit_markov.txt', 'r') as fin:
-        fit     =   eval(fin.read())
-
-        non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
-
-    with open(recover_path+'markov_fit_params.txt', 'r') as fin:
-        lines   =   fin.readlines()
-
-        if (len(fitted) != len(lines)):
-            raise ValueError("Incompatibilità tra lunghezza file parametri ({}) e informazioni fit ({})".format(len(fitted), len(lines)))
-
-        for (line, (ii,jj)) in zip(lines, fitted) :
-            matrix[ii][jj].Recover_Fit_Params(line)
-
-    for (ii,jj) in boni:
-
-        matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Fit_Params.T['Values'].values)
-
-Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = 'Markov_Fit_Map', path = now_path)
-Omega_Map   =   Get_Parameter_Map('Omega', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Omega_Map', path = now_path)
-Gamma_Map   =   Get_Parameter_Map('Gamma', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Gamma_Map', path = now_path)
-
-Save_Fit_Info(fit, filename = 'markov_fit.txt', path=now_path)
-Save_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = now_path)
-
-
-#%%
-# 5)fit completo
-
-fit_tot                    =   ()
-percents                    =   (0.2, 0.1, 0.15, 'positive', 'positive', 0.15, 0.15, 0.05, 0.05, 0.05, np.inf, np.inf)
-start = time.process_time()
-
-###necessari al fit: non fitto gaussiane#####
-
-percents                    =   (0.2, 0.1, 0.15, 'positive', 'positive', 0.15, 0.15, np.inf, np.inf)
-p_gauss = matrix[0][0].p0[list(cols_gauss)].values[0]
-
-########################
-
+percents        =   ('positive', 0.2, 'positive', 'positive', 'positive', 0.1, 0.1, 0.1,  np.inf, np.inf)
 
 for (ii,jj) in boni:
-
     print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
-    matrix[ii][jj].Get_p0(matrix[ii][jj].p0[list(cols_real)].values[0], cols_real)
-    matrix[ii][jj].Get_Fit_Bounds(percents, columns = cols_real)
-    fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 20)), (ii,jj)),)
 
+    if (ii,jj) in isolated:
 
-tot_time    = time.process_time()-start
-tempo       = tempo +(('fit totale',tot_time),)
+        matrix[ii][jj].Get_p0(matrix[0][0].p0.values[0], cols_mark)
+    
+    else:
 
-print('tempo impiegato per fit totali: %f s'%(tot_time))
-print('tempo impiegato ore = %3.2f'%(tot_time/3600))
+        if ii == 0:
+            matrix[ii][jj].Get_p0(matrix[ii][jj-1].p0.values[0], cols_mark)
+        else:
+            matrix[ii][jj].Get_p0(matrix[ii-1][jj].p0.values[0], cols_mark)
+    #print prefit cost
+    #matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0.values[0])
+    #print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
+    #fit bounds and execution
+    matrix[ii][jj].Get_Fit_Bounds(percents, cols_mark)
+    fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values)),(ii,jj)),)
+    #print afterfit cost
+    #matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0.values[0])
+    #print('Cost after fitting = {}'.format(matrix[ii][jj].cost_markov))
+    #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
 
-#%%
-#6) after fit
+markov_time     =   time.process_time()-start
+tempo           =   tempo + (('fit markoviano', markov_time),)
 
-non_fitted_tot, accomplished_tot, exceded_tot, fitted_tot = Unpack_Fit(fit_tot)
+print('tempo impiegato per fit markoviani: %f s'%(markov_time))
+print('tempo impiegato ore = %3.2f'%(markov_time/3600))
 
-Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted_tot, exceded_tot, excluded, fig = 'Total_Fit_Map', path = now_path)
-Omega_Map   =   Get_Parameter_Map('Omega', cols_real, matrix, n_rows, n_cols, fitted_tot, excluded ,fig = 'Omega_Map', path = now_path)
-Gamma_Map   =   Get_Parameter_Map('Gamma', cols_real, matrix, n_rows, n_cols, fitted_tot, excluded ,fig = 'Gamma_Map', path = now_path)
+# 4) after - fit markoviano
 
+non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
 
-
-Save_Fit_Info(fit_tot, filename = 'tot_fit.txt', path=now_path)
-Save_Fit_Parameters(matrix, fitted_tot, out_filename = 'tot_fit_params.txt', path = now_path)
-
-###########     STAMPA PERFORMANCE   #####################
-
-super_time    = time.process_time()-super_start
-print('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3600))
-
-for (what,t) in tempo:
-
-    print('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
-
+too_markov         =   Whose_Gamma_Too_High(2., matrix, fitted)
+Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
+Save_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
 
 
 # %%

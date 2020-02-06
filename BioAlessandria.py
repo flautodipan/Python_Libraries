@@ -263,7 +263,7 @@ class Trajectory():
             plt.xlabel(' PC 1 ')
             plt.ylabel(' PC 2 ')
             plt.title('PCA of MD traj for '+self.__str__())
-            fig.savefig(path+kwargs['fig']+'.png')  
+            fig.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')  
             plt.show()
 
     def Get_RMSD(self, xvg_filename, path='./', skip = False, **kwargs):
@@ -290,20 +290,20 @@ class Trajectory():
         if ('fig' in kwargs):
 
             plt.figure()
-            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.RMSD, ls = '--', lw = 0.3, alpha = 0.8)
+            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
             plt.xlabel('Time (ps)')
             plt.ylabel('RMSD (nm)')
             plt.title('RMSD for '+self.__str__())
-            plt.savefig(path+kwargs['fig']+'.png')
+            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
         
 
         if ('histo' in kwargs):
 
             plt.figure()
-            _ =   plt.hist(self.RMSD, bins = kwargs['bins'], histtype='bar', rwidth=0.8, alpha = 0.9)
+            _ =   plt.hist(self.RMSD, bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=kwargs['color'], alpha = 0.9)
             plt.xlabel('RMSD (nm)')
             plt.title("Distribuzione RMSD per "+self.__str__())
-            plt.savefig(path+kwargs['histo']+'.png')
+            plt.savefig(path+kwargs['histo']+'.pdf', format = 'pdf')
             plt.show()
 
 
@@ -330,24 +330,24 @@ class Trajectory():
         if ('fig' in kwargs):
 
             plt.figure()
-            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.ter_dist,  ls = '--', lw = 0.3, color=(0.5098039,0.1411765,0.2), alpha = 0.8)
+            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.ter_dist,  ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
             plt.xlabel('Time (ps)')
-            plt.ylabel('ter_dist (nm)')
+            plt.ylabel('terminals distance(nm)')
             plt.title('Distance of terminal elements for '+self.__str__())
-            plt.savefig(path+kwargs['fig']+'.png')
+            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
         
 
         if ('histo' in kwargs):
 
             plt.figure()
-            _ =   plt.hist(self.ter_dist, bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=(0.5098039,0.1411765,0.2) , alpha = 0.9)
+            _ =   plt.hist(self.ter_dist, bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=kwargs['color'], alpha = 0.9, density = True)
             plt.xlabel('ter_dist (nm)')
             plt.title("Distribution of terminals distance "+self.__str__())
             plt.grid(axis = 'y', alpha = 0.45)
-            plt.savefig(path+kwargs['histo']+'.png')
+            plt.savefig(path+kwargs['histo']+'.pdf', format = 'pdf')
             plt.show()
 
-    def Analyze_Traj_by_Descriptor (self, descriptor, N_gauss, p0, bins = 100, **image_kwargs):
+    def Analyze_Traj_by_Descriptor (self, descriptor, N_gauss, p0, bins = 50, **image_kwargs):
 
         """
         Funzione che
@@ -363,55 +363,48 @@ class Trajectory():
 
         if (descriptor == 'RMSD'):
             descriptor = self.RMSD
-        elif (descriptor ==  'ter_dist'):
+        elif (descriptor ==  'terminals distance'):
             descriptor = self.ter_dist
         else:
-            raise ValueError (" Scegliere descrittore per analisi traiettoria : \n 'RMSD' o  'ter_dist' ")
-
-        plt.figure()
-        descriptor_pdf, self.x_bins, _   =   plt.hist(descriptor, bins = bins)
-        x                               = (self.x_bins[1:]+self.x_bins[:-1])/2 # for len(x)==len(y)
-        self.N_gauss                    =   N_gauss
-
+            raise ValueError (" Scegliere descrittore per analisi traiettoria : \n 'RMSD' o  'terminal distance' ")
+        
         if (N_gauss == 3 ):
-                
-            self.gauss_params,cov=curve_fit(trimodal,x,descriptor_pdf, p0=p0, method = 'trf')
-            
-            if ('fig_fit' in image_kwargs):
+            fit_mode = trimodal
+            i = 6
+            idx = 'mu3'
+        elif (N_gauss == 2):
+            i = 3
+            fit_mode = bimodal
+            idx = 'mu2'
+        
+        #fit e plot
+        y, x,  = np.histogram(self.ter_dist, bins = bins)
+        x = (x[1:] + x[:-1])/2 
+        self.gauss_params, cov = curve_fit(fit_mode,x,y, p0=p0)
+        
+        print("Parametri del fit \n")
+        self.df  =   pd.DataFrame({'Values':self.gauss_params, 'StdErr':np.sqrt(np.diag(cov))}, index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2', 'mu3', 'sigma3', 'A3')) 
+        print(self.df)
+        
+        # divido perchè distribuzione è indipendente da ordine
 
-                
-                plt.plot(x, trimodal(x, *self.gauss_params), color = 'red', lw = 3, label = 'Multimodal Fit')            
-                #plt.bar(x, height = descriptor_pdf, width = 0.8 * (self.x_bins.max()-self.x_bins.min()))
-                plt.xlabel(descrittore +' (nm)')
-                plt.title(' Gaussian fit for '+descrittore+' distribution for '+self.__str__())
-                plt.legend()
-                plt.savefig(image_kwargs['path']+image_kwargs['fig_fit']+'.png')
-                plt.show()
+        fold = self.ter_dist[self.ter_dist < self.gauss_params[i]]
+        unfold = self.ter_dist[self.ter_dist >= self.gauss_params[i]]
 
-            print("Parametri del fit \n")
-            df  =   pd.DataFrame({'Values':self.gauss_params, 'StdErr':np.sqrt(np.diag(cov))}, index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2', 'mu3', 'sigma3', 'A3')) 
-            print(df)
+        # plotto primo histo
+        plt.figure()
+        plt.hist([fold, unfold], histtype = 'bar', stacked = True, color=[image_kwargs['color_fold'], image_kwargs['color_unfold']], bins = bins, rwidth=0.8, label = ['Folded states', 'unfolded states'], alpha = 0.9)
+    
+        #fit e plot
+        x = np.linspace(descriptor.min(), descriptor.max(), 1000)
+        plt.plot(x, trimodal(x, *self.gauss_params), color = image_kwargs['fit_color'], linestyle = 'dashed', lw = 2, label = 'Multimodal Fit')    
+        
+        plt.title(' Distribution of '+descrittore+' for '+self.__str__())
+        plt.xlabel(descrittore +' (nm)')
+        plt.legend(title= 'mu = {:3.2f}\u00B1{:3.2f}'.format(self.gauss_params[i], self.df['StdErr'][idx]))
+        plt.savefig(image_kwargs['path']+image_kwargs['fig_fit']+'.pdf', format = 'pdf')
+        plt.show()
 
-
-
-        if (N_gauss == 2 ):
-                
-            self.gauss_params,cov=curve_fit(bimodal,x,descriptor_pdf, p0=p0, method = 'trf')
-            
-            if ('fig_fit' in image_kwargs):
-
-                
-                plt.plot(x, bimodal(x, *self.gauss_params), color = 'red', lw = 3, label = 'Multimodal Fit')            
-                #plt.bar(x, height = descriptor_pdf, width = 0.8 * (self.x_bins.max()-self.x_bins.min()))
-                plt.xlabel(descrittore+' (nm)')
-                plt.title(' Gaussian fit for '+descrittore+' distribution for '+self.__str__())
-                plt.legend()
-                plt.savefig(image_kwargs['path']+image_kwargs['fig_fit']+'.png')
-                plt.show()
-
-            print("Parametri del fit \n")
-            df  =   pd.DataFrame({'Values':self.gauss_params, 'StdErr':np.sqrt(np.diag(cov))}, index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2')) 
-            print(df)
 
     def Divide_Traj_by_Descriptor (self, descriptor, sigma_factor, **image_kwargs):
 
@@ -720,7 +713,6 @@ def BioStructure (pdb_filename, n_structures, structures_names, structures_type,
         command = st_name+' = '+st_type+'('+pdb_filename+', chain_id ='+st_chain_id+')'
         print(command)
         exec(command)
-
 
 def Dist_Matrix (Coord):  
 # prende matrice coordinate x,y,z di N elementi, ritorna matrice delle distanze relative

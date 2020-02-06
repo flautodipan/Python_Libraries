@@ -19,7 +19,8 @@ tempo               =   ()
 ### ACQUISISCO INPUT 
 
 inputs = configparser.ConfigParser()
-inputs.read('K27M.ini')
+with open('K27M.ini', 'r') as f:
+    inputs.read_file(f)
 
 
 ### OPERAZIONI SU CARTELLE
