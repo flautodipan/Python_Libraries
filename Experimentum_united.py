@@ -20,6 +20,8 @@ cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amp
 cols_gauss  = ( 'A', 'mu', 'sigma')
 
 
+recover_markov = False
+
 #%%
 import      numpy               as      np
 import      matplotlib.pyplot   as      plt
@@ -38,8 +40,8 @@ syg_kwargs   =   {'height': 20, 'distance': 20, 'width': 5.}
 
 #import dati spettro
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y')
-n_rows  =   5#len(dati)
-n_cols  =   5#len(dati[0])
+n_rows  =   len(dati)
+n_cols  =   len(dati[0])
 dim     =   n_cols*n_rows
 matrix = Initialize_Matrix(n_rows,n_cols)
 
@@ -156,8 +158,6 @@ print('\n I saved xy info on xy.txt and xy_VIPA.txt in your analysis directory\n
 #%%
 #3) faccio il fit markoviano
 
-recover_markov = False
-
 if recover_markov == False:
         
     print('\n\n You chose to do the markovian fit\n\n')
@@ -183,8 +183,8 @@ if recover_markov == False:
         print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
         matrix[ii][jj].Get_Fit_Bounds(percents, cols_mark)
         fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values)),(ii,jj)),)
-        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0.values[0])
-        print('Cost after fitting = {}'.format(matrix[ii][jj].cost_markov))
+        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Fit_Params.values[0])
+        print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
 
         del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
 
@@ -230,19 +230,19 @@ Save_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path
 # fit tot
 
 fit_tot = ()
-p_gauss = matrix[0][0].p0[list(cols_gauss)].values[0]
 percents = (0.2, 0.1, 0.15, 'positive', 'positive', 0.15, 0.15, np.inf, np.inf)
 
 for (ii,jj) in boni:
 
     print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+    p_gauss = matrix[ii][jj].Fit_Params[list(cols_gauss)].values[0]
     matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Fit_Params.T['Values'].values)
     matrix[ii][jj].Get_Fit_Bounds(percents, columns = cols_real)
-    matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0])
-    print('Cost before fitting = {}'.format(matrix[ii][jj].cost_tot))
+    matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss)
+    print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
     fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
-    matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0])
-    print('Cost after fitting = {}'.format(matrix[ii][jj].cost_tot))
+    matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Fit_Params.values[0], p_gauss)
+    print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot))
     #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
 
 #after fit
@@ -259,3 +259,6 @@ print('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3
 for (what,t) in tempo:
 
     print('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
+
+
+# %%

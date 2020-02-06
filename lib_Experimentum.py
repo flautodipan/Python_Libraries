@@ -451,10 +451,10 @@ class Spectrum  :
         self.cost_markov        =   0.5*np.sum(self.Residuals_Markov(p0, self.y)**2)
 
     
-    def Get_cost_tot(self, p0):
+    def Get_cost_tot(self, p0, p_gauss):
         # senza le gauss
 
-        self.cost_tot           =   0.5*np.sum(self.Residuals(p0, self.y)**2)
+        self.cost_tot           =   0.5*np.sum(self.Residuals_NoGauss(p0, self.y, p_gauss)**2)
 
 
     def Get_p0_by_Markov(self, p0, treshold, **kwargs):
