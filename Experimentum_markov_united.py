@@ -185,17 +185,12 @@ tempo           =   tempo + (('fit markoviano', markov_time),)
 print('tempo impiegato per fit markoviani: %f s'%(markov_time))
 print('tempo impiegato ore = %3.2f'%(markov_time/3600))
 
+
 # 4) after - fit markoviano
 
 non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
 
-too         =   Whose_Gamma_Too_High(2., matrix, fitted)
-excluded    +=  too
-
-Fit_Map     =   Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = 'Markov_Fit_Map', path = analysis_path)
-Omega_Map   =   Get_Parameter_Map('Omega', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Omega_Map', path = analysis_path)
-Gamma_Map   =   Get_Parameter_Map('Gamma', cols_mark, matrix, n_rows, n_cols, fitted, excluded ,fig = 'Markov_Gamma_Map', path = analysis_path)
-
+too_markov         =   Whose_Param_Too_High('Gamma', 2., matrix, fitted)
 Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
 Save_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
 
