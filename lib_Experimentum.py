@@ -78,6 +78,17 @@ class Spectrum  :
             plt.savefig(fig+'.png')
             plt.show()
 
+    def Recover_Spectrum(self, x, y):
+
+        self.x_freq = x
+        self.y = y
+        self.y_err = np.sqrt(self.y)
+    
+    def Recover_VIPA(self, x_VIPA, y_VIPA):
+
+        self.x_VIPA_freq = x_VIPA
+        self.y_VIPA = y_VIPA
+
     def Get_Spectrum_Peaks(self, **syg_kwargs):
 
         self.peaks      =   find_peaks(self.y, **syg_kwargs)
@@ -195,7 +206,6 @@ class Spectrum  :
 
             pk_max_idx  =   np.argmax(self.peaks[1]['peak_heights'])
             condition_peaks_pos     =   ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][3]] < self.y[self.peaks[0][2]]))
-            condition_peaks_numb    =   (())
             condition_peaks_height  =   (self.peaks[1]['peak_heights'] < 1000).all()
 
             if (self.y.max() >= saturation_height)  &  (self.peaks[1]['widths'][pk_max_idx] > saturation_width):
@@ -477,7 +487,7 @@ class Spectrum  :
             self.Get_p0(self.p0[list(cols_mark)].values[0], cols_mark)
             self.Get_Fit_Bounds(percents, columns = cols_mark)
             self.Non_Linear_Least_Squares_Markov(bound = (self.bounds['down'].values, self.bounds['up'].values), **kwargs)
-            self.Get_p0(np.concatenate((self.Fit_Params.T['Values'].values[:2], (self.p0['Gamma'], 100.), self.Fit_Params.T['Values'].values[2:])), cols)
+            self.Get_p0(np.concatenate((self.Markov_Fit_Params.T['Values'].values[:2], (self.p0['Gamma'], 100.), self.Markov_Fit_Params.T['Values'].values[2:])), cols)
             self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
 
             print('costo dopo fit = '+str(self.cost))
@@ -762,7 +772,7 @@ class Spectrum  :
             plt.legend()
         
         
-        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
+        self.Tot_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
         if (self.res_lsq['success'] == False):
             return 2
         else: return 1
@@ -842,20 +852,25 @@ class Spectrum  :
             plot(self.x_freq, self.y_markov_fit, label= 'Fit')
             plt.legend()
            
-        self.Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+        self.Markov_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
         
         if (self.res_lsq['success'] == False):
             return 2
         else: return 1
     
-    def Recover_Fit_Params(self, dictio_string):
+    def Recover_Markov_Fit_Params(self, dictio_string):
 
         """
-        Funzione che tramite libreria json ricostruisce DataFrame Fit_Params per l'oggetto
+        Funzione che tramite libreria json ricostruisce DataFrame Markov_Fit_Params per l'oggetto
         dictio_string contiene sotto forma di stringa le info in formato json (che sono un dizionario)
 
         """
-        self.Fit_Params =   pd.DataFrame(json.loads(dictio_string))
+        self.Markov_Fit_Params =   pd.DataFrame(json.loads(dictio_string))
+
+    def Recover_Tot_Fit_Params(self, dictio_string):
+
+        self.Tot_Fit_Params =   pd.DataFrame(json.loads(dictio_string))
+
 
     def Recover_Gauss_Parameter(self, dictio_string):
 
@@ -871,6 +886,11 @@ class Spectrum  :
 
         self.p_gauss =   pd.DataFrame({idx : value for (idx, value) in zip(cols_gauss, p_gauss)}, index = ['Values'])
    
+    def Recover_cost_markov(self, cost):
+        self.cost_markov = cost
+
+    def Recover_cost_tot(self, cost):
+        self.cost_tot = cost
     
 def Initialize_Matrix(n_rows, n_cols):
 
@@ -1098,16 +1118,6 @@ def Whose_Param_Too_Low(param, treshold, matrix, fitted):
 
     return too_low
 
-def Save_Params(path, n_rows, n_cols, matrix, fitted):
-
-    with open(path+'save_params.txt', 'w') as f:
-
-        for ii in range(0, n_rows,1 ):
-            for jj in range(n_cols):
-                if (ii,jj) in fitted:
-                    f.write(str(matrix[ii][jj].Fit_Params.values[0])+'\n')
-    
-
 def Save_Fitted_Info(path, n_rows, n_cols, fitted):
 
     with open(path+'fitted.txt', 'w') as f:
@@ -1138,10 +1148,10 @@ def Verify_Initial_Conditions(matrix, ver = (), init = ()):
 
     print("Il parametro è :", matrix[init[0]][init[1]].p0.values[0])
 
-def Save_Fit_Parameters(matrix, fitted, out_filename = 'fit_params.txt' , path = './'):
+def Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt' , path = './'):
 
     """
-    Salvo nella cartella di analisi un file di nome 'fit_params.txt' nella cartella di analisi associata alla presa dati
+    Salvo nella cartella di analisi un file di nome 'markov_fit_params.txt' nella cartella di analisi associata alla presa dati
     la struttura è 
     ogni riga contiene un dizionario già strutturato per file .json che DataFrame è in grado di acquisire
 
@@ -1153,7 +1163,17 @@ def Save_Fit_Parameters(matrix, fitted, out_filename = 'fit_params.txt' , path =
 
         for (ii,jj) in fitted:
    
-            f_out.write(json.dumps(matrix[ii][jj].Fit_Params.to_dict())+'\n')
+            f_out.write(json.dumps(matrix[ii][jj].Markov_Fit_Params.to_dict())+'\n')
+
+    print('Stampato parametri fit su file '+path+out_filename)
+
+def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.txt' , path = './'):
+
+    with open(path+out_filename, 'w') as f_out:
+
+        for (ii,jj) in fitted:
+   
+            f_out.write(json.dumps(matrix[ii][jj].Markov_Fit_Params.to_dict())+'\n')
 
     print('Stampato parametri fit su file '+path+out_filename)
 
@@ -1174,20 +1194,53 @@ def Save_XY_position(matrix, n_rows, n_cols, out_filename = 'xy.txt' , path = '.
                 f_out.write(np.array2string(matrix[ii][jj].x_freq, max_line_width = 10000)+'\n')
                 f_out.write(np.array2string(matrix[ii][jj].y, max_line_width = 10000)+'\n')
 
+def Save_y_markov_fit(matrix, boni, out_filename = 'y_markov_fit.txt', path = './'):
 
-def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False):
+    with open(path+out_filename, 'w') as f_out:
+        for (ii,jj) in boni:
+            f_out.write(np.array2string(matrix[ii][jj].y_markov_fit, max_line_width = 10000)+'\n')
+
+
+def Save_y_fit(matrix, boni, out_filename = 'y_tot_fit.txt', path = './'):
+
+    with open(path+out_filename, 'w') as f_out:
+        for (ii,jj) in boni:
+            f_out.write(np.array2string(matrix[ii][jj].y_markov_fit, max_line_width = 10000)+'\n')
+
+def Save_cost_markov(matrix, boni, out_filename = 'cost_markov.txt', path = './'):
+
+    with open(path+out_filename, 'w') as f_out:
+        for (ii,jj) in boni:
+            f_out.write(np.array2string(matrix[ii][jj].cost_markov, max_line_width = 10000)+'\n')
+
+def Save_cost_tot(matrix, boni, out_filename = 'cost_tot.txt', path = './'):
+
+    with open(path+out_filename, 'w') as f_out:
+        for (ii,jj) in boni:
+            f_out.write(np.array2string(matrix[ii][jj].cost_tot, max_line_width = 10000)+'\n')
+
+def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False):
+
+    if pix:
+
+        attribute = 'x'
+        
+    else:
+        attribute = 'x_freq'
 
     for (ii,jj) in elements_iterable:
+        
         print(str((ii,jj)))
         plt.figure()
-        plt.plot(matrix[ii][jj].x_freq, matrix[ii][jj].y)
+        plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, '+', label = 'data')
 
-        if fit:
-            plt.plot(matrix[ii][jj].x_freq, matrix[ii][jj].Convolve_Theoretical_Response_Fast(matrix[ii][jj].p0.values[0], matrix[ii][jj].p_gauss.values[0]))
+        if fit == 'markov':
+            plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_markov_fit, label = 'markov fit')
+
+        elif fit == 'tot':
+            plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_fit, label = 'tot fit')
+
         plt.title(str((ii,jj)))
-
-def Interpolate_Parameter_Map(map):
-
-   pass
-
+        plt.legend()
+        plt.show()
 

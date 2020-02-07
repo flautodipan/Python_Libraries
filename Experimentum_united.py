@@ -6,9 +6,9 @@
 
 
 import      os
-now_path        =   '../BRILLOUIN/K27M/'
-spectra_filename    =   'K27M'
-VIPA_filename       =   'K27M_VIPA.tif'
+now_path        =   '../BRILLOUIN/C6/'
+spectra_filename    =   'C6'
+VIPA_filename       =   'C6_VIPA.tif'
 
 os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis/')
 analysis_path            =   now_path +'analysis/'
@@ -123,14 +123,15 @@ for ii in range(n_rows):
     for jj in range(n_cols):
 
         print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+        
+        matrix[ii][jj].x_VIPA_freq   =   matrix[0][0].x_VIPA_freq
+        matrix[ii][jj].y_VIPA        =   matrix[0][0].y_VIPA
+        
+        matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
+        matrix[ii][jj].Spectrum_Pix2GHz()
 
         if ((ii,jj) != (0,0)) & ((ii,jj) not in excluded):
                     
-            matrix[ii][jj].x_VIPA_freq   =   matrix[0][0].x_VIPA_freq
-            matrix[ii][jj].y_VIPA        =   matrix[0][0].y_VIPA
-            
-            matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
-            matrix[ii][jj].Spectrum_Pix2GHz()
 
             if (ii,jj) in brillouin_higher:
             
@@ -143,7 +144,8 @@ for ii in range(n_rows):
                 
 
             matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = 0.25)
-            del matrix[ii][jj].x, matrix[ii][jj].x_VIPA, matrix[ii][jj].Poly2GHz, matrix[ii][jj].peaks
+            #del matrix[ii][jj].x, matrix[ii][jj].x_VIPA, matrix[ii][jj].Poly2GHz, matrix[ii][jj].peaks
+
 mod_time    =   time.process_time()-start
 tempo       =   tempo + (('modifica',mod_time), )
 print('tempo impiegato per modifica spettri: %f s'%(mod_time))
@@ -165,6 +167,7 @@ if recover_markov == False:
     start = time.process_time()
     isolated = Get_Isolated_Elements(excluded)
     percents        =   ('positive', 0.2, 'positive', 'positive', 'positive', 0.1, 0.1, 0.1,  np.inf, np.inf)
+    
     for (ii,jj) in boni:
         print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
 
@@ -183,7 +186,7 @@ if recover_markov == False:
         print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
         matrix[ii][jj].Get_Fit_Bounds(percents, cols_mark)
         fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values)),(ii,jj)),)
-        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Fit_Params.values[0])
+        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0])
         print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
 
         del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
@@ -206,8 +209,7 @@ else:
         raise ValueError("Incompatibilità tra lunghezza file parametri ({}) e informazioni fit ({})".format(len(fitted), len(lines)))
 
     for (line, (ii,jj)) in zip(lines, fitted) :
-        matrix[ii][jj].Recover_Fit_Params(line)
-        #matrix[ii][jj].Recover_Gauss_Parameter(line)
+        matrix[ii][jj].Recover_Markov_Fit_Params(line)
 
 markov_time     =   time.process_time()-start
 tempo           =   tempo + (('fit markoviano', markov_time),)
@@ -220,10 +222,11 @@ print('tempo impiegato ore = %3.2f'%(markov_time/3600))
 
 non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
 
-too_markov         =   Whose_Param_Too_High('Gamma', 2., matrix, fitted)
+#too_markov         =   Whose_Param_Too_High('Gamma', 2., matrix, fitted)
 Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
-Save_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
-
+Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
+Save_y_markov_fit(matrix, boni, path = analysis_path)
+Save_cost_markov(matrix, boni, path = analysis_path)
 
 #%%
 ##################################################################################################################################
@@ -235,21 +238,23 @@ percents = (0.2, 0.1, 0.15, 'positive', 'positive', 0.15, 0.15, np.inf, np.inf)
 for (ii,jj) in boni:
 
     print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
-    p_gauss = matrix[ii][jj].Fit_Params[list(cols_gauss)].values[0]
-    matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Fit_Params.T['Values'].values)
+    p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
+    matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params.T['Values'].values)
     matrix[ii][jj].Get_Fit_Bounds(percents, columns = cols_real)
     matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss)
     print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
     fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
-    matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Fit_Params.values[0], p_gauss)
+    matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss)
     print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot))
     #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
 
 #after fit
 non_fitted_tot, accomplished_tot, exceded_tot, fitted_tot = Unpack_Fit(fit_tot)
-Save_Fit_Info(fit_tot, filename = 'tot_fit.txt', path=analysis_path)
-Save_Fit_Parameters(matrix, fitted_tot, out_filename = 'tot_fit_params.txt', path = analysis_path)
 
+Save_Fit_Info(fit_tot, filename = 'tot_fit.txt', path=analysis_path)
+Save_Tot_Fit_Parameters(matrix, fitted_tot, out_filename = 'tot_fit_params.txt', path = analysis_path)
+Save_y_fit(matrix, boni, path = analysis_path)
+Save_cost_tot(matrix, boni, path = analysis_path)
 
 
 super_time = super_start - time.process_time()
