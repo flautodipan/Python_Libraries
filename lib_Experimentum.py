@@ -344,6 +344,7 @@ class Spectrum  :
             plt.title('GHz vs Pixel')
             #plt.savefig('figure/'+fig+'.png')
             plt.show()
+            plt.close()
         
     def VIPA_Pix2GHz (self, fig = False):
             
