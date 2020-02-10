@@ -360,6 +360,7 @@ class Spectrum  :
             plt.title('Funzione di trasf VIPA in GHz')
             plt.xlabel('GHz')
             plt.show()
+            plt.close()
 
     def Spectrum_Pix2GHz (self, fig = False):
 
@@ -375,6 +376,8 @@ class Spectrum  :
             plt.xlabel('GHz')
             plt.plot(self.x_freq, self.y)
             plt.title('Spettro Exp in GHz')
+            plt.show()
+            plt.close()
 
     def Cut_n_Estimate_Spectrum(self, cut = True, estimate = False, columns = cols_mark,distanza = 2/3, verbose = False ):
         
