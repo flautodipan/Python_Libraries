@@ -867,6 +867,14 @@ class Spectrum  :
         """
         self.Markov_Fit_Params =   pd.DataFrame(json.loads(dictio_string))
 
+    def Recover_y_markov_fit(self, y_markov_fit):
+
+        self.y_markov_fit = y_markov_fit
+
+    def Recover_y_fit(self, y_tot_fit):
+
+        self.y_fit = y_tot_fit
+
     def Recover_Tot_Fit_Params(self, dictio_string):
 
         self.Tot_Fit_Params =   pd.DataFrame(json.loads(dictio_string))
@@ -1014,52 +1022,87 @@ def Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = False, path
     
     return fit_map
 
-def Gamma_Verify_Markov_Fit(matrix, fitted):
+def Verify_Fit(matrix, boni, fit, parameter, where, treshold):
 
-    for (ii, jj) in fitted:
+    """
 
-        if matrix[ii][jj].Fit_Params['Gamma']['Values'] > 1.:
+    Funzione che in base agli argomenti where e treshold verifica se il fit scelto per il parametro parameter ha un valore minore/maggiore di 
+    treshold 
+    In caso affermativo, plotta il fit
+
+    """
+    if fit == 'markov':
+        fit_params = 'Markov_Fit_Params'
+        y_fit = 'y_markov_fit'
+    elif fit == 'tot':
+        fit_params = 'Tot_Fit_Params'
+        y_fit = 'y_fit'
+    else:
+        raise ValueError ("Specify which fit to verify: 'markov' or 'tot \n")
+
+    for (ii, jj) in boni:
+
+        if where == 'lower':
+
+            condition = getattr(matrix[ii][jj], fit_params)[parameter]['Values'] < treshold
+
+        elif where == 'upper':
+
+            condition = getattr(matrix[ii][jj], fit_params)[parameter]['Values'] > treshold
+
+        else: raise ValueError('Uncorrect where selection: type "upper" to verify which values are above treshold\n"lower to below\n ')
+            
+        if condition:
 
             plt.figure()
-            plt.plot(matrix[ii][jj].y)
-            plt.plot(matrix[ii][jj].Convolve_Theoretical_Response_Fast())
-            plt.title(str((ii,jj)) +' successo: '+ str(matrix[ii][jj].res_lsq['success']))
-            print(matrix[ii][jj].res_lsq['message'])
+            plt.plot(matrix[ii][jj].x_freq, matrix[ii][jj].y, '+', label = data)
+            plt.plot(matrix[ii][jj].x_freq, getattr(matrix[ii][jj], y_fit), label = y_fit)
+            plt.title(str((ii,jj)))
 
-def Get_Parameter_Map(parameter, columns, matrix, n_rows, n_cols, fitted, excluded, cmap, fig = False, path = ''):
 
-    if parameter not in matrix[fitted[0][0]][fitted[0][1]].Fit_Params.columns:
-            
-            print ('Parametro scelto non in quelli fittati: scegliere uno tra\n', columns, '\nse si sta mappando dopo fit totale, markoviano leva tau e delta\n')
-            raise ValueError('COJONE')
+def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, cmap, inf, sup, Deltas = False,  fig = False, path = './'):
+
+
+    if fit == 'markov':
+        fit_params = 'Markov_Fit_Params'
+    elif fit == 'tot':
+        fit_params = 'Tot_Fit_Params'
+    else:
+        raise ValueError ("Specify which fit to verify: 'markov' or 'tot \n")
+    if Deltas:
+        value = 'StdErrs'
+    else:
+        value = 'Values'
 
     p_map   =   np.zeros((n_rows, n_cols))
     nans = ()
     for ii in range(n_rows):
         for jj in range (n_cols):
             if  (ii, jj) not in excluded:
-                p_map[ii,jj]    =   matrix[ii][jj].Fit_Params[parameter]['Values']
+                p_map[ii,jj]    =   getattr(matrix[ii][jj], fit_params)[parameter][value]
             else:
                 p_map[ii,jj]    = np.nan
                 nans = nans +((ii,jj),)
 
 
-    print('Completata Paramter_Map per '+parameter)
+    print('Completata Parameter_Map per '+parameter)
     print('Ho trovato {} elementi saturati'.format(len(nans)))
 
     if fig:
 
         cm = plt.get_cmap(cmap)
-        cm.set_bad(color='lime')
-        plt.matshow(p_map, cmap = cm)
+        cm.set_bad(color='k')
+        plt.matshow(p_map, cmap = cmap)
+        plt.clim(inf, sup)
         plt.title(parameter+' Map')
         plt.colorbar()
         plt.xlabel('Row Index')
         plt.ylabel('Col Idx')
-        plt.savefig(path + fig+'.png')
+        plt.savefig(path + fig+'.pdf', format = 'pdf')
         plt.close()
 
     return  (p_map, nans)
+
 
 def Interpolate_Parameter_Map(p_map, cmap, fig = False, path = ''):
 
