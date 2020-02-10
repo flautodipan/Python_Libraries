@@ -6,9 +6,9 @@
 
 
 import      os
-now_path        =   '../BRILLOUIN/C6/'
-spectra_filename    =   'C6'
-VIPA_filename       =   'C6_VIPA.tif'
+now_path        =   '../BRILLOUIN/TDP43/ARS_10_02/'
+spectra_filename    =   'ARS_10_02'
+VIPA_filename       =   'ARS_10_02_VIPA1.tif'
 
 os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis/')
 analysis_path            =   now_path +'analysis/'
@@ -32,8 +32,9 @@ import      time
 super_start         =   time.process_time()
 tempo               =   ()
 
-
-syg_kwargs   =   {'height': 20, 'distance': 20, 'width': 5.}
+syg_kwargs          =   {'height': 20, 'distance': 20, 'width': 3.5}
+syg_kwargs_VIPA     =   {'distance':100, 'width': 1}
+syg_kwargs_brill    =   {'height': 5, 'distance': 30, 'width': 3.}
 # %%
 #0) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
 #   e compio alcune operazioni di sistema utili per salvataggio dati
@@ -42,9 +43,9 @@ syg_kwargs   =   {'height': 20, 'distance': 20, 'width': 5.}
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-dim     =   n_cols*n_rows
-matrix = Initialize_Matrix(n_rows,n_cols)
 
+matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+dim     =   len(rows)*len(cols)
 #definisco quantità di interesse
 
 invisible           =   () 
@@ -53,19 +54,17 @@ brillouin_higher    =   ()
 boni                =   ()
 excluded            =   ()
 
-
-
 # %%
 #1) Acquisisco VIPA e Spettri
 start = time.process_time()
 matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
 
-for ii in range(n_rows):
-    for jj in range(n_cols):
-        print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+for ii in range(len(rows)):
+    for jj in range(len(cols)):
+        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
         
-        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = True, cut_range = (200, 600))
+        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = False, cut_range = (200, 600))
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
         matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
@@ -103,13 +102,14 @@ print('Totale spettri con Brillouin invisibili: %d\n'%(len(invisible)), invisibl
 print('Totale spettri boni :   %d'%(len(boni)))
 print('Totale   spettri : %d\ndi cui %d inutilizzabili'%(dim, len(invisible)+len(saturated)))
 print('ossia il %3.2f percento'%(float(len(invisible)+len(saturated))*100/dim))
+print('Di cui il {} invisibili e il {} saturati'.format(len(invisible)*100/dim, len(saturated)*100/dim))
 
 # %%
 #2) Faccio operazioni di modifica spettro
 
 start = time.process_time()
 
-matrix[0][0].How_Many_Peaks_To_VIPA(treshold = 30)
+matrix[0][0].How_Many_Peaks_To_VIPA(treshold = 50, **syg_kwargs_VIPA)
 matrix[0][0].Fit_Pixel2GHz(fig = True)
 matrix[0][0].VIPA_Pix2GHz(fig=True)
 
@@ -119,10 +119,12 @@ matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, distanza = 0.25)
 matrix[0][0].Fit_VIPA_Gaussian()
 
 
-for ii in range(n_rows):
-    for jj in range(n_cols):
 
-        print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+
+for ii in range(len(rows)):
+    for jj in range(len(cols)):
+        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+        
         
         matrix[ii][jj].x_VIPA_freq   =   matrix[0][0].x_VIPA_freq
         matrix[ii][jj].y_VIPA        =   matrix[0][0].y_VIPA
@@ -135,7 +137,7 @@ for ii in range(n_rows):
 
             if (ii,jj) in brillouin_higher:
             
-                matrix[ii][jj].Get_Spectrum_Peaks(height = 5., distance = 50, width = 5)
+                matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
                 matrix[ii][jj].Get_Spectrum_4_Peaks_by_Order()
             
             else :
@@ -152,7 +154,7 @@ print('tempo impiegato per modifica spettri: %f s'%(mod_time))
 
 
 # salvo info spettri e VIPA
-Save_XY_position(matrix, n_rows, n_cols, path = analysis_path)
+Save_XY_position(matrix, len(rows), len(cols), path = analysis_path)
 Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
 print('\n I saved xy info on xy.txt and xy_VIPA.txt in your analysis directory\n\n')
 
@@ -169,7 +171,8 @@ if recover_markov == False:
     percents        =   ('positive', 0.2, 'positive', 'positive', 'positive', 0.1, 0.1, 0.1,  np.inf, np.inf)
     
     for (ii,jj) in boni:
-        print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+
+        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
 
         if (ii,jj) in isolated:
 
@@ -237,7 +240,7 @@ percents = (0.2, 0.1, 0.15, 'positive', 'positive', 0.15, 0.15, np.inf, np.inf)
 
 for (ii,jj) in boni:
 
-    print('Passo row = %d/%d col = %d/%d'%(ii,n_rows, jj, n_cols))
+    print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
     p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
     matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params.T['Values'].values)
     matrix[ii][jj].Get_Fit_Bounds(percents, columns = cols_real)

@@ -120,7 +120,7 @@ class Spectrum  :
 
         else:
 
-            raise ValueError("Problema: numero di picchi non previsto dal codice %d"%(self.n_peaks))
+            raise ValueError("Problema: numero di picchi non previsto dal codice: %d"%(self.n_peaks))
 
 
         self.n_peaks    =   self.peaks['peaks_idx'].size
@@ -198,47 +198,42 @@ class Spectrum  :
         if (self.n_peaks <= 3) | (self.n_peaks > 7):
             
             print('Spettro invisibile')
-
             return  3
 
         elif (self.n_peaks >= 4) & (self.n_peaks <= 7):
-
 
             pk_max_idx  =   np.argmax(self.peaks[1]['peak_heights'])
             condition_peaks_pos     =   ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][3]] < self.y[self.peaks[0][2]]))
             condition_peaks_height  =   (self.peaks[1]['peak_heights'] < 1000).all()
 
             if (self.y.max() >= saturation_height)  &  (self.peaks[1]['widths'][pk_max_idx] > saturation_width):
-                
                 print('spettro saturato')
                 return          1
 
             if condition_peaks_pos:
                 
                 if condition_peaks_height:
-                        
                     print('Spettro con Brillouin più alti')
                     return          2
                 
                 else:
-
                     print('Spettro invisibile')
                     return  3
             
 
     
-    def How_Many_Peaks_To_VIPA(self, n_GHz_peaks = 5, n_gauss_peaks = 3, delta = 1., distance = 150., width = 1, treshold = 50, fig = False, verbose = False):
+    def How_Many_Peaks_To_VIPA(self, treshold, n_GHz_peaks = 5, n_gauss_peaks = 3, delta = 1., fig = False, verbose = False, **syg_kwargs):
 
         h_save = ()
 
         for n_peaks in (n_GHz_peaks, n_gauss_peaks):
                 
-            pk      =   find_peaks(self.y_VIPA, height = treshold, distance = distance, width = width)
+            pk      =   find_peaks(self.y_VIPA, height = treshold, **syg_kwargs)
             height  =   np.max(pk[1]['peak_heights'])/2
             
             while True:
 
-                pk      =   find_peaks(self.y_VIPA, height = height, distance = distance, width = width)
+                pk      =   find_peaks(self.y_VIPA, height= height, **syg_kwargs)
 
                 if (height > treshold) & (pk[0].size == n_peaks):
 
@@ -246,7 +241,7 @@ class Spectrum  :
 
                     if verbose:
                         print("Ho trovato valore dell'altezza per avere %d picchi: %f\n"%(n_peaks, height), pk)
-                        _ = Analyze_Peaks(self.x_VIPA, self.y_VIPA, 'GHz', fig = fig, verbose = verbose, height= height, distance = distance, width = width )
+                        _ = Analyze_Peaks(self.x_VIPA, self.y_VIPA, 'GHz', fig = fig, verbose = verbose, **syg_kwargs)
                     break
                 
                 elif (height <= treshold):
@@ -260,7 +255,7 @@ class Spectrum  :
 
         self.GHz_fit_height     =   h_save[0]
         self.gauss_fit_height   =   h_save[1]
-        self.VIPA_peaks_dist    =   distance
+        self.VIPA_peaks_dist    =   syg_kwargs['distance']
 
     def Fit_VIPA_Gaussian(self, fig = False, verbose = False):
 
@@ -282,7 +277,7 @@ class Spectrum  :
         if verbose:
 
             print ('Ho stimato i parametri della gaussiana come A = %3.2f\tmu  = %3.2f\tsigma = %3.2f' %(A, mu, sigma))
-            print ('E li ho aggiunti ai parametri iniziali per il fit. Ora conosco %d parametri su %d \n' %(self.p0.size, self.n_params))
+            print ('E li ho aggiunti ai parametri iniziali per il fit. Ora conosco %d parametri su %d \n' %(self.p0.size, 12))
 
         if fig:
 
@@ -434,7 +429,7 @@ class Spectrum  :
             if len(columns) == len(cols):
 
                 self.p0['Delta']        =   self.p0['Gamma']
-                self.p0['tau']          =   [100.]
+                self.p0['tau']          =   [10.]
 
         if verbose:
 
@@ -487,7 +482,7 @@ class Spectrum  :
             self.Get_p0(self.p0[list(cols_mark)].values[0], cols_mark)
             self.Get_Fit_Bounds(percents, columns = cols_mark)
             self.Non_Linear_Least_Squares_Markov(bound = (self.bounds['down'].values, self.bounds['up'].values), **kwargs)
-            self.Get_p0(np.concatenate((self.Markov_Fit_Params.T['Values'].values[:2], (self.p0['Gamma'], 100.), self.Markov_Fit_Params.T['Values'].values[2:])), cols)
+            self.Get_p0(np.concatenate((self.Markov_Fit_Params.T['Values'].values[:2], (self.p0['Gamma'], 1.), self.Markov_Fit_Params.T['Values'].values[2:])), cols)
             self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
 
             print('costo dopo fit = '+str(self.cost))
@@ -900,24 +895,22 @@ class Spectrum  :
     def Recover_cost_tot(self, cost):
         self.cost_tot = cost
     
-def Initialize_Matrix(n_rows, n_cols):
+def Initialize_Matrix(ii_0, jj_0, ii_stop, jj_stop):
 
     matrix = ()
     
-    for ii in range(n_rows):
-
-        riga = ()
-
-        for jj in range(n_cols):
-
-            riga  = riga + (Spectrum('Element ('+str(ii)+str(jj)+')'),)
+    rows = np.arange(ii_0, ii_stop, 1)
+    cols = np.arange(jj_0, jj_stop, 1)
     
-
+    for ii in rows:
+        riga = ()
+        for jj in cols:
+            riga  = riga + (Spectrum('Element ('+str(ii)+str(jj)+')'),)
         matrix = matrix + (riga,)
 
     print('Ho inizializzato una matrice %dx%d, per un totale di %d spettri'%(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])  ))
 
-    return matrix
+    return (matrix, rows, cols)
 
 def Get_Isolated_Elements(excluded):
 
