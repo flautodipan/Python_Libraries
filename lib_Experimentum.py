@@ -1275,7 +1275,7 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False):
         
         print(str((ii,jj)))
         plt.figure()
-        plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, '+', label = 'data')
+        plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, label = 'data')
 
         if fit == 'markov':
             plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_markov_fit, label = 'markov fit')
