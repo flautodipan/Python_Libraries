@@ -111,10 +111,10 @@ print('Di cui il {} invisibili e il {} saturati'.format(len(invisible)*100/dim, 
 start = time.process_time()
 
 matrix[0][0].How_Many_Peaks_To_VIPA(treshold = 50, **syg_kwargs_VIPA)
-matrix[0][0].Fit_Pixel2GHz(fig = True)
-matrix[0][0].VIPA_Pix2GHz(fig=True)
+matrix[0][0].Fit_Pixel2GHz()
+matrix[0][0].VIPA_Pix2GHz()
 
-matrix[0][0].Spectrum_Pix2GHz(fig=True)
+matrix[0][0].Spectrum_Pix2GHz()
 matrix[0][0].Get_Spectrum_4_Peaks_by_Height()
 matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, distanza = 0.25)
 matrix[0][0].Fit_VIPA_Gaussian()
