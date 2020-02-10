@@ -930,6 +930,8 @@ def Get_Isolated_Elements(excluded):
         if (ii == 0):
 
             isolated    =   isolated    +   ((ii, jj+1),)
+            isolated    =   isolated    +   ((ii+1, jj),)
+
         else :
 
             isolated    =   isolated    +   ((ii+1, jj),)

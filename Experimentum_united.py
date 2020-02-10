@@ -44,6 +44,7 @@ dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 
+#matrix, rows, cols = Initialize_Matrix(1,8, 2+1, 10)
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 #definisco quantità di interesse
