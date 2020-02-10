@@ -238,6 +238,7 @@ Save_cost_markov(matrix, boni, path = analysis_path)
 fit_tot = ()
 percents = (0.2, 0.1, 0.15, 'positive', 'positive', 0.15, 0.15, np.inf, np.inf)
 
+start = time.process_time()
 for (ii,jj) in boni:
 
     print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
@@ -250,6 +251,11 @@ for (ii,jj) in boni:
     matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss)
     print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot))
     #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
+
+
+
+tot_time     =   time.process_time()-start
+tempo           =   tempo + (('fit tot', tot_time),)
 
 #after fit
 non_fitted_tot, accomplished_tot, exceded_tot, fitted_tot = Unpack_Fit(fit_tot)
