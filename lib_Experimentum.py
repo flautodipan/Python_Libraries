@@ -110,14 +110,14 @@ class Spectrum  :
             
             self.peaks  =   Find_First_n_peaks(self.peaks, 5, exclude = [3])
 
-        elif    self.n_peaks == 5:
+        elif    (self.n_peaks == 5) | (self.n_peaks == 4):
 
             self.peaks  =   Find_First_n_peaks(self.peaks, 4)
 
         elif    self.n_peaks == 7:
 
             self.peaks  =   Find_First_n_peaks(self.peaks, 6, exclude = [1, 3])
-
+        
         else:
 
             raise ValueError("Problema: numero di picchi non previsto dal codice: %d"%(self.n_peaks))
@@ -220,7 +220,41 @@ class Spectrum  :
                     print('Spettro invisibile')
                     return  3
             
+    def How_Many_Peaks_To(self, n_peaks = 4, delta = 1., treshold = 5, fig = False, verbose = False, i_know_it_is = False, **syg_kwargs):
 
+        pk      =   find_peaks(self.y, height = treshold, **syg_kwargs)
+        height  =   np.max(pk[1]['peak_heights'])/2
+        
+        while True:
+
+            pk      =   find_peaks(self.y, height = height, **syg_kwargs)
+
+            if (height > treshold) & (pk[0].size == n_peaks):
+
+                if verbose:
+                    print("Ho trovato valore dell'altezza per avere %d picchi: %f\n"%(n_peaks, height), pk)
+                    _ = Analyze_Peaks(self.x_freq, self.y, 'GHz', fig = fig, verbose = verbose, height= height, **syg_kwargs)
+    
+                break
+            
+            elif (height <= treshold):
+
+                print(pk)
+                raise ValueError('Errore: superata altezza minima %f\nQualcosa è andato storto'%(treshold))
+
+            else: 
+
+                height-=delta
+        
+        #check che i picchi Brillouin siano dentro agli elastici, premesso che so che possano essere più alti degli elastici
+
+        condition_peaks =   ((self.y[pk[0][0]] < self.y[pk[0][1]]) | ((self.y[pk[0][3]] < self.y[pk[0][2]])))
+        
+        if condition_peaks &  (i_know_it_is == False):
+            raise ValueError("Picchi Brillouin non sono interni o sono più alti degli elastici, controllare")
+
+        self.spectrum_cut_height        =   height
+        self.spectrum_peaks_dist        =   syg_kwargs['distance']
     
     def How_Many_Peaks_To_VIPA(self, treshold, n_GHz_peaks = 5, n_gauss_peaks = 3, delta = 1., fig = False, verbose = False, **syg_kwargs):
 
@@ -362,18 +396,27 @@ class Spectrum  :
             plt.xlabel('GHz')
             plt.show()
             plt.close()
+    
+    def Align_Brillouin_Highest(self):
 
-    def Spectrum_Pix2GHz (self, fig = False):
+        """
+        Funzione che serve per gli spettri che hanno il Brillouin più alto di tutti e quindi nella funzione
+        Spectrum_Pix2Ghz sono 
+        """
+
+        self.x_freq = self.x_freq - self.x_freq[self.peaks['peaks_idx'][3]]
+
+    def Spectrum_Pix2GHz (self, align = True, fig = False):
 
         #modifico in GHz le ascisse dello spettro
         # --> prima devo convertire in DeltaPixel
-
-        self.x      =   self.x  -   self.x[self.y.argmax()]
+        if align:
+            self.x      =   self.x  -   self.x[self.y.argmax()]
         self.x_freq     =   ((self.x**3)*self.Poly2GHz[0])+ ((self.x**2)*self.Poly2GHz[1]) + (self.x*self.Poly2GHz[2]) + (self.Poly2GHz[3])
         
         if fig:
 
-            fig1  = plt.figure()
+            plt.figure()
             plt.xlabel('GHz')
             plt.plot(self.x_freq, self.y)
             plt.title('Spettro Exp in GHz')
@@ -406,6 +449,7 @@ class Spectrum  :
             
         query_max               =   self.x_freq[self.peaks['peaks_idx'][3]] - (self.peaks['peaks_width'][3]*distanza)
         _, idx_max              =   Find_Nearest(self.x_freq, query_max)
+        
         
         # STIMA PARAMETRI INIZIALI della funzione teorica
         # (quelli che posso, e devo farlo  prima di tagliare)
@@ -1261,7 +1305,7 @@ def Save_cost_tot(matrix, boni, out_filename = 'cost_tot.txt', path = './'):
         for (ii,jj) in boni:
             f_out.write(np.array2string(matrix[ii][jj].cost_tot, max_line_width = 10000)+'\n')
 
-def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False):
+def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, peaks = False):
 
     if pix:
 
@@ -1276,13 +1320,22 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False):
         plt.figure()
         plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, label = 'data')
 
-        if fit == 'markov':
-            plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_markov_fit, label = 'markov fit')
+        if fit:
+                
+            if fit == 'markov':
+                plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_markov_fit, label = 'markov fit')
 
-        elif fit == 'tot':
-            plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_fit, label = 'tot fit')
+            elif fit == 'tot':
+                plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_fit, label = 'tot fit')
 
+            plt.title(str((ii,jj)))
+            plt.legend()
+            plt.show()
+
+        if peaks:
+            #anche se non funziona con x_freq i picchi, o forse sì?
+            plt.plot(getattr(matrix[ii][jj], attribute)[matrix[ii][jj].peaks[0]], matrix[ii][jj].y[matrix[ii][jj].peaks[0]], '+', label = 'peaks')
+        
         plt.title(str((ii,jj)))
         plt.legend()
         plt.show()
-

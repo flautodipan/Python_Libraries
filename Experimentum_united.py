@@ -6,9 +6,9 @@
 
 
 import      os
-now_path        =   '../BRILLOUIN/TDP43/ARS_10_02/'
-spectra_filename    =   'ARS_10_02'
-VIPA_filename       =   'ARS_10_02_VIPA1.tif'
+now_path        =   '../BRILLOUIN/TDP43/ARS_11_02/'
+spectra_filename    =   'ARS_11_02'
+VIPA_filename       =   'ARS_11_02_VIPA_notsat.tif'
 
 os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis/')
 analysis_path            =   now_path +'analysis/'
@@ -32,15 +32,17 @@ import      time
 super_start         =   time.process_time()
 tempo               =   ()
 
-syg_kwargs          =   {'height': 20, 'distance': 20, 'width': 3.5}
+syg_kwargs          =   {'height': 10, 'distance': 20, 'width': 3.}
 syg_kwargs_VIPA     =   {'distance':100, 'width': 1}
-syg_kwargs_brill    =   {'height': 5, 'distance': 30, 'width': 3.}
+syg_kwargs_brill    =  {'height': 8., 'distance': 20, 'width': 3.}
+VIPA_treshold       =   37
+
 # %%
 #0) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
 #   e compio alcune operazioni di sistema utili per salvataggio dati
 
 #import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y')
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y_all')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 
@@ -52,6 +54,7 @@ dim     =   len(rows)*len(cols)
 invisible           =   () 
 saturated           =   () 
 brillouin_higher    =   ()
+brillouin_highest   =   ()
 boni                =   ()
 excluded            =   ()
 
@@ -110,16 +113,16 @@ print('Di cui il {} invisibili e il {} saturati'.format(len(invisible)*100/dim, 
 
 start = time.process_time()
 
-matrix[0][0].How_Many_Peaks_To_VIPA(treshold = 50, **syg_kwargs_VIPA)
+matrix[0][0].How_Many_Peaks_To_VIPA(treshold = VIPA_treshold, **syg_kwargs_VIPA)
 matrix[0][0].Fit_Pixel2GHz()
 matrix[0][0].VIPA_Pix2GHz()
-
 matrix[0][0].Spectrum_Pix2GHz()
 matrix[0][0].Get_Spectrum_4_Peaks_by_Height()
 matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, distanza = 0.25)
 matrix[0][0].Fit_VIPA_Gaussian()
 
-
+####recupero gli invisibili buoni
+##DA INSERIRE
 
 
 for ii in range(len(rows)):
@@ -131,7 +134,13 @@ for ii in range(len(rows)):
         matrix[ii][jj].y_VIPA        =   matrix[0][0].y_VIPA
         
         matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
-        matrix[ii][jj].Spectrum_Pix2GHz()
+        
+        
+        if (ii,jj) in brillouin_higher:
+
+            matrix[ii][jj].Spectrum_Pix2GHz(align = False)
+        else:
+            matrix[ii][jj].Spectrum_Pix2GHz()
 
         if ((ii,jj) != (0,0)) & ((ii,jj) not in excluded):
                     
@@ -140,13 +149,16 @@ for ii in range(len(rows)):
             
                 matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
                 matrix[ii][jj].Get_Spectrum_4_Peaks_by_Order()
-            
+                if matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][3]]:
+                    brillouin_highest = brillouin_highest + ((ii,jj),)
+                    matrix[ii][jj].Align_Brillouin_Highest()
+                        
             else :
                 #boni
                 matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
                 
 
-            matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = 0.25)
+            matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = 0.2)
             #del matrix[ii][jj].x, matrix[ii][jj].x_VIPA, matrix[ii][jj].Poly2GHz, matrix[ii][jj].peaks
 
 mod_time    =   time.process_time()-start
