@@ -7,11 +7,11 @@
 
 import      os
 now_path        =   '../BRILLOUIN/TDP43/ARS_11_02/'
-spectra_filename    =   'ARS_11_02'
+spectra_filename    =   'ARS_11_02_range3'
 VIPA_filename       =   'ARS_11_02_VIPA_notsat.tif'
 
-os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis/')
-analysis_path            =   now_path +'analysis/'
+os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis3/')
+analysis_path            =   now_path +'analysis3/'
 
 
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
@@ -201,12 +201,12 @@ if recover_markov == False:
         matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0.values[0])
         print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
         matrix[ii][jj].Get_Fit_Bounds(percents, cols_mark)
-        fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values)),(ii,jj)),)
+        fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
         matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0])
         print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
 
         del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
-
+        #print(fit)
 else:
 
     print('\n\n You chose to SKIP the markovian fit and recover info \n\n')
