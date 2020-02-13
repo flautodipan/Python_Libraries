@@ -6,12 +6,12 @@
 
 
 import      os
-now_path        =   '../BRILLOUIN/TDP43/ARS_11_02/'
-spectra_filename    =   'ARS_11_02_range3'
-VIPA_filename       =   'ARS_11_02_VIPA_notsat.tif'
+now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
+spectra_filename    =   'NO_ARS_12_02'
+VIPA_filename       =   'NO_ARS_12_02_VIPA_notsat.tif'
 
-os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis3/')
-analysis_path            =   now_path +'analysis3/'
+os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis/')
+analysis_path            =   now_path +'analysis/'
 
 
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
@@ -28,24 +28,23 @@ import      matplotlib.pyplot   as      plt
 from        lib_Experimentum    import  *
 from        Alessandria         import  *
 import      time
-
 super_start         =   time.process_time()
 tempo               =   ()
 
-syg_kwargs          =   {'height': 10, 'distance': 20, 'width': 3.}
+syg_kwargs          =   {'height': 23.5, 'distance': 20, 'width': 3.}
 syg_kwargs_VIPA     =   {'distance':100, 'width': 1}
-syg_kwargs_brill    =  {'height': 8., 'distance': 20, 'width': 3.}
-VIPA_treshold       =   37
-
+syg_kwargs_brill    =  {'height': 20., 'distance': 20, 'width': 3.}
+VIPA_treshold       =   8
+sat_height          =   50000
+sat_width           =   13.5
 # %%
 #0) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
 #   e compio alcune operazioni di sistema utili per salvataggio dati
 
 #import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y_all')
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-
 #matrix, rows, cols = Initialize_Matrix(1,8, 2+1, 10)
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
@@ -73,7 +72,7 @@ for ii in range(len(rows)):
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
         matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
 
-        check   =   matrix[ii][jj].Check_Spectrum(saturation_width = 13.5)
+        check   =   matrix[ii][jj].Check_Spectrum(saturation_height = sat_height, saturation_width = sat_width)
         
         if (check == 1):
 

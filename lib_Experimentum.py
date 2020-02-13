@@ -195,6 +195,12 @@ class Spectrum  :
 
     def Check_Spectrum(self, saturation_height = 40000, saturation_width = 15.):
 
+        pk_max_idx  =   np.argmax(self.peaks[1]['peak_heights'])
+
+        if (self.y.max() >= saturation_height)  |  (self.peaks[1]['widths'][pk_max_idx] > saturation_width):
+                print('spettro saturato')
+                return          1
+        
         if (self.n_peaks <= 3) | (self.n_peaks > 7):
             
             print('Spettro invisibile')
@@ -202,7 +208,6 @@ class Spectrum  :
 
         elif (self.n_peaks >= 4) & (self.n_peaks <= 7):
 
-            pk_max_idx  =   np.argmax(self.peaks[1]['peak_heights'])
             condition_peaks_pos     =   ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][3]] < self.y[self.peaks[0][2]]))
             condition_peaks_height  =   (self.peaks[1]['peak_heights'] < 1000).all()
 
@@ -530,7 +535,7 @@ class Spectrum  :
             self.Get_p0(self.p0[list(cols_mark)].values[0], cols_mark)
             self.Get_Fit_Bounds(percents, columns = cols_mark)
             self.Non_Linear_Least_Squares_Markov(bound = (self.bounds['down'].values, self.bounds['up'].values), **kwargs)
-            self.Get_p0(np.concatenate((self.Markov_Fit_Params.T['Values'].values[:2], (self.p0['Gamma'], 1.), self.Markov_Fit_Params.T['Values'].values[2:])), cols)
+            self.Get_p0(np.concatenate((self.Markov_Fit_Params.T['Values'].values[:3], (self.p0['Gamma']['Values'], 1.), self.Markov_Fit_Params.T['Values'].values[3:])), cols)
             self.cost           =   0.5*np.sum(self.Residuals(self.p0.values[0], self.y)**2)
 
             print('costo dopo fit = '+str(self.cost))
