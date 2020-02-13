@@ -117,7 +117,7 @@ matrix[0][0].Fit_Pixel2GHz()
 matrix[0][0].VIPA_Pix2GHz()
 matrix[0][0].Spectrum_Pix2GHz()
 matrix[0][0].Get_Spectrum_4_Peaks_by_Height()
-matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, distanza = 0.25)
+matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, distanza = 0.12)
 matrix[0][0].Fit_VIPA_Gaussian()
 
 ####recupero gli invisibili buoni
@@ -157,7 +157,7 @@ for ii in range(len(rows)):
                 matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
                 
 
-            matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = 0.2)
+            matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = 0.12)
             #del matrix[ii][jj].x, matrix[ii][jj].x_VIPA, matrix[ii][jj].Poly2GHz, matrix[ii][jj].peaks
 
 mod_time    =   time.process_time()-start
