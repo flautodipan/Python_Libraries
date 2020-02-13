@@ -6,9 +6,9 @@
 
 
 import      os
-now_path        =   '../BRILLOUIN/TDP43/ARS_11_02/'
-spectra_filename    =   'ARS_11_02'
-VIPA_filename       =   'ARS_11_02_VIPA_notsat.tif'
+now_path        =   '../BRILLOUIN/TDP43/NO_ARS_13_02/'
+spectra_filename    =   'NO_ARS_13_02'
+VIPA_filename       =   'NO_ARS_13_02_VIPA_not_sat.tif'
 
 os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis/')
 analysis_path            =   now_path +'analysis/'
@@ -31,9 +31,9 @@ import      time
 super_start         =   time.process_time()
 tempo               =   ()
 
-syg_kwargs          =   {'height': 23.5, 'distance': 20, 'width': 3.}
-syg_kwargs_VIPA     =   {'distance':100, 'width': 1}
-syg_kwargs_brill    =  {'height': 20., 'distance': 20, 'width': 3.}
+syg_kwargs          =   {'height': 20, 'distance': 20, 'width': 3.}
+syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
+syg_kwargs_brill    =  {'height': 15.8, 'distance': 25, 'width': 3.}
 VIPA_treshold       =   8
 sat_height          =   50000
 sat_width           =   13.5
@@ -43,7 +43,7 @@ sat_width           =   13.5
 #   e compio alcune operazioni di sistema utili per salvataggio dati
 
 #import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y_all')
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 #matrix, rows, cols = Initialize_Matrix(1,8, 2+1, 10)
