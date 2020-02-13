@@ -196,20 +196,38 @@ class Spectrum  :
     def Check_Spectrum(self, saturation_height = 40000, saturation_width = 15.):
 
         pk_max_idx  =   np.argmax(self.peaks[1]['peak_heights'])
+        condition_peaks_height  =   (self.peaks[1]['peak_heights'] < 1000).all()
 
         if (self.y.max() >= saturation_height)  |  (self.peaks[1]['widths'][pk_max_idx] > saturation_width):
                 print('spettro saturato')
                 return          1
         
+        """
+        AGGIUNGERE PIU IN LA QUESTA PARTE
+        rimettendo elif dopo e levando l'uguale a <= 3
+        if (self.n_peaks == 3):
+
+            condition_peaks_pos = ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][2]] < self.y[self.peaks[0][1]]))
+            
+            if condition_peaks_pos & condition_peaks_height:
+
+                    print('Spettro con Brillouin più alti')
+                    return          2
+            else:
+                print('Spettro invisibile')
+                return  3
+        
+        """
+
         if (self.n_peaks <= 3) | (self.n_peaks > 7):
             
+
             print('Spettro invisibile')
             return  3
 
         elif (self.n_peaks >= 4) & (self.n_peaks <= 7):
 
             condition_peaks_pos     =   ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][3]] < self.y[self.peaks[0][2]]))
-            condition_peaks_height  =   (self.peaks[1]['peak_heights'] < 1000).all()
 
             if (self.y.max() >= saturation_height)  &  (self.peaks[1]['widths'][pk_max_idx] > saturation_width):
                 print('spettro saturato')
@@ -558,12 +576,12 @@ class Spectrum  :
 
     def Take_A_Look_Before_Fitting(self):
         
-        print("Valore stimato della cost function prima del fit totale con fit markoviano:\n{}".format(self.cost))
+        print("Valore stimato della cost function prima del fit totale con fit markoviano:\n{}".format(self.cost_markov))
 
         plt.figure()
         plt.plot(self.x_freq, self.y_markov_fit, '-', label = 'Initial_Guess')
         plt.plot(self.x_freq, self.y, '+', label = 'Data')
-        plt.title('Goodness of initial guess, cost = %f'%(self.cost))
+        plt.title('Goodness of initial guess, cost = %f'%(self.cost_markov))
         plt.xlabel('Freq(GHz)')
         plt.show()
 
@@ -1187,25 +1205,37 @@ def Escludi_a_Mano(to_add, excluded):
 
     return excluded
 
-def Whose_Param_Too_High(param, treshold, matrix, fitted):
+def Whose_Param_Too_High(param, treshold, fit,  matrix, fitted):
 
+
+    if fit == 'markov':
+        attr = 'Markov_Fit_Params'
+    elif fit == 'tot':
+        attr = 'Tot_Fit_Params'
+    else:raise ValueError("Select a type of fit: 'markov' or 'tot' ")
     too_high    =   ()
 
     for (ii,jj) in (fitted):
-        if matrix[ii][jj].Fit_Params[param]['Values'] > treshold:
+        if getattr(matrix[ii][jj],attr)[param]['Values'] > treshold:
             too_high    =   too_high    +   ((ii,jj),)
-            print(str((ii,jj))+' ha '+param+'= %3.2f'%(matrix[ii][jj].Fit_Params[param]['Values']))
+            print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values']))
 
     return too_high
 
-def Whose_Param_Too_Low(param, treshold, matrix, fitted):
+def Whose_Param_Too_Low(param, treshold, fit, matrix, fitted):
+
+    if fit == 'markov':
+        attr = 'Markov_Fit_Params'
+    elif fit == 'tot':
+        attr = 'Tot_Fit_Params'
+    else:raise ValueError("Select a type of fit: 'markov' or 'tot' ")
 
     too_low    =   ()
 
     for (ii,jj) in (fitted):
-        if matrix[ii][jj].Fit_Params[param]['Values'] <= treshold:
+        if getattr(matrix[ii][jj],attr)[param]['Values'] <= treshold:
             too_low    =   too_low    +   ((ii,jj),)
-            print(str((ii,jj))+' ha '+param+'= %3.2f'%(matrix[ii][jj].Fit_Params[param]['Values']))
+            print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values'][param]['Values']))
 
     return too_low
 
@@ -1332,10 +1362,6 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
 
             elif fit == 'tot':
                 plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_fit, label = 'tot fit')
-
-            plt.title(str((ii,jj)))
-            plt.legend()
-            plt.show()
 
         if peaks:
             #anche se non funziona con x_freq i picchi, o forse sì?
