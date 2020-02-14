@@ -149,16 +149,25 @@ for ii in range(len(rows)):
             
                 matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
                 matrix[ii][jj].Get_Spectrum_4_Peaks_by_Order()
-                if matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][3]]:
+
+                # se è Brillouin highest dx
+                if (matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][1]]) & (matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][3]]):
+                    print('ok è brillouin highest dx')
                     brillouin_highest = brillouin_highest + ((ii,jj),)
-                    matrix[ii][jj].Align_Brillouin_Highest()
-                        
+                    matrix[ii][jj].Align_Brillouin_Highest('dx')
+
+                #se è brillouin highest sx
+                elif (matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][1]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][2]]) & (matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][1]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][0]]):
+                    print('ok è brillouin highest sx')
+                    brillouin_highest = brillouin_highest + ((ii,jj),)
+                    matrix[ii][jj].Align_Brillouin_Highest('sx')
+                            
             else :
                 #boni
                 matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
                 
 
-            matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = 0.12)
+            matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = 0.25)
             #del matrix[ii][jj].x, matrix[ii][jj].x_VIPA, matrix[ii][jj].Poly2GHz, matrix[ii][jj].peaks
 
 mod_time    =   time.process_time()-start

@@ -420,14 +420,19 @@ class Spectrum  :
             plt.show()
             plt.close()
     
-    def Align_Brillouin_Highest(self):
+    def Align_Brillouin_Highest(self, side):
 
         """
         Funzione che serve per gli spettri che hanno il Brillouin più alto di tutti e quindi nella funzione
         Spectrum_Pix2Ghz sono 
         """
+        if side == 'dx':
 
-        self.x_freq = self.x_freq - self.x_freq[self.peaks['peaks_idx'][3]]
+            self.x_freq = self.x_freq - self.x_freq[self.peaks['peaks_idx'][3]]
+        
+        elif side == 'sx':
+
+            self.x_freq = self.x_freq - self.x_freq[self.peaks['peaks_idx'][0]]
 
     def Spectrum_Pix2GHz (self, align = True, fig = False):
 
@@ -492,9 +497,9 @@ class Spectrum  :
             
 
             # 2)i parametri iniziali che dovrebbero andare bene sempre
-            self.p0['Co']               =   [1.]#amplitude factor
+            self.p0['Co']               =   [0.1]#amplitude factor
             self.p0['shift']            =   [0.]
-            self.p0['delta_amplitude']  =   [1.]
+            self.p0['delta_amplitude']  =   [0.1]
             self.p0['delta_width']      =   [0.5]
 
             if len(columns) == len(cols):
@@ -762,6 +767,38 @@ class Spectrum  :
                 plt.plot(self.x_freq, self.y, '+', label = 'data')
                 plt.legend()
                 plt.show
+
+    def Interpolate_VIPA (self, freq):
+
+        # funzione che interpola il valore della funzione di trasf
+        # richiesta nel valore freq a partire dai dati sperim
+        # funziona per valore singolo e per array di valori
+
+
+        freq = np.array(freq)
+
+        if (freq.size == 1):
+        
+            _ , idx             =   Find_Nearest(self.x_VIPA_freq, freq)
+            x_fittino           =   np.array([self.x_VIPA_freq[idx-1], self.x_VIPA_freq[idx], self.x_VIPA_freq[idx+1]])
+            y_fittino           =   np.array([self.y_VIPA[idx-1], self.y_VIPA[idx], self.y_VIPA[idx+1]])
+            Parameters          =   np.polyfit(x_fittino, y_fittino, 2)
+
+            interpolate         =   ((freq**2) *(Parameters[0])) + (freq * (Parameters[1])) + (Parameters[2])
+
+        else:
+
+            interpolate         =   np.zeros(np.size(freq))
+            _ , idx             =   Find_Nearest_Array(self.x_VIPA_freq, freq)
+
+            for ii in range(np.size(freq)): 
+
+                x_fittino           =   np.array([self.x_VIPA_freq[idx[ii]-1], self.x_VIPA_freq[idx[ii]], self.x_VIPA_freq[idx[ii]+1]])
+                y_fittino           =   np.array([self.y_VIPA[idx[ii]-1], self.y_VIPA[idx[ii]], self.y_VIPA[idx[ii]+1]])
+                Parameters          =   np.polyfit(x_fittino, y_fittino, 2)
+                interpolate[ii]     =   ((freq[ii]**2) *(Parameters[0])) + (freq[ii] * (Parameters[1])) + (Parameters[2])
+
+        return              interpolate
 
     def Gauss_Convolve_Markovian_Response_Fast (self, p):
 
