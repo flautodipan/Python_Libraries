@@ -6,8 +6,8 @@
 
 
 import      os
-now_path        =   '../BRILLOUIN/TDP43/NO_ARS_13_02/'
-spectra_filename    =   'NO_ARS_13_02'
+now_path        =   '../BRILLOUIN/TDP43/ARS_13_02/'
+spectra_filename    =   'ARS_13_02'
 VIPA_filename       =   'NO_ARS_13_02_VIPA_not_sat.tif'
 
 os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis/')
@@ -34,7 +34,7 @@ tempo               =   ()
 syg_kwargs          =   {'height': 20, 'distance': 20, 'width': 3.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
 syg_kwargs_brill    =  {'height': 15.8, 'distance': 25, 'width': 3.}
-VIPA_treshold       =   8
+VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
 

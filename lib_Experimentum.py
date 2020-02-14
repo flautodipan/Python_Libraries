@@ -497,9 +497,9 @@ class Spectrum  :
             
 
             # 2)i parametri iniziali che dovrebbero andare bene sempre
-            self.p0['Co']               =   [0.1]#amplitude factor
+            self.p0['Co']               =   [1]#amplitude factor
             self.p0['shift']            =   [0.]
-            self.p0['delta_amplitude']  =   [0.1]
+            self.p0['delta_amplitude']  =   [.1]
             self.p0['delta_width']      =   [0.5]
 
             if len(columns) == len(cols):
