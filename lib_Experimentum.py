@@ -91,8 +91,10 @@ class Spectrum  :
 
     def Get_Spectrum_Peaks(self, **syg_kwargs):
 
-        self.peaks      =   find_peaks(self.y, **syg_kwargs)
-        self.n_peaks    =   self.peaks[0].size
+        pk =  find_peaks(self.y, **syg_kwargs)
+
+        self.peaks      =   {'idx': pk[0], 'heights': pk[1]['peak_heights'], 'widths' : pk[1]['widths']}       
+        self.n_peaks    =   self.peaks['idx'].size
 
     def Get_Spectrum_4_Peaks_by_Height(self):
 
@@ -195,10 +197,10 @@ class Spectrum  :
 
     def Check_Spectrum(self, saturation_height = 40000, saturation_width = 15.):
 
-        pk_max_idx  =   np.argmax(self.peaks[1]['peak_heights'])
-        condition_peaks_height  =   (self.peaks[1]['peak_heights'] < 1000).all()
+        pk_max_idx  =   np.argmax(self.peaks['heights'])
+        condition_peaks_height  =   (self.peaks['heights'] < 1000).all()
 
-        if (self.y.max() >= saturation_height)  |  (self.peaks[1]['widths'][pk_max_idx] > saturation_width):
+        if (self.y.max() >= saturation_height)  |  (self.peaks['widths'][pk_max_idx] > saturation_width):
                 print('spettro saturato')
                 return          1
         
@@ -227,7 +229,7 @@ class Spectrum  :
 
         elif (self.n_peaks >= 4) & (self.n_peaks <= 7):
 
-            condition_peaks_pos     =   ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][3]] < self.y[self.peaks[0][2]]))
+            condition_peaks_pos     =   ((self.y[self.peaks['idx'][0]] < self.y[self.peaks['idx'][1]]) | (self.y[self.peaks['idx'][3]] < self.y[self.peaks['idx'][2]]))
             
             if condition_peaks_pos:
                 
@@ -1401,7 +1403,7 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
 
         if peaks:
             #anche se non funziona con x_freq i picchi, o forse sì?
-            plt.plot(getattr(matrix[ii][jj], attribute)[matrix[ii][jj].peaks[0]], matrix[ii][jj].y[matrix[ii][jj].peaks[0]], '+', label = 'peaks')
+            plt.plot(getattr(matrix[ii][jj], attribute)[matrix[ii][jj].peaks['idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['idx']], '+', label = 'peaks')
         
         plt.title(str((ii,jj)))
         plt.legend()
@@ -1437,3 +1439,21 @@ def Get_cost_map(matrix, fit, n_rows, n_cols, fig, inf = 0, sup = 1000, cmap = '
     plt.show()
 
     return cost_matrix
+
+
+def Get_Saturated_Elements(matrix, n_rows, n_cols, saturation_height = 40000, saturation_width = 15.):
+
+    saturated = ()
+    not_saturated = ()
+
+    for ii in range(n_rows):
+        for jj in range(n_cols):
+            pk_max_idx  =   np.argmax(matrix[ii][jj].peaks['heights'])
+            if (matrix[ii][jj].y.max() >= saturation_height)  |  (matrix[ii][jj].peaks['widths'][pk_max_idx] > saturation_width):
+                saturated+= ((ii,jj),)
+            else:
+                not_saturated+= ((ii,jj),)
+
+    print('Ho trovato {} elementi saturati sul totale di {}\n'.format(len(saturated), n_cols*n_rows))
+
+    return not_saturated, saturated

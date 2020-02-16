@@ -39,7 +39,7 @@ def Find_First_n_peaks(pk, n_peaks, exclude = None):
 
     if exclude:
             
-        idx      =   range(pk[0].size)
+        idx      =   range(pk['idx'].size)
 
         for ii in exclude:
 
@@ -51,15 +51,15 @@ def Find_First_n_peaks(pk, n_peaks, exclude = None):
 
         idx     =   range(n_peaks)
 
-    return          {'idx' : pk[0][idx], 'peak_heights': pk[1]['peak_heights'][idx], 'peaks_width' : pk[1]['widths'][idx]}
+    return          {'idx' : pk['idx'][idx], 'heights': pk['heights'][idx], 'widths' : pk['widths'][idx]}
 
 def Find_Highest_n_peaks(pk, n_peaks):
 
-    from_heighest    =   np.flip(pk[1]['peak_heights'].argsort())
+    from_heighest    =   np.flip(pk['heights'].argsort())
     from_heighest    =   from_heighest[:n_peaks]
     idx              =   np.sort(from_heighest)
 
-    return          {'idx' : pk[0][idx], 'peak_heights': pk[1]['peak_heights'], 'peaks_width' : pk[1]['widths'][idx]}
+    return          {'idx' : pk['idx'][idx], 'heights': pk['heights'][idx], 'widths' : pk['widths'][idx]}
 
 def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
 

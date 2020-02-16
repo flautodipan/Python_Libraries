@@ -1,46 +1,54 @@
 
 #########################                                                   #######################
-#########################           VERSIONE 1 FIT CON MODELLO MARKOVIANO   #######################
+#########################           EXPERIMENTUM UNITED                     #######################
 
 #%%
+# 1) SETTINGS and INPUTS
 
-
-import      os
-now_path        =   '../BRILLOUIN/TDP43/ARS_13_02/'
-spectra_filename    =   'ARS_13_02'
-VIPA_filename       =   'ARS_13_02_VIPA_not_sat.tif'
-
-os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis/')
-analysis_path            =   now_path +'analysis/'
-
-
-cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude','shift', 'offset')
-cols_gauss  = ( 'A', 'mu', 'sigma')
-
-
-recover_markov = False
-
-#%%
+#libraries
 import      numpy               as      np
 import      matplotlib.pyplot   as      plt
 from        lib_Experimentum    import  *
 from        Alessandria         import  *
 import      time
-super_start         =   time.process_time()
-tempo               =   ()
+import      os
 
-syg_kwargs          =   {'height': 20, 'distance': 20, 'width': 3.}
+
+#I/O 
+
+analysis_name = 'analysis/'
+now_path        =   '../BRILLOUIN/TDP43/ARS_13_02/'
+spectra_filename    =   'ARS_13_02'
+VIPA_filename       =   'ARS_13_02_VIPA_not_sat.tif'
+
+os.system('cd ' + now_path +' & mkdir ' + now_path+analysis_name)
+analysis_path            =   now_path +analysis_name
+
+#operatives
+
+syg_kwargs          =   {'height': 72, 'distance': 31, 'width': 1.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
 syg_kwargs_brill    =  {'height': 15.8, 'distance': 25, 'width': 3.}
 VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
 
+recover_markov = False
 
+#variables
+
+invisible           =   () 
+brillouin_higher    =   ()
+brillouin_highest   =   ()
+boni                =   ()
+excluded            =   ()
+
+cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols_gauss  = ( 'A', 'mu', 'sigma')
 # %%
-#0) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
+#2) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
 #   e compio alcune operazioni di sistema utili per salvataggio dati
 
 #import dati spettro
@@ -50,18 +58,14 @@ n_cols  =   len(dati[0])
 #matrix, rows, cols = Initialize_Matrix(1,8, 2+1, 10)
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
-#definisco quantità di interesse
 
-invisible           =   () 
-saturated           =   () 
-brillouin_higher    =   ()
-brillouin_highest   =   ()
-boni                =   ()
-excluded            =   ()
 
 # %%
-#1) Acquisisco VIPA e Spettri
-start = time.process_time()
+#3) riempio oggetti spectrum
+tempo = ()
+super_start = time.process_time()
+start = super_start
+
 matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
 
