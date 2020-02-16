@@ -51,7 +51,7 @@ def Find_First_n_peaks(pk, n_peaks, exclude = None):
 
         idx     =   range(n_peaks)
 
-    return          {'peaks_idx' : pk[0][idx], 'peak_heights': pk[1]['peak_heights'][idx], 'peaks_width' : pk[1]['widths'][idx]}
+    return          {'idx' : pk[0][idx], 'peak_heights': pk[1]['peak_heights'][idx], 'peaks_width' : pk[1]['widths'][idx]}
 
 def Find_Highest_n_peaks(pk, n_peaks):
 
@@ -59,7 +59,7 @@ def Find_Highest_n_peaks(pk, n_peaks):
     from_heighest    =   from_heighest[:n_peaks]
     idx              =   np.sort(from_heighest)
 
-    return          {'peaks_idx' : pk[0][idx], 'peak_heights': pk[1]['peak_heights'], 'peaks_width' : pk[1]['widths'][idx]}
+    return          {'idx' : pk[0][idx], 'peak_heights': pk[1]['peak_heights'], 'peaks_width' : pk[1]['widths'][idx]}
 
 def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
 
@@ -92,7 +92,7 @@ def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
 
             print("\n Il picco %d ha: \t indice = %d \t x_value (%s) = %3.2f \t ampiezza(%s) = %3.2f \t altezza = %3.2f \n" %(kk+1, peaks_idx[kk], x_dim, x[peaks_idx[kk]], x_dim, peaks_width[kk], peak_heights[kk]))
                 
-    return {'n_peaks' : peaks_idx.size, 'peaks_idx' : peaks_idx, 'peaks_width' : peaks_width, 'peak_heights' : peak_heights}
+    return {'n_peaks' : peaks_idx.size, 'idx' : peaks_idx, 'peaks_width' : peaks_width, 'peak_heights' : peak_heights}
 
 
 

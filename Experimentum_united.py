@@ -6,9 +6,9 @@
 
 
 import      os
-now_path        =   '../BRILLOUIN/TDP43/ARS_14_02/'
-spectra_filename    =   'ARS_14_02'
-VIPA_filename       =   'ARS_14_02_VIPA_realigned_notsat.tif'
+now_path        =   '../BRILLOUIN/TDP43/ARS_13_02/'
+spectra_filename    =   'ARS_13_02'
+VIPA_filename       =   'ARS_13_02_VIPA_not_sat.tif'
 
 os.system('cd ' + now_path +' & mkdir ' + now_path+'analysis/')
 analysis_path            =   now_path +'analysis/'
@@ -31,13 +31,13 @@ import      time
 super_start         =   time.process_time()
 tempo               =   ()
 
-syg_kwargs          =   {'height': 26, 'distance': 22, 'width': 1.5}
+syg_kwargs          =   {'height': 20, 'distance': 20, 'width': 3.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 26, 'distance': 22, 'width': 1.5}
-
+syg_kwargs_brill    =  {'height': 15.8, 'distance': 25, 'width': 3.}
 VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
+
 
 # %%
 #0) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
@@ -152,13 +152,13 @@ for ii in range(len(rows)):
                 matrix[ii][jj].Get_Spectrum_4_Peaks_by_Order()
 
                 # se è Brillouin highest dx
-                if (matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][1]]) & (matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][3]]):
+                if (matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][1]]) & (matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][3]]):
                     print('ok è brillouin highest dx')
                     brillouin_highest = brillouin_highest + ((ii,jj),)
                     matrix[ii][jj].Align_Brillouin_Highest('dx')
 
                 #se è brillouin highest sx
-                elif (matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][1]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][2]]) & (matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][1]] > matrix[ii][jj].y[matrix[ii][jj].peaks['peaks_idx'][0]]):
+                elif (matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][1]] > matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][2]]) & (matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][1]] > matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][0]]):
                     print('ok è brillouin highest sx')
                     brillouin_highest = brillouin_highest + ((ii,jj),)
                     matrix[ii][jj].Align_Brillouin_Highest('sx')

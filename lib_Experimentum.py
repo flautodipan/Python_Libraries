@@ -102,7 +102,7 @@ class Spectrum  :
 
         """
         self.peaks      =   Find_Highest_n_peaks(self.peaks, 4)
-        self.n_peaks    =   self.peaks['peaks_idx'].size
+        self.n_peaks    =   self.peaks['idx'].size
         
     def Get_Spectrum_4_Peaks_by_Order(self):
 
@@ -123,7 +123,7 @@ class Spectrum  :
             raise ValueError("Problema: numero di picchi non previsto dal codice: %d"%(self.n_peaks))
 
 
-        self.n_peaks    =   self.peaks['peaks_idx'].size
+        self.n_peaks    =   self.peaks['idx'].size
 
     def Get_VIPA_mat(self, mat_filename, path='./', tunable = None, offset = 'same', fig = False):
         
@@ -228,11 +228,7 @@ class Spectrum  :
         elif (self.n_peaks >= 4) & (self.n_peaks <= 7):
 
             condition_peaks_pos     =   ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][3]] < self.y[self.peaks[0][2]]))
-
-            if (self.y.max() >= saturation_height)  &  (self.peaks[1]['widths'][pk_max_idx] > saturation_width):
-                print('spettro saturato')
-                return          1
-
+            
             if condition_peaks_pos:
                 
                 if condition_peaks_height:
@@ -428,11 +424,11 @@ class Spectrum  :
         """
         if side == 'dx':
 
-            self.x_freq = self.x_freq - self.x_freq[self.peaks['peaks_idx'][3]]
+            self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][3]]
         
         elif side == 'sx':
 
-            self.x_freq = self.x_freq - self.x_freq[self.peaks['peaks_idx'][0]]
+            self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][0]]
 
     def Spectrum_Pix2GHz (self, align = True, fig = False):
 
@@ -472,10 +468,10 @@ class Spectrum  :
 
         """
 
-        query_min               =   self.x_freq[self.peaks['peaks_idx'][0]] + (self.peaks['peaks_width'][0]*distanza)
+        query_min               =   self.x_freq[self.peaks['idx'][0]] + (self.peaks['peaks_width'][0]*distanza)
         _, idx_min              =   Find_Nearest(self.x_freq, query_min)
             
-        query_max               =   self.x_freq[self.peaks['peaks_idx'][3]] - (self.peaks['peaks_width'][3]*distanza)
+        query_max               =   self.x_freq[self.peaks['idx'][3]] - (self.peaks['peaks_width'][3]*distanza)
         _, idx_max              =   Find_Nearest(self.x_freq, query_max)
         
         
@@ -491,9 +487,9 @@ class Spectrum  :
 
         if  estimate:
                 
-            self.p0['Omega']            =   [np.absolute(self.x_freq[self.peaks['peaks_idx'][2]] - self.x_freq[self.peaks['peaks_idx'][1]])*0.5]
+            self.p0['Omega']            =   [np.absolute(self.x_freq[self.peaks['idx'][2]] - self.x_freq[self.peaks['idx'][1]])*0.5]
             self.p0['Gamma']            =   [(self.peaks['peaks_width'][2]+self.peaks['peaks_width'][1])/20]
-            self.p0['offset']           =   np.mean(self.y[self.peaks['peaks_idx'][1]:self.peaks['peaks_idx'][2]])
+            self.p0['offset']           =   np.mean(self.y[self.peaks['idx'][1]:self.peaks['idx'][2]])
             
 
             # 2)i parametri iniziali che dovrebbero andare bene sempre
@@ -1202,7 +1198,7 @@ def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, cmap, in
         plt.xlabel('Row Index')
         plt.ylabel('Col Idx')
         plt.savefig(path + fig+'.pdf', format = 'pdf')
-        plt.close()
+        plt.show()
 
     return  (p_map, nans)
 
@@ -1331,7 +1327,7 @@ def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.txt' 
 
         for (ii,jj) in fitted:
    
-            f_out.write(json.dumps(matrix[ii][jj].Markov_Fit_Params.to_dict())+'\n')
+            f_out.write(json.dumps(matrix[ii][jj].Tot_Fit_Params.to_dict())+'\n')
 
     print('Stampato parametri fit su file '+path+out_filename)
 
@@ -1363,7 +1359,7 @@ def Save_y_fit(matrix, boni, out_filename = 'y_tot_fit.txt', path = './'):
 
     with open(path+out_filename, 'w') as f_out:
         for (ii,jj) in boni:
-            f_out.write(np.array2string(matrix[ii][jj].y_markov_fit, max_line_width = 10000)+'\n')
+            f_out.write(np.array2string(matrix[ii][jj].y_tot_fit, max_line_width = 10000)+'\n')
 
 def Save_cost_markov(matrix, boni, out_filename = 'cost_markov.txt', path = './'):
 
@@ -1396,9 +1392,12 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
                 
             if fit == 'markov':
                 plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_markov_fit, label = 'markov fit')
+                print(matrix[ii][jj].Markov_Fit_Params)
 
             elif fit == 'tot':
                 plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_fit, label = 'tot fit')
+                print(matrix[ii][jj].Markov_Fit_Params)
+
 
         if peaks:
             #anche se non funziona con x_freq i picchi, o forse sì?
@@ -1407,3 +1406,34 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
         plt.title(str((ii,jj)))
         plt.legend()
         plt.show()
+
+def Get_cost_map(matrix, fit, n_rows, n_cols, fig, inf = 0, sup = 1000, cmap = 'seismic', path = './'):
+
+    if fit == 'markov':
+        attr = 'cost_markov'
+    elif fit == 'tot':
+        attr = 'cost_tot'
+
+    cost_matrix = np.zeros((n_rows, n_cols))
+
+    for ii in range(n_rows):
+        for jj in range(n_cols):
+            if hasattr(matrix[ii][jj], attr):
+                cost_matrix[ii,jj] = getattr(matrix[ii][jj], attr)
+            else:
+                cost_matrix[ii,jj] = np.nan
+    
+    
+
+    cm = plt.get_cmap(cmap)
+    cm.set_bad(color='k')
+    plt.matshow(cost_matrix, cmap = cmap)
+    plt.clim(inf, sup)
+    plt.title('Cost Map for '+attr)
+    plt.colorbar()
+    plt.xlabel('Row Index')
+    plt.ylabel('Col Idx')
+    plt.savefig(path + fig+'.pdf', format = 'pdf')
+    plt.show()
+
+    return cost_matrix
