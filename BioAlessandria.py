@@ -349,6 +349,7 @@ class Trajectory():
 
     def Analyze_Traj_by_Descriptor (self, descriptor, N_gauss, p0, bins = 50, **image_kwargs):
 
+        self.N_gauss = N_gauss
         """
         Funzione che
         -   fitta la distribuzione RMSD (con P0 iniziali) con N_gauss gaussiane (2 o 3)
@@ -400,9 +401,9 @@ class Trajectory():
         #fit e plot
         x = np.linspace(descriptor.min(), descriptor.max(), 1000)
         if N_gauss == 3:
-            plt.plot(x, trimodal(x, self.df['Values'].values), color = image_kwargs['fit_color'], linestyle = 'dashed', lw = 2, label = 'Multimodal Fit')    
+            plt.plot(x, trimodal(x, *self.df['Values'].values), color = image_kwargs['fit_color'], linestyle = 'dashed', lw = 2, label = 'Multimodal Fit')    
         elif N_gauss == 2:
-            plt.plot(x, bimodal(x, self.df['Values'].values), color = image_kwargs['fit_color'], linestyle = 'dashed', lw = 2, label = 'Multimodal Fit')    
+            plt.plot(x, bimodal(x, *self.df['Values'].values), color = image_kwargs['fit_color'], linestyle = 'dashed', lw = 2, label = 'Multimodal Fit')    
 
         plt.title(' Distribution of '+descrittore+' for '+self.__str__())
         plt.xlabel(descrittore +' (nm)')
@@ -443,19 +444,24 @@ class Trajectory():
 
         self.x_unfold   =   self.x_proj[descriptor > treshold]
         self.y_unfold   =   self.y_proj[descriptor > treshold]
+        
+        self.unfold_percentage = 100*self.x_unfold.size/(self.x_fold.size+self.x_unfold.size)
 
-        print("Percentuale di popolazione stimata unfold = {} ".format(self.x_unfold.size/(self.x_fold.size+self.x_unfold.size)))
+        print("Percentuale di popolazione stimata unfold = {} ".format(self.unfold_percentage))
 
         if ('fig' in image_kwargs) :
 
             fig     =   plt.figure()
             mask    =   descriptor > treshold
-            plt.scatter(self.x_proj,self.y_proj, c=mask, cmap= 'viridis', s = 10)
-            plt.colorbar()
+            plt.scatter(self.x_fold, self.y_fold, s = 7, color = image_kwargs['color'])
+            plt.scatter(self.x_unfold, self.y_unfold, s = 7, color = image_kwargs['darkcolor'])
             plt.xlabel(' PC 1 ')
             plt.ylabel(' PC 2 ')
-            plt.title('Division by %3.2f treshold of '%(treshold)+descrittore+' for '+self.__str__())
-            fig.savefig(image_kwargs['path']+image_kwargs['fig']+'.png')  
+            title = 'Division in {:3.2f} % of population by {} for {}'.format(self.unfold_percentage, descrittore, self.__str__())
+            plt.title(title)
+            plt.legend(['fold', 'unfold']) #, title = 'percentage of unfolded population = {:3.2f}'.format(self.unfold_percentage))
+
+            fig.savefig(image_kwargs['path']+image_kwargs['fig']+'.pdf', format = 'pdf') 
             plt.show()
       
     def Which_Part_of_Traj(self, points):

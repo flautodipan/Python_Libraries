@@ -4,16 +4,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot
 
-now_path    =   '../GROMACS/RNA1/'
-now_name    =    'RNA1'
+now_path    =   '../MD/GROMACS/RNA5/analysis/'
+now_name    =    'RNA5'
 now_temp    =   '350 K'
+
+#RNA5
+color = 'darkmagenta'
+darkcolor = 'chartreuse'
+
+"""
+
+#RNA4
+color = 'slategray'
+darkcolor = 'darkorange'
+
+#RNA2
+color       =   'darkolivegreen'
+darkcolor   =   'crimson'
+
+#RNA6
+color = 'firebrick'
+darkcolor = 'gold'
 
 #RNA1
 color = 'royalblue'
 darkcolor = 'navy'
 
-"""
-RNA3
+#RNA3
 color       =   'darkgoldenrod'
 darkcolor   =   'darkslateblue'
 
@@ -31,7 +48,7 @@ RNA_traj.Analyze_Eig_Variance_Ratio(n_eig = 2)
 #2) acquisisco proiezione 2D sui due autovettori principali e RMSD della traiettoria
 
 RNA_traj.Get_2D_Traj(time_range = [0, 1000000], path=now_path, fig = 'Essential', verbose = True)
-RNA_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', skip_lines = 18, histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
+RNA_traj.Get_RMSD(xvg_filename = 'rmsd_md_'+now_name+'.xvg', fig = now_name+'_RMSD', skip_lines = 18, histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
 RNA_traj.Get_Terminals_Dist(xvg_filename = 'ter_dist.xvg', skip_lines = 17, fig = now_name+'_Ter_dist', histo = now_name+'_ter_dist_Histogram', bins = 50, path = now_path, color = color)
 
 
@@ -39,10 +56,12 @@ RNA_traj.Get_Terminals_Dist(xvg_filename = 'ter_dist.xvg', skip_lines = 17, fig 
 # 3A) faccio il fit della distribuzione con N  gaussiane 
 # ordine params (mu, sigma, A)
 
-p0 = (1.5, .6, 0.4, 3., .9, 0.1)
-#p0 = (2,0.1,2001,2.6,0.4,500, 5.1, 1.8, 50)
+#p0 = (1.5, .3, 400, 2.4, 0.5, 150)
+p0 = (0.6, 0.051, 1400, 1.36, 0.4, 500, 2.8, 1., 50)
+N_gauss = 3
+
 img_kwargs  =   {'path': now_path, 'fig_fit' : 'Gauss_fit_ter_dist', 'color_fold' : color, 'fit_color' : (0.5098039,0.1411765,0.2), 'color_unfold': darkcolor}
-RNA_traj.Analyze_Traj_by_Descriptor(descriptor = 'terminals distance', N_gauss=2,  p0=p0, bins=50, **img_kwargs )
+RNA_traj.Analyze_Traj_by_Descriptor(descriptor = 'terminals distance', N_gauss=N_gauss,  p0=p0, bins=50, **img_kwargs )
 
 with open (now_path+now_name+'_Nmodalfit.txt', 'w') as f:
     f.write('Vettore iniziale = %s\n'%(str(p0)))
@@ -52,7 +71,7 @@ with open (now_path+now_name+'_Nmodalfit.txt', 'w') as f:
 #%%
 #4A) impongo il limite mu - sigma*factor all'rmsd e in base a quello divido in due lo spazio essenziale
 
-img_kwargs  =   {'path': now_path, 'fig' : 'ter_dist_division'}
+img_kwargs  =   {'path': now_path, 'fig' : 'ter_dist_division', 'color': color, 'darkcolor': darkcolor}
 RNA_traj.Divide_Traj_by_Descriptor(descriptor = 'ter_dist',  sigma_factor = 0., **img_kwargs)
 
 #%%
@@ -63,6 +82,46 @@ RNA_Unfold.Get_by_Passing(xy,  timestep = RNA_traj.timestep)
 RNA_Unfold.Silhouette_KMeans(kmax= 15, path = now_path, fig = 'KMeans_Silhouette_Unfold' )
 RNA_Unfold.Clusterize(verbose = True, descriptor=RNA_traj.ter_dist, fig = 'RNA_unfold_clusters', path = now_path)
 RNA_traj.Which_Part_of_Traj(RNA_Unfold.clusterchiefs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #%%
 #3B) clusterizzo su tutta la traiettoria
