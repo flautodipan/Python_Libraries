@@ -296,7 +296,7 @@ class Spectrum  :
 
                     if verbose:
                         print("Ho trovato valore dell'altezza per avere %d picchi: %f\n"%(n_peaks, height), pk)
-                        _ = Analyze_Peaks(self.x_VIPA, self.y_VIPA, 'GHz', fig = fig, verbose = verbose, **syg_kwargs)
+                        _ = Analyze_Peaks(self.x_VIPA, self.y_VIPA, 'GHz', fig = fig, verbose = verbose, height = height, **syg_kwargs)
                     break
                 
                 elif (height <= treshold):
@@ -1247,8 +1247,9 @@ def Escludi_a_Mano(to_add, excluded):
 
     for (ii, jj) in to_add:
 
-        excluded = excluded + ((ii,jj),)
+        excluded = excluded + [(ii,jj),]
 
+    excluded.sort()
     return excluded
 
 def Whose_Param_Too_High(param, treshold, fit,  matrix, fitted):

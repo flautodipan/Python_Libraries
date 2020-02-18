@@ -16,21 +16,12 @@ now_path        =   '../BRILLOUIN/TDP43/ARS_13_02/'
 spectra_filename    =   'ARS_13_02'
 VIPA_filename       =   'NO_ARS_13_02_VIPA_not_sat.tif'
 
-#operatives
-
-syg_kwargs          =   {'height': 80, 'distance': 31, 'width': 3.}
-syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 74, 'distance': 31, 'width': 3.}
-VIPA_treshold       =   6
-sat_height          =   50000
-sat_width           =   13.5
-
 #variables
-invisible           =   () 
-brillouin_higher    =   ()
-brillouin_highest   =   ()
-boni                =   ()
-excluded            =   ()
+invisible           =   [] 
+brillouin_higher    =   []
+brillouin_highest   =   []
+boni                =   []
+excluded            =   []
 
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
@@ -66,6 +57,19 @@ for ii in range(len(rows)):
 not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols))
 
 #%%
+#VERIFICHIAMO IL VIPA
+syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
+matrix[0][0].How_Many_Peaks_To_VIPA(treshold = 0, **syg_kwargs_VIPA, fig = True, verbose = True)
+
+
+#%%
+
+#varie aggiunte a mano
+too_add = [(66,3),]
+excluded = saturated.copy()
+excluded = Escludi_a_Mano(too_add, excluded)
+
+#%%
 #4) statistiche : costruisco variabili che mi permettono di studiare le posizioni relative
 #                 e le altezze dei vari picchi -> individuo gli anomali e i parametri operativi
 #                 syg_kwargs
@@ -80,6 +84,7 @@ not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols))
 #                 CORRETTAMENTE (mi aspetto distribuzioni normali intorno alla media)
 #                 --> la statistica va centrata su quelli che già sono quattro
 
+syg_kwargs_test          =   {'height': 20, 'distance': 31, 'width': 3.}
 
 while True:
 
@@ -103,60 +108,60 @@ while True:
     less_than_four = ()
     more_than_four = ()
 
-    for (ii, jj ) in not_saturated :
-        if matrix[ii][jj].n_peaks >=4:
-            if matrix[ii][jj].n_peaks == 4:
-                four += ((ii,jj), )
-            more_than_four += ((ii,jj),)
-            matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
-        elif matrix[ii][jj].n_peaks  == 3:
-            three += ((ii,jj), )
-        elif matrix[ii][jj].n_peaks  == 2:
-            two += ((ii,jj), )
-        else:
-            raise ValueError('BOH?')
-    print('Ho trovato {} spettri su {} con 4 o più picchi..e gli altri {}?\n'.format(len(more_than_four), len(not_saturated), len(not_saturated)- len(more_than_four)))
-    print('Ho trovato {} picchi con 2 picchi\n'.format(len(two)))
-    print('Ho trovato {} picchi con 3 picchi\n'.format(len(three)))
 
-    if len(more_than_four) == len(not_saturated):
+    for ii in range(len(rows)):
+        for jj in range(len(cols)):
+            if (ii,jj) not in excluded:
+
+                if matrix[ii][jj].n_peaks >=4:
+                    if matrix[ii][jj].n_peaks == 4:
+                        four += ((ii,jj), )
+                    more_than_four += ((ii,jj),)
+                    matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
+                elif matrix[ii][jj].n_peaks  == 3:
+                    three += ((ii,jj), )
+                elif matrix[ii][jj].n_peaks  == 2:
+                    two += ((ii,jj), )
+                else:
+                    raise ValueError('BOH?')
+
+    if len(more_than_four) == (dim-len(excluded)):
+        break
+
+    elif syg_kwargs_test['height'] <= 0:
+        print('Superato lo zero, qualcosa non va in \n {} spettri con due picchi\n'.format(len(two)), two)
+        print('Superato lo zero, qualcosa non va in \n {} spettri con tre picchi\n'.format(len(three)), three)
+        
         break
     else:
         syg_kwargs_test['height'] -= 1
         for (ii,jj) in two: matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_test)
         for (ii,jj) in three: matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_test)
 
+print('Spettri tot = {}\nSpettri esclusi = {} \n--> Spettri disponibili = {}\nHo trovato {} spettri su {} con 4 picchi\n'.format(dim, len(excluded), (dim -len(excluded)),len(four),  (dim -len(excluded))))
+
     
 #%%
 
-for ii in range(len(rows)):
-    for jj in range(len(cols)):
+for (ii,jj) in four:
 
-        if (ii,jj) in more_than_four:
+        height_first  += (matrix[ii][jj].peaks['heights'][0],)
+        height_second += (matrix[ii][jj].peaks['heights'][1],)
+        height_third  += (matrix[ii][jj].peaks['heights'][2],)
+        height_fourth += (matrix[ii][jj].peaks['heights'][3],)
 
-            height_first  += (matrix[ii][jj].peaks['heights'][0],)
-            height_second += (matrix[ii][jj].peaks['heights'][1],)
-            height_third  += (matrix[ii][jj].peaks['heights'][2],)
-            height_fourth += (matrix[ii][jj].peaks['heights'][3],)
+        width_first  += (matrix[ii][jj].peaks['widths'][0],)
+        width_second += (matrix[ii][jj].peaks['widths'][1],)
+        width_third  += (matrix[ii][jj].peaks['widths'][2],)
+        width_fourth += (matrix[ii][jj].peaks['widths'][3],)
 
-            width_first  += (matrix[ii][jj].peaks['widths'][0],)
-            width_second += (matrix[ii][jj].peaks['widths'][1],)
-            width_third  += (matrix[ii][jj].peaks['widths'][2],)
-            width_fourth += (matrix[ii][jj].peaks['widths'][3],)
+        dist_01       += (np.abs(matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][0]] - matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][1]]), )
+        dist_12       += (np.abs(matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][1]] - matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][2]]), )
+        dist_23       += (np.abs(matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][2]] - matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][3]]), )
 
-            dist_01       += (np.abs(matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][0]] - matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][1]]), )
-            dist_12       += (np.abs(matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][1]] - matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][2]]), )
-            dist_23       += (np.abs(matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][2]] - matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][3]]), )
 
-        elif (ii,jj) in three:
-
-            Find_Highest_n_peaks()
 
 stats = (height_first, height_second, height_third, height_fourth, width_first, width_second, width_third, width_fourth, dist_01, dist_12, dist_23)
-
-for s in stats:
-    s = np.sort(s)
-    s = np.flip(s)
 
 stats = (height_first, height_second, height_third, height_fourth, width_first, width_second, width_third, width_fourth, dist_01, dist_12, dist_23)
 
@@ -209,7 +214,23 @@ print('Ti suggerisco di usare come height di syg_kwargs_brill quella minore tra 
 syg_kwargs_width = np.min([np.min(width_first), np.min(width_fourth)])
 print('Ti suggerisco di usare come width di syg_kwargs, quella minore tra i due picchi elastici: {}\n'.format(syg_kwargs_width))
 
+
 # %%
+
+#I/O 
+
+now_path        =   '../BRILLOUIN/TDP43/ARS_13_02/'
+spectra_filename    =   'ARS_13_02'
+VIPA_filename       =   'NO_ARS_13_02_VIPA_not_sat.tif'
+
+#operatives
+
+syg_kwargs          =   {'height': 80, 'distance': 31, 'width': 3.}
+syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
+syg_kwargs_brill    =  {'height': 20, 'distance': 31, 'width': 3.}
+VIPA_treshold       =   6
+sat_height          =   50000
+sat_width           =   13.5
 
 """
 Per trovare il (ii,jj) di un elemento di queste tuple che (per es) dai plot risulta asim
@@ -220,7 +241,7 @@ poi si fa un ciclo sui more_than_four per avere quale (ii,jj)
 
 count = 0
 for (ii,jj) in more_than_four:
-    if (count == 4288):
+    if (count == 1):
         print(str((ii,jj)))
         
     count+=1

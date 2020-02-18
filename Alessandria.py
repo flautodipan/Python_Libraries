@@ -64,7 +64,7 @@ def Find_Highest_n_peaks(pk, n_peaks):
 def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
 
     """
-    Grazie a scipy.signal.find_peaks, la funzione analizza i picchi della funzione campionata da y
+    Grazie a scipy.signal.find_peaks(), la funzione analizza i picchi della funzione campionata da y
     passare i parametri di find_peaks voluti come kwargs
 
     > stampa le cose che trova se verbose == True

@@ -3,7 +3,13 @@
 #########################           EXPERIMENTUM UNITED                     #######################
 
 #%%
-# 1) SETTINGS and INPUTS
+######################################################################################################################
+#######   ||||    PREAMBOLO: - acquisiamo i file di INPUT
+#######    ||                - eseguiamo operazioni su cartelle
+#######    ||   
+#######    ||    
+#######   ||||
+
 
 #libraries
 import      numpy               as      np
@@ -22,6 +28,9 @@ log_file            =   'log_'+spectra_filename
 analysis_dir       =   'analysis_best/'
 
 #operatives
+
+#esclusi a mano
+to_add              =   [(63, 3),]
 
 syg_kwargs          =   {'height': 80, 'distance': 31, 'width': 3.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
@@ -45,8 +54,13 @@ cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'm
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude','shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
 # %%
-#2) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
-#   e compio alcune operazioni di sistema utili per salvataggio dati
+#2) ######################################################################################################################
+
+#######   ||||  ||||    DATA ACQUISITION AND TREATMENT : - acquisiamo i file di INPUT
+#######    ||    ||                                  - eseguiamo operazioni su cartelle
+#######    ||    ||
+#######    ||    ||
+#######   ||||  ||||
 
 #import dati spettro
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
@@ -65,7 +79,8 @@ with open(analysis_path+log_file, 'w') as f_log:
     f_log.write('\n\nHo inizializzato una matrice {}x{}, per un totale di {} spettri'.format(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])))
     
 # %%
-#3) riempio oggetti spectrum
+### riempio oggetti spectrum
+
 tempo = ()
 super_start = time.process_time()
 start = super_start
@@ -82,21 +97,32 @@ for ii in range(len(rows)):
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
         matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
 
-boni, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = sat_height, saturation_width = sat_width)
+### catalogo la natura degli spettri
 
-for (ii,jj) in boni:
+not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = sat_height, saturation_width = sat_width)
+excluded        = saturated.copy()
+excluded        = Escludi_a_Mano(to_add, excluded)
+
+for ii in range(len(rows)):
+    for jj in range(len(cols)):
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
-            
-            #Spettri normali , quattro picchi di cui i picchi più alti sono elastici
-            if matrix[ii][jj].n_peaks >= 4:
-                if matrix[ii][jj].Check_Brillouin_Distances(average = 70, stdev = 70/10):
-                    invisible += [(ii,jj), ]
-            elif (matrix[ii][jj].n_peaks == 2):
-                matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
-                brillouin_higher += [(ii,jj), ]
-            elif  (matrix[ii][jj].n_peaks == 3):
-                matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
-                brillouin_higher += [(ii,jj), ]
+            if (ii,jj) not in excluded:
+                #Spettri normali , quattro picchi di cui i picchi più alti sono elastici
+                
+                if matrix[ii][jj].n_peaks >= 4:
+                    if matrix[ii][jj].Check_Brillouin_Distances(average = 70, stdev = 70/10):
+                        invisible += [(ii,jj), ]
+                    else: boni += [(ii,jj),]
+                elif (matrix[ii][jj].n_peaks == 2):
+                    matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
+                    brillouin_higher += [(ii,jj), ]
+                    boni += [(ii,jj),]
+                elif  (matrix[ii][jj].n_peaks == 3):
+                    matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
+                    brillouin_higher += [(ii,jj), ]
+                    boni += [(ii,jj),]
+                else:
+                    raise ValueError("Numero di picchi non previsti dal codice per spettro {}".format(str((ii,jj))))
 
 acq_time    =   time.process_time()-start
 tempo       =   tempo + (('acquisizione', acq_time),)
