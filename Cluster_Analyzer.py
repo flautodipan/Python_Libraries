@@ -4,11 +4,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot
 
-now_path    =   '../../../RNA3/analysis/'
-now_name    =    'RNA3'
+now_path    =   '../GROMACS/RNA1/'
+now_name    =    'RNA1'
 now_temp    =   '350 K'
+
+#RNA1
+color = 'royalblue'
+darkcolor = 'navy'
+
+"""
+RNA3
 color       =   'darkgoldenrod'
 darkcolor   =   'darkslateblue'
+
+"""
 #%%
 
 
@@ -22,17 +31,18 @@ RNA_traj.Analyze_Eig_Variance_Ratio(n_eig = 2)
 #2) acquisisco proiezione 2D sui due autovettori principali e RMSD della traiettoria
 
 RNA_traj.Get_2D_Traj(time_range = [0, 1000000], path=now_path, fig = 'Essential', verbose = True)
-RNA_traj.Get_RMSD(xvg_filename = 'rmsd.xvg', fig = now_name+'_RMSD', skip_lines = 18, histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
+RNA_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', skip_lines = 18, histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
 RNA_traj.Get_Terminals_Dist(xvg_filename = 'ter_dist.xvg', skip_lines = 17, fig = now_name+'_Ter_dist', histo = now_name+'_ter_dist_Histogram', bins = 50, path = now_path, color = color)
 
 
 #%%
 # 3A) faccio il fit della distribuzione con N  gaussiane 
+# ordine params (mu, sigma, A)
 
-#p0 = (1.37, .4, 400, 3.7, .7, 70)
-p0 = (2,0.1,2001,2.6,0.4,500, 5.1, 1.8, 50)
+p0 = (1.5, .6, 0.4, 3., .9, 0.1)
+#p0 = (2,0.1,2001,2.6,0.4,500, 5.1, 1.8, 50)
 img_kwargs  =   {'path': now_path, 'fig_fit' : 'Gauss_fit_ter_dist', 'color_fold' : color, 'fit_color' : (0.5098039,0.1411765,0.2), 'color_unfold': darkcolor}
-RNA_traj.Analyze_Traj_by_Descriptor(descriptor = 'terminals distance', N_gauss=3,  p0=p0, bins=50, **img_kwargs )
+RNA_traj.Analyze_Traj_by_Descriptor(descriptor = 'terminals distance', N_gauss=2,  p0=p0, bins=50, **img_kwargs )
 
 with open (now_path+now_name+'_Nmodalfit.txt', 'w') as f:
     f.write('Vettore iniziale = %s\n'%(str(p0)))

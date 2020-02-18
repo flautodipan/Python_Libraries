@@ -13,22 +13,19 @@ from        Alessandria         import  *
 import      time
 import      os
 
-
 #I/O 
 
-analysis_name = 'analysis/'
-now_path        =   '../BRILLOUIN/TDP43/ARS_13_02/'
+now_path            =   '../BRILLOUIN/TDP43/ARS_13_02/'
 spectra_filename    =   'ARS_13_02'
-VIPA_filename       =   'ARS_13_02_VIPA_not_sat.tif'
-
-os.system('cd ' + now_path +' & mkdir ' + now_path+analysis_name)
-analysis_path            =   now_path +analysis_name
+VIPA_filename       =   'NO_ARS_13_02_VIPA_not_sat.tif'
+log_file            =   'log_'+spectra_filename
+analysis_dir       =   'analysis_best/'
 
 #operatives
 
-syg_kwargs          =   {'height': 72, 'distance': 31, 'width': 1.}
+syg_kwargs          =   {'height': 80, 'distance': 31, 'width': 3.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 15.8, 'distance': 25, 'width': 3.}
+syg_kwargs_brill    =  {'height': 74, 'distance': 31, 'width': 3.}
 VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
@@ -37,11 +34,11 @@ recover_markov = False
 
 #variables
 
-invisible           =   () 
-brillouin_higher    =   ()
-brillouin_highest   =   ()
-boni                =   ()
-excluded            =   ()
+invisible           =   []
+brillouin_higher    =   []
+brillouin_highest   =   []
+boni                =   []
+excluded            =   []
 
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
@@ -60,6 +57,13 @@ matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
 
+os.system('cd ' + now_path +' & mkdir ' + now_path+analysis_dir)
+analysis_path            =   now_path +analysis_dir
+
+with open(analysis_path+log_file, 'w') as f_log:
+    f_log.write('#This is a log file: you will find info on script run for {}\n'.format(spectra_filename))
+    f_log.write('\n\nHo inizializzato una matrice {}x{}, per un totale di {} spettri'.format(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])))
+    
 # %%
 #3) riempio oggetti spectrum
 tempo = ()
@@ -68,50 +72,49 @@ start = super_start
 
 matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
-
 for ii in range(len(rows)):
     for jj in range(len(cols)):
         print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
         
         matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = False, cut_range = (200, 600))
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
+
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
         matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
 
-        check   =   matrix[ii][jj].Check_Spectrum(saturation_height = sat_height, saturation_width = sat_width)
-        
-        if (check == 1):
+boni, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = sat_height, saturation_width = sat_width)
 
-            saturated   =   saturated   +   ((ii,jj), )
-            excluded    =   excluded    +   ((ii,jj), )
-
-        elif (check == 2):
-
-            brillouin_higher    =   brillouin_higher    +   ((ii,jj),)
-            boni                =   boni                +   ((ii,jj),)
-
-        elif (check == 3):
-
-            invisible           =   invisible           +   ((ii,jj),)
-            excluded    =   excluded    +   ((ii,jj), )
-        
-        else:
-
-            boni                =   boni                +   ((ii,jj),)
-
+for (ii,jj) in boni:
+            print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+            
+            #Spettri normali , quattro picchi di cui i picchi più alti sono elastici
+            if matrix[ii][jj].n_peaks >= 4:
+                if matrix[ii][jj].Check_Brillouin_Distances(average = 70, stdev = 70/10):
+                    invisible += [(ii,jj), ]
+            elif (matrix[ii][jj].n_peaks == 2):
+                matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
+                brillouin_higher += [(ii,jj), ]
+            elif  (matrix[ii][jj].n_peaks == 3):
+                matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
+                brillouin_higher += [(ii,jj), ]
 
 acq_time    =   time.process_time()-start
 tempo       =   tempo + (('acquisizione', acq_time),)
-print('tempo impiegato per acquisizione spettri: %f s'%(acq_time))
-print('Totale spettri saturati : %d\n'%(len(saturated)), saturated)
+print('\nTempo impiegato per acquisizione spettri: {} s\n'.format(acq_time))
 
+with open(analysis_path+log_file, 'a') as f_log:
 
-print('Totale spettri con Brillouin più alti : %d\n'%(len(brillouin_higher)), brillouin_higher)
-print('Totale spettri con Brillouin invisibili: %d\n'%(len(invisible)), invisible)
-print('Totale spettri boni :   %d'%(len(boni)))
-print('Totale   spettri : %d\ndi cui %d inutilizzabili'%(dim, len(invisible)+len(saturated)))
-print('ossia il %3.2f percento'%(float(len(invisible)+len(saturated))*100/dim))
-print('Di cui il {} invisibili e il {} saturati'.format(len(invisible)*100/dim, len(saturated)*100/dim))
+    f_log.write('\n\n###############################INFO ON DATA ACQUISITION#######################################\n\n')
+    f_log.write('\nTotale spettri saturati : {}\n'.format(len(saturated)))
+    f_log.write(str(saturated))
+    f_log.write('\nTotale spettri con Brillouin più alti : {}\n'.format(len(brillouin_higher)))
+    f_log.write(str(brillouin_higher))
+    f_log.write('\nTotale spettri con Brillouin invisibili: {}\n'.format(len(invisible)))
+    f_log.write(str(invisible))
+    f_log.write('\nTotale spettri boni :  {}'.format(len(boni)))
+    f_log.write('\n\nTotale spettri : {}\ndi cui {} inutilizzabili, '.format(dim, len(invisible)+len(saturated)))
+    f_log.write('ossia il %3.2f percento\n'%(float(len(invisible)+len(saturated))*100/dim))
+    f_log.write('Di cui il {} invisibili e il {} saturati\n\n'.format(len(invisible)*100/dim, len(saturated)*100/dim))
 
 # %%
 #2) Faccio operazioni di modifica spettro
@@ -158,13 +161,13 @@ for ii in range(len(rows)):
                 # se è Brillouin highest dx
                 if (matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][1]]) & (matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][2]] > matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][3]]):
                     print('ok è brillouin highest dx')
-                    brillouin_highest = brillouin_highest + ((ii,jj),)
+                    brillouin_highest += [(ii,jj),]
                     matrix[ii][jj].Align_Brillouin_Highest('dx')
 
                 #se è brillouin highest sx
                 elif (matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][1]] > matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][2]]) & (matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][1]] > matrix[ii][jj].y[matrix[ii][jj].peaks['idx'][0]]):
                     print('ok è brillouin highest sx')
-                    brillouin_highest = brillouin_highest + ((ii,jj),)
+                    brillouin_highest += [(ii,jj),]
                     matrix[ii][jj].Align_Brillouin_Highest('sx')
                             
             else :

@@ -418,6 +418,17 @@ class Spectrum  :
             plt.show()
             plt.close()
     
+    def Check_Brillouin_Distances(self, average, stdev):
+        """
+        Function that is supposed to be called when peaks are already four
+        --> check if the distance of Brillouin peaks is in the average 
+            otherwise it means they are not brillouin
+        """
+        if (np.abs(self.x[self.peaks['idx'][1]] - self.x[self.peaks['idx'][2]]) > (average*stdev)):
+            return True
+        else:
+            return False
+
     def Align_Brillouin_Highest(self, side):
 
         """
@@ -1443,17 +1454,38 @@ def Get_cost_map(matrix, fit, n_rows, n_cols, fig, inf = 0, sup = 1000, cmap = '
 
 def Get_Saturated_Elements(matrix, n_rows, n_cols, saturation_height = 40000, saturation_width = 15.):
 
-    saturated = ()
-    not_saturated = ()
+    saturated = []
+    not_saturated = []
 
     for ii in range(n_rows):
         for jj in range(n_cols):
             pk_max_idx  =   np.argmax(matrix[ii][jj].peaks['heights'])
             if (matrix[ii][jj].y.max() >= saturation_height)  |  (matrix[ii][jj].peaks['widths'][pk_max_idx] > saturation_width):
-                saturated+= ((ii,jj),)
+                saturated+= [(ii,jj),]
             else:
-                not_saturated+= ((ii,jj),)
+                not_saturated+= [(ii,jj),]
 
     print('Ho trovato {} elementi saturati sul totale di {}\n'.format(len(saturated), n_cols*n_rows))
 
     return not_saturated, saturated
+
+def Check_Peaks_Number(matrix, iterable_elements, n, v = False, fig = False):
+
+    n_peaks = ()
+
+    for (ii,jj) in iterable_elements:
+        if matrix[ii][jj].n_peaks == n:
+            n_peaks += ((ii,jj),)
+            print('Spettro {} ha {} picchi!\n'.format(str((ii,jj)), n, ))
+            if v:
+                print(matrix[ii][jj].peaks)
+            if fig:
+                plt.figure()
+                plt.title(str((ii,jj)))
+                plt.plot(matrix[ii][jj].x, matrix[ii][jj].y, label = 'data')
+                plt.plot(matrix[ii][jj].x[matrix[ii][jj].peaks['idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['idx']], '+', label = 'peaks')
+                plt.legend()
+                plt.show()
+                plt.close()
+    print('Ho trovato {} spettri con {} picchi\n'.format(len(n_peaks), n))
+    return n_peaks

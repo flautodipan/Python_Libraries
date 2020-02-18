@@ -372,10 +372,12 @@ class Trajectory():
             fit_mode = trimodal
             i = 6
             idx = 'mu3'
+            index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2', 'mu3', 'sigma3', 'A3')
         elif (N_gauss == 2):
             i = 3
             fit_mode = bimodal
             idx = 'mu2'
+            index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2')
         
         #fit e plot
         y, x,  = np.histogram(self.ter_dist, bins = bins)
@@ -383,7 +385,7 @@ class Trajectory():
         self.gauss_params, cov = curve_fit(fit_mode,x,y, p0=p0)
         
         print("Parametri del fit \n")
-        self.df  =   pd.DataFrame({'Values':self.gauss_params, 'StdErr':np.sqrt(np.diag(cov))}, index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2', 'mu3', 'sigma3', 'A3')) 
+        self.df  =   pd.DataFrame({'Values':self.gauss_params, 'StdErr':np.sqrt(np.diag(cov))}, index = index) 
         print(self.df)
         
         # divido perchè distribuzione è indipendente da ordine
@@ -397,8 +399,11 @@ class Trajectory():
     
         #fit e plot
         x = np.linspace(descriptor.min(), descriptor.max(), 1000)
-        plt.plot(x, trimodal(x, *self.gauss_params), color = image_kwargs['fit_color'], linestyle = 'dashed', lw = 2, label = 'Multimodal Fit')    
-        
+        if N_gauss == 3:
+            plt.plot(x, trimodal(x, self.df['Values'].values), color = image_kwargs['fit_color'], linestyle = 'dashed', lw = 2, label = 'Multimodal Fit')    
+        elif N_gauss == 2:
+            plt.plot(x, bimodal(x, self.df['Values'].values), color = image_kwargs['fit_color'], linestyle = 'dashed', lw = 2, label = 'Multimodal Fit')    
+
         plt.title(' Distribution of '+descrittore+' for '+self.__str__())
         plt.xlabel(descrittore +' (nm)')
         plt.legend(title= 'mu = {:3.2f}\u00B1{:3.2f}'.format(self.gauss_params[i], self.df['StdErr'][idx]))
