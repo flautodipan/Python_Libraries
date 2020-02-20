@@ -19,6 +19,7 @@ from        Alessandria         import  *
 import      time
 import      os
 
+
 #I/O 
 
 now_path            =   '../BRILLOUIN/TDP43/ARS_13_02/'
@@ -96,7 +97,7 @@ for ii in range(len(rows)):
     for jj in range(len(cols)):
         print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
         
-        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = False, cut_range = (200, 600))
+        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = pre_cut, cut_range = (200, 600))
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
 
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
@@ -107,7 +108,6 @@ for ii in range(len(rows)):
 not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = sat_height, saturation_width = sat_width)
 excluded        = saturated.copy()
 excluded        = Escludi_a_Mano(to_add, excluded)
-
 for ii in range(len(rows)):
     for jj in range(len(cols)):
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
@@ -115,6 +115,7 @@ for ii in range(len(rows)):
                 #Spettri normali , quattro picchi di cui i picchi più alti sono elastici
                 
                 if matrix[ii][jj].n_peaks >= 4:
+                    matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
                     if matrix[ii][jj].Check_Brillouin_Distances(average = 70, stdev = 70/10):
                         invisible += [(ii,jj), ]
                     else: boni += [(ii,jj),]
@@ -127,7 +128,10 @@ for ii in range(len(rows)):
                     brillouin_higher += [(ii,jj), ]
                     boni += [(ii,jj),]
                 else:
-                    raise ValueError("Numero di picchi non previsti dal codice per spettro {}".format(str((ii,jj))))
+                    raise ValueError("Numero di picchi non previsti ({} )dal codice per spettro {}".format(matrix[ii][jj].n_peaks, str((ii,jj))))
+
+excluded    += invisible
+excluded.sort()
 
 acq_time    =   time.process_time()-start
 tempo       =   tempo + (('acquisizione', acq_time),)
@@ -157,7 +161,7 @@ matrix[0][0].Fit_Pixel2GHz()
 matrix[0][0].VIPA_Pix2GHz()
 matrix[0][0].Spectrum_Pix2GHz()
 matrix[0][0].Align_Spectrum()
-matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, distanza = cut_distance)
+matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, cut = cut, distanza = cut_distance)
 matrix[0][0].Fit_VIPA_Gaussian()
 
 for ii in range(len(rows)):
@@ -169,20 +173,24 @@ for ii in range(len(rows)):
                 matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
                 matrix[ii][jj].Spectrum_Pix2GHz()
                 matrix[ii][jj].Align_Spectrum(alignment = matrix[0][0].alignment)
-                matrix[ii][jj].Cut_n_Estimate_Spectrum(distanza = cut_distance)
+                matrix[ii][jj].Cut_n_Estimate_Spectrum(cut = cut, distanza = cut_distance)
             elif ((ii,jj) in excluded):
                 matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
                 matrix[ii][jj].Spectrum_Pix2GHz()
 
 mod_time    =   time.process_time()-start
 tempo       =   tempo + (('modifica',mod_time), )
-print('tempo impiegato per modifica spettri: %f s'%(mod_time))
 
+with open(analysis_path+log_file, 'a') as f_log:
+    f_log.write('\n\n######### MODIFICA SPETTRI #####################\n\n')
+    f_log.write('\nTempo impiegato per modifica spettri: {} s\nTaglio spettri è {}\n\n'.format(mod_time, cut))
 
 # salvo info spettri e VIPA
 Save_XY_position(matrix, len(rows), len(cols), path = analysis_path)
 Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
-print('\n I saved xy info on xy.txt and xy_VIPA.txt in your analysis directory {}\n\n'.format(analysis_path))
+
+with open(analysis_path+log_file, 'a') as f_log:
+    f_log.write('\n\nI saved xy info on xy.txt and xy_VIPA.txt in your analysis directory {}\n\n'.format(analysis_path))
 
 #%%
 #######################################################################################################################
@@ -193,6 +201,7 @@ print('\n I saved xy info on xy.txt and xy_VIPA.txt in your analysis directory {
 #######    ||    ||    ||
 #######   ||||  ||||  ||||
 
+print("\nI'm beginning markovian fit\n")
 
 if recover_markov == False:
         
@@ -224,7 +233,32 @@ if recover_markov == False:
         print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
 
         del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
-        #print(fit)
+
+        #afterfit
+
+    markov_time     =   time.process_time()-start
+    tempo           =   tempo + (('fit markoviano', markov_time),)
+    
+    with open(analysis_path+log_file, 'a') as f_log:
+
+        f_log.write('\n\n#####################   MARKOVIAN     FIT     ##########################\n\n')
+        f_log.write('\nTempo impiegato per fit markoviani: {:3.2} s'.format(markov_time))
+        f_log.write('\n\Tempo impiegato ore = {:3.2}\n'.format(markov_time/3600))
+
+    # 4) after - fit markoviano
+
+    non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
+
+    #too_markov         =   Whose_Param_Too_High('Gamma', 2., matrix, fitted)
+    Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
+    Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
+    Save_y_markov_fit(matrix, boni, path = analysis_path)
+    Save_cost_markov(matrix, boni, path = analysis_path)
+    print('\nHo salvato informazioni fit markoviano su {}\n'.format(analysis_path))
+
+
+
+
 else:
 
     print('\n\n You chose to SKIP the markovian fit and recover info \n\n')
@@ -245,29 +279,16 @@ else:
     for (line, (ii,jj)) in zip(lines, fitted) :
         matrix[ii][jj].Recover_Markov_Fit_Params(line)
 
-markov_time     =   time.process_time()-start
-tempo           =   tempo + (('fit markoviano', markov_time),)
-
-print('tempo impiegato per fit markoviani: %f s'%(markov_time))
-print('tempo impiegato ore = %3.2f'%(markov_time/3600))
+    print("\n\nI've correctely recovered markovian fit info \n\n")
 
 
-# 4) after - fit markoviano
-
-non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
-
-#too_markov         =   Whose_Param_Too_High('Gamma', 2., matrix, fitted)
-Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
-Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
-Save_y_markov_fit(matrix, boni, path = analysis_path)
-Save_cost_markov(matrix, boni, path = analysis_path)
 
 #%%
 ##################################################################################################################################
 # fit tot
 
 fit_tot = ()
-
+print("\n\nI'm beginning total fit\n\n")
 start = time.process_time()
 for (ii,jj) in boni:
 
@@ -297,12 +318,16 @@ Save_cost_tot(matrix, boni, path = analysis_path)
 
 
 super_time = super_start - time.process_time()
-   
-print('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3600))
 
-for (what,t) in tempo:
+with open(analysis_path+log_file, 'a') as f_log:
+    f_log.write("\n\n################## TOTAL FIT ####################\n\n")
 
-    print('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
+
+with open(analysis_path+log_file, 'a') as f_log:
+    f_log.write("\n\n################### FINAL PERFORMACES ########################\n\n")
+    f_log.write('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3600))
+    for (what,t) in tempo:
+        f_log.write('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
 
 
 # %%

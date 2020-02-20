@@ -1190,6 +1190,9 @@ def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, cmap, in
         for jj in range (n_cols):
             if  (ii, jj) not in excluded:
                 p_map[ii,jj]    =   getattr(matrix[ii][jj], fit_params)[parameter][value]
+                if Deltas:
+                    #rendo percentuale
+                    p_map[ii,jj] = (100*p_map[ii,jj])/getattr(matrix[ii][jj], fit_params)[parameter]['Values']
             else:
                 p_map[ii,jj]    = np.nan
                 nans = nans +((ii,jj),)
@@ -1204,7 +1207,7 @@ def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, cmap, in
         cm.set_bad(color='k')
         plt.matshow(p_map, cmap = cmap)
         plt.clim(inf, sup)
-        plt.title(parameter+' Map')
+        plt.title(value+' '+parameter+' Map')
         plt.colorbar()
         plt.xlabel('Row Index')
         plt.ylabel('Col Idx')

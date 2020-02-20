@@ -12,9 +12,9 @@ import      os
 
 #I/O 
 
-now_path        =   '../BRILLOUIN/TDP43/ARS_13_02/'
+now_path            =   '../BRILLOUIN/TDP43/ARS_13_02/'
 spectra_filename    =   'ARS_13_02'
-VIPA_filename       =   'NO_ARS_13_02_VIPA_not_sat.tif'
+VIPA_filename       =   'NO_ARS_13_02_VIPA_quasisat.tif'
 
 #variables
 invisible           =   [] 
@@ -43,7 +43,7 @@ dim     =   len(rows)*len(cols)
 #3) Riempio oggetti
 #prendo i 4 più alti
 matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
-syg_kwargs_test          =   {'height': 20, 'distance': 31, 'width': 3.}
+syg_kwargs_test          =   {'height': 18, 'distance': 31, 'width': 3.}
 
 for ii in range(len(rows)):
     for jj in range(len(cols)):
