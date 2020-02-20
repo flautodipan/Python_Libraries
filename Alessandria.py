@@ -221,7 +221,7 @@ def gaussian  (x,A, mu, sigma):
 
     return (A*np.exp(-0.5*((x-mu)/sigma)**2))
 
-def lorentian (x, A, mu, sigma):
+def lorentian (x, mu, sigma, A):
     return (A/np.pi)*(sigma/((x - mu)**2 + sigma**2))
 
 def delta_function (x, width, amplitude):

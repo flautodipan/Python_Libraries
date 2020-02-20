@@ -15,9 +15,9 @@ from    Alessandria         import *
 from    lmfit               import Model
 
 free_spectral_range =   29.9702547 #GHz
-cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
 
 
@@ -195,7 +195,7 @@ class Spectrum  :
             plt.savefig(img_kwargs['save_path']+img_kwargs['fig']+'.png')
             plt.show()
 
-    def Check_Spectrum(self, saturation_height = 40000, saturation_width = 15.):
+    def Check_Spectrum_Saturation(self, saturation_height = 40000, saturation_width = 15.):
 
         pk_max_idx  =   np.argmax(self.peaks['heights'])
         condition_peaks_height  =   (self.peaks['heights'] < 1000).all()
@@ -203,29 +203,7 @@ class Spectrum  :
         if (self.y.max() >= saturation_height)  |  (self.peaks['widths'][pk_max_idx] > saturation_width):
                 print('spettro saturato')
                 return          1
-        
-        """
-        AGGIUNGERE PIU IN LA QUESTA PARTE
-        rimettendo elif dopo e levando l'uguale a <= 3
-        if (self.n_peaks == 3):
 
-            condition_peaks_pos = ((self.y[self.peaks[0][0]] < self.y[self.peaks[0][1]]) | (self.y[self.peaks[0][2]] < self.y[self.peaks[0][1]]))
-            
-            if condition_peaks_pos & condition_peaks_height:
-
-                    print('Spettro con Brillouin più alti')
-                    return          2
-            else:
-                print('Spettro invisibile')
-                return  3
-        
-        """
-
-        if (self.n_peaks <= 3) | (self.n_peaks > 7):
-            
-
-            print('Spettro invisibile')
-            return  3
 
         elif (self.n_peaks >= 4) & (self.n_peaks <= 7):
 
@@ -245,6 +223,8 @@ class Spectrum  :
 
         pk      =   find_peaks(self.y, height = treshold, **syg_kwargs)
         height  =   np.max(pk[1]['peak_heights'])/2
+
+
         
         while True:
 
@@ -307,6 +287,14 @@ class Spectrum  :
                 else: 
 
                     height-=delta
+
+        #ora che ho tre picchi approfitto per stimare allinemento:
+
+        if self.y_VIPA[pk[0][0]] > self.y_VIPA[pk[0][2]]:
+            self.alignment = 'sx'
+        elif self.y_VIPA[pk[0][0]] < self.y_VIPA[pk[0][2]]:
+            self.alignment = 'dx'
+        else : raise ValueError('Picchi a ordini differenti uguali?\npicco sx = {}\npicco dx = {}'.format(self.y_VIPA[pk[0][0]],self.y_VIPA[pk[0][2]]))
 
         self.GHz_fit_height     =   h_save[0]
         self.gauss_fit_height   =   h_save[1]
@@ -429,26 +417,28 @@ class Spectrum  :
         else:
             return False
 
-    def Align_Brillouin_Highest(self, side):
+    def Align_Spectrum(self, alignment = False):
 
         """
-        Funzione che serve per gli spettri che hanno il Brillouin più alto di tutti e quindi nella funzione
-        Spectrum_Pix2Ghz sono 
+        Funzione che allinea correttamente gli spettri con gli elastici di convoluzione VIPA 
         """
-        if side == 'dx':
+        if alignment:
+            pass
+        else:
+            alignment = getattr(self, 'alignment')
+
+        if alignment == 'dx':
+            
+            self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][0]]
+        
+        elif alignment == 'sx':
 
             self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][3]]
-        
-        elif side == 'sx':
-
-            self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][0]]
 
     def Spectrum_Pix2GHz (self, align = True, fig = False):
 
         #modifico in GHz le ascisse dello spettro
-        # --> prima devo convertire in DeltaPixel
-        if align:
-            self.x      =   self.x  -   self.x[self.y.argmax()]
+
         self.x_freq     =   ((self.x**3)*self.Poly2GHz[0])+ ((self.x**2)*self.Poly2GHz[1]) + (self.x*self.Poly2GHz[2]) + (self.Poly2GHz[3])
         
         if fig:
@@ -481,10 +471,10 @@ class Spectrum  :
 
         """
 
-        query_min               =   self.x_freq[self.peaks['idx'][0]] + (self.peaks['peaks_width'][0]*distanza)
+        query_min               =   self.x_freq[self.peaks['idx'][0]] + (self.peaks['widths'][0]*distanza)
         _, idx_min              =   Find_Nearest(self.x_freq, query_min)
             
-        query_max               =   self.x_freq[self.peaks['idx'][3]] - (self.peaks['peaks_width'][3]*distanza)
+        query_max               =   self.x_freq[self.peaks['idx'][3]] - (self.peaks['widths'][3]*distanza)
         _, idx_max              =   Find_Nearest(self.x_freq, query_max)
         
         
@@ -501,15 +491,18 @@ class Spectrum  :
         if  estimate:
                 
             self.p0['Omega']            =   [np.absolute(self.x_freq[self.peaks['idx'][2]] - self.x_freq[self.peaks['idx'][1]])*0.5]
-            self.p0['Gamma']            =   [(self.peaks['peaks_width'][2]+self.peaks['peaks_width'][1])/20]
-            self.p0['offset']           =   np.mean(self.y[self.peaks['idx'][1]:self.peaks['idx'][2]])
+            self.p0['Gamma']            =   [0.1]
+            #self.p0['Gamma']            =   [(self.peaks['widths'][2]+self.peaks['widths'][1])/20]
+            self.p0['offset']           = [0]
+            #self.p0['offset']           =   np.mean(self.y[self.peaks['idx'][1]:self.peaks['idx'][2]])
             
 
             # 2)i parametri iniziali che dovrebbero andare bene sempre
-            self.p0['Co']               =   [1]#amplitude factor
+            self.p0['Co']               =   [0.1]#amplitude factor
             self.p0['shift']            =   [0.]
+            self.p0['delta_position']   =   [0.]
             self.p0['delta_amplitude']  =   [.1]
-            self.p0['delta_width']      =   [0.5]
+            self.p0['delta_width']      =   [0.05]
 
             if len(columns) == len(cols):
 
@@ -540,12 +533,10 @@ class Spectrum  :
 
         self.cost_markov        =   0.5*np.sum(self.Residuals_Markov(p0, self.y)**2)
 
-    
     def Get_cost_tot(self, p0, p_gauss):
         # senza le gauss
 
         self.cost_tot           =   0.5*np.sum(self.Residuals_NoGauss(p0, self.y, p_gauss)**2)
-
 
     def Get_p0_by_Markov(self, p0, treshold, **kwargs):
 
@@ -587,7 +578,6 @@ class Spectrum  :
         self.p0['tau']     = [100.]
         self.Get_p0(self.p0[list(cols_real)].values[0], cols_real)
 
-
     def Take_A_Look_Before_Fitting(self):
         
         print("Valore stimato della cost function prima del fit totale con fit markoviano:\n{}".format(self.cost_markov))
@@ -616,19 +606,21 @@ class Spectrum  :
         #                       p[2] = Gamma
         #                       p[3] = Delta
         #                       p[4] = tau
-        #   param delta         p[5] = delta amplitude
-        #                       p[6] = delta factor
         #
-        #   param gauss         p[7] = A
-        #                       p[8] = mu 
-        #                       p[9] = sigma 
+        #                       p[5] = delta position
+        #   param delta         p[6] = delta amplitude
+        #                       p[7] = delta factor
+        #
+        #   param gauss         p[8] = A
+        #                       p[9] = mu 
+        #                       p[10] = sigma 
         #
  
-        #   questi ultimi       p[10] = shift
-        #   per forza           p[11] = offset       
+        #   questi ultimi       p[11] = shift
+        #   per forza           p[12] = offset       
 
-        if (p.size != 12):
-            raise ValueError("Calcola stai a usa modello Real = Markov + Exp\n p deve avere 12 elementi! Ne ha {}".format(p.size))
+        if (p.size != 13):
+            raise ValueError("Calcola stai a usa modello Real = Markov + Exp\n p deve avere 13 elementi! Ne ha {}".format(p.size))
 
         if fantoccio :
 
@@ -641,12 +633,12 @@ class Spectrum  :
         self.y_convolution      =       np.zeros(conv_range.size)
         w_j_VIPA                =       np.linspace(-35,35, self.x_VIPA_freq.size)
         kernel                  =       self.Interpolate_VIPA(w_j_VIPA)
-        kernel                  =       kernel/(p[7]*(np.exp(-((w_j_VIPA-p[8])**2)/(2*(p[9]**2)))))
+        kernel                  =       kernel/(p[8]*(np.exp(-((w_j_VIPA-p[9])**2)/(2*(p[10]**2)))))
         
         for  ii in range(len(conv_range)):
 
             delta_w                 =   conv_range[ii] -   w_j_VIPA
-            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[10], *p[0:7])
+            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[11], *p[0:8])
             self.y_convolution[ii]  =   np.sum(theor*kernel)
 
         if fig:
@@ -659,7 +651,7 @@ class Spectrum  :
         
  
 
-        self.y_Gauss_convolution   =   p[11] + self.y_convolution*p[7]*np.exp(-((conv_range - p[8])**2)/(2*(p[9]**2)))
+        self.y_Gauss_convolution   =   p[12] + self.y_convolution*p[8]*np.exp(-((conv_range - p[9])**2)/(2*(p[10]**2)))
 
         if fig:
 
@@ -687,10 +679,10 @@ class Spectrum  :
         for  ii in range(len(self.x_freq)):
 
             delta_w                 =   self.x_freq[ii] -   w_j_VIPA
-            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[7], *p[0:7])
+            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[8], *p[0:8])
             self.y_convolution[ii]  =   np.sum(theor*kernel)
 
-        self.y_Gauss_convolution   =   p[8] + self.y_convolution*p_gauss[0]*np.exp(-((self.x_freq - p_gauss[1])**2)/(2*(p_gauss[2]**2)))
+        self.y_Gauss_convolution   =   p[9] + self.y_convolution*p_gauss[0]*np.exp(-((self.x_freq - p_gauss[1])**2)/(2*(p_gauss[2]**2)))
 
         return self.y_Gauss_convolution
     
@@ -707,15 +699,15 @@ class Spectrum  :
         VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
         Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
         w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
-        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/(p[7]*(np.exp(-((w_j_VIPA-p[8])**2)/(2*(p[9]**2)))))
+        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/(p[8]*(np.exp(-((w_j_VIPA-p[9])**2)/(2*(p[10]**2)))))
         
         for  ii in range(len(self.x_freq)):
 
             delta_w                 =   self.x_freq[ii] -   w_j_VIPA
-            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[10], *p[0:7])
+            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[11], *p[0:8])
             self.y_convolution[ii]  =   np.sum(theor*kernel)
  
-        self.y_Gauss_convolution   =   p[11] + self.y_convolution*p[7]*np.exp(-((self.x_freq - p[8])**2)/(2*(p[9]**2)))
+        self.y_Gauss_convolution   =   p[12] + self.y_convolution*p[8]*np.exp(-((self.x_freq - p[9])**2)/(2*(p[10]**2)))
 
         return self.y_Gauss_convolution
 
@@ -725,19 +717,22 @@ class Spectrum  :
         #                       p[1] = Omega
         #                       p[2] = Gamma
 
-        #   param delta         p[3] = delta amplitude
-        #                       p[4] = delta factor        #
-        #   param gauss         p[5] = A
-        #                       p[6] = mu 
-        #                       p[7] = sigma 
-        #   questi ultimi       p[8] = shift
-        #   per forza           p[9] = offset       
+        #   param delta         p[3] = delta position
+        #                       p[4] = delta width
+        #                       p[5] = delta amplitude
+        #
+        #   param gauss         p[6] = A
+        #                       p[7] = mu 
+        #                       p[8] = sigma 
+        #
+        #   questi ultimi       p[9] = shift
+        #   per forza           p[10] = offset       
 
         p = np.asarray(p)
         
-        if (p.size != 10):
+        if (p.size != 11):
 
-            raise ValueError("Calcola stai a usa modello Markov \n p deve avere 10 elementi! Ne ha {}".format(p.size))
+            raise ValueError("Calcola stai a usa modello Markov \n p deve avere 11 elementi! Ne ha {}".format(p.size))
 
         if fantoccio :
 
@@ -750,12 +745,12 @@ class Spectrum  :
         self.y_markov_convolution      =       np.zeros(conv_range.size)
         w_j_VIPA                       =       np.linspace(-35,35, self.x_VIPA_freq.size)
         kernel                         =       self.Interpolate_VIPA(w_j_VIPA)
-        kernel                         =       kernel/(p[5]*(np.exp(-((w_j_VIPA-p[6])**2)/(2*(p[7]**2)))))
+        kernel                         =       kernel/(p[6]*(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
         
         for  ii in range(len(conv_range)):
 
             delta_w                         =   conv_range[ii] -   w_j_VIPA
-            theor                           =   S_Dynamical_Form_Factor_0(delta_w-p[8], *p[0:5])
+            theor                           =   S_Dynamical_Form_Factor_0(delta_w-p[8], *p[0:6])
             self.y_markov_convolution[ii]   =   np.sum(theor*kernel)
 
         if fig:
@@ -765,7 +760,7 @@ class Spectrum  :
                 plt.xlabel('GHz')
                 plt.title('convoluzione dati VIPA con funz S0 for '+self.__str__())
 
-        self.y_Gauss_markov_convolution   =   p[9] + self.y_markov_convolution*p[5]*np.exp(-((conv_range - p[6])**2)/(2*(p[7]**2)))
+        self.y_Gauss_markov_convolution   =   p[10] + self.y_markov_convolution*p[6]*np.exp(-((conv_range - p[7])**2)/(2*(p[8]**2)))
 
         if fig:
 
@@ -813,7 +808,7 @@ class Spectrum  :
 
         """
         Versione veloce della funzione Gauss_Convolve_Markovian
-        Funziona con modello Markov --> 10 parametri
+        Funziona con modello Markov --> 11 parametri
 
         """
         self.y_markov_convolution      =       np.zeros(self.x_freq.size)
@@ -823,18 +818,17 @@ class Spectrum  :
         VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
         Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
         w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
-        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/(p[5]*(np.exp(-((w_j_VIPA-p[6])**2)/(2*(p[7]**2)))))
+        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/(p[6]*(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
         
         for  ii in range(len(self.x_freq)):
 
             delta_w                 =   self.x_freq[ii] -   w_j_VIPA
-            theor                   =   S_Dynamical_Form_Factor_0(delta_w-p[8], *p[0:5])
+            theor                   =   S_Dynamical_Form_Factor_0(delta_w-p[9], *p[0:6])
             self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
  
-        self.y_Gauss_markov_convolution   =   p[9] + self.y_markov_convolution*p[5]*np.exp(-((self.x_freq - p[6])**2)/(2*(p[7]**2)))
+        self.y_Gauss_markov_convolution   =   p[10] + self.y_markov_convolution*p[6]*np.exp(-((self.x_freq - p[7])**2)/(2*(p[8]**2)))
 
         return self.y_Gauss_markov_convolution
-
 
     def Residuals(self, p, y):
         
@@ -923,6 +917,11 @@ class Spectrum  :
                 self.bounds['down'][col]     =    0
                 self.bounds['up'][col]       =    np.inf
             
+            elif frac == 'zero':
+
+                self.bounds['down']         =   -1.5
+                self.bounds['up']           =   1.5
+                
             else:
                     
                 bound   =   Get_Around(self.p0[col]['Values'], frac)
@@ -964,7 +963,7 @@ class Spectrum  :
             plot(self.x_freq, self.y_markov_fit, label= 'Fit')
             plt.legend()
            
-        self.Markov_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = ('Co', 'Omega', 'Gamma',  'delta_width','delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset'))
+        self.Markov_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = cols_mark)
         
         if (self.res_lsq['success'] == False):
             return 2
@@ -990,7 +989,6 @@ class Spectrum  :
     def Recover_Tot_Fit_Params(self, dictio_string):
 
         self.Tot_Fit_Params =   pd.DataFrame(json.loads(dictio_string))
-
 
     def Recover_Gauss_Parameter(self, dictio_string):
 
@@ -1373,7 +1371,7 @@ def Save_y_fit(matrix, boni, out_filename = 'y_tot_fit.txt', path = './'):
 
     with open(path+out_filename, 'w') as f_out:
         for (ii,jj) in boni:
-            f_out.write(np.array2string(matrix[ii][jj].y_tot_fit, max_line_width = 10000)+'\n')
+            f_out.write(np.array2string(matrix[ii][jj].y_fit, max_line_width = 10000)+'\n')
 
 def Save_cost_markov(matrix, boni, out_filename = 'cost_markov.txt', path = './'):
 

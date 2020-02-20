@@ -23,9 +23,9 @@ brillouin_highest   =   []
 boni                =   []
 excluded            =   []
 
-cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_width', 'delta_position', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
 # %%
 #2) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
@@ -139,7 +139,7 @@ while True:
         for (ii,jj) in three: matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_test)
 
 print('Spettri tot = {}\nSpettri esclusi = {} \n--> Spettri disponibili = {}\nHo trovato {} spettri su {} con 4 picchi\n'.format(dim, len(excluded), (dim -len(excluded)),len(four),  (dim -len(excluded))))
-
+print(syg_kwargs_test['height'])
     
 #%%
 
@@ -195,7 +195,7 @@ for (s, what) in zip(stats, ('Picco 1 height', 'Picco 2 height', 'Picco 3 height
 #Suggestions
 
 how_many = 15
-for tup, what in zip([height_second, height_third, dist_01, dist_23], ['picco brillouin sx', 'picco brillouin dx', 'dist 01', 'dist2']):
+for tup, what in zip([height_first, height_second, height_third, height_fourth, dist_01, dist_12, dist_23], ['picco el sx', 'picco brillouin sx', 'picco brillouin dx', 'picco el dx', 'dist 01', 'dist 12','dist2']):
         
     print('\n\nPrimi {} elementi più bassi di {} :\n'.format(how_many, what), np.sort(tup)[:how_many],'\n')
     #print('{:3.2f}\t'.format([float(t) for t in tup[:how_many]]))
@@ -208,7 +208,7 @@ print('Ti suggerisco di usare come height di syg_kwargs quella minore del brillo
 syg_kwargs_dist = np.min([np.min(dist_23), np.min(dist_01)])
 print('Ti suggerisco di usare come dist di syg_kwargs quella minore tra brillouin ed elastico vicino: {}\n'.format(syg_kwargs_dist))
 
-syg_kwargs_brill_height = np.min([np.min(height_first), np.min(height_second)])
+syg_kwargs_brill_height = np.min([np.min(height_first), np.min(height_fourth)])
 print('Ti suggerisco di usare come height di syg_kwargs_brill quella minore tra i due picchi elastici: {}\n'.format(syg_kwargs_brill_height))
 
 syg_kwargs_width = np.min([np.min(width_first), np.min(width_fourth)])
@@ -227,7 +227,7 @@ VIPA_filename       =   'NO_ARS_13_02_VIPA_not_sat.tif'
 
 syg_kwargs          =   {'height': 80, 'distance': 31, 'width': 3.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 20, 'distance': 31, 'width': 3.}
+syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 3.}
 VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
@@ -241,7 +241,7 @@ poi si fa un ciclo sui more_than_four per avere quale (ii,jj)
 
 count = 0
 for (ii,jj) in more_than_four:
-    if (count == 1):
+    if (count == 3989):
         print(str((ii,jj)))
         
     count+=1
