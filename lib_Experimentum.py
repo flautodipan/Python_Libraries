@@ -753,14 +753,9 @@ class Spectrum  :
             theor                           =   S_Dynamical_Form_Factor_0(delta_w-p[8], *p[0:6])
             self.y_markov_convolution[ii]   =   np.sum(theor*kernel)
 
-        if fig:
-
-                plt.figure()
-                plt.plot(conv_range, self.y_markov_convolution, label = 'initial guess')
-                plt.xlabel('GHz')
-                plt.title('convoluzione dati VIPA con funz S0 for '+self.__str__())
-
         self.y_Gauss_markov_convolution   =   p[10] + self.y_markov_convolution*p[6]*np.exp(-((conv_range - p[7])**2)/(2*(p[8]**2)))
+        
+        return self.y_Gauss_convolution
 
         if fig:
 
