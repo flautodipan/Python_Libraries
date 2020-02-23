@@ -40,6 +40,8 @@ VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
 #quanto mi allontano dal VIPA
+pre_cut             =   False
+cut                 =   True
 cut_distance        =   0.25
 #markov_fit
 recover_markov = False
