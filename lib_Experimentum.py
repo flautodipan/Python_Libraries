@@ -10,7 +10,7 @@ from    scipy.optimize      import curve_fit
 from    scipy.io            import loadmat
 import  json
 
-from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate, S_Dynamical_Form_Factor_0, S_0_Generate        
+from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate, S_Dynamical_Form_Factor_0, S_0_Generate, S_Dynamical_Form_Factor_0_nodelta, S_Dynamical_Form_Factor_2_nodelta     
 from    Alessandria         import *
 from    lmfit               import Model
 
@@ -19,6 +19,8 @@ cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_wi
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
+cols_smart  =  ('Co', 'Omega', 'Gamma', 'delta_position',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+
 
 
 #       PARTE   2       Classi 
@@ -498,16 +500,16 @@ class Spectrum  :
             
 
             # 2)i parametri iniziali che dovrebbero andare bene sempre
-            self.p0['Co']               =   [0.1]#amplitude factor
+            self.p0['Co']               =   [1]#amplitude factor
             self.p0['shift']            =   [0.]
             self.p0['delta_position']   =   [0.]
-            self.p0['delta_amplitude']  =   [.1]
-            self.p0['delta_width']      =   [0.05]
+            self.p0['delta_amplitude']  =   [.01]
+            self.p0['delta_width']      =   [0.1]
 
             if len(columns) == len(cols):
 
                 self.p0['Delta']        =   self.p0['Gamma']
-                self.p0['tau']          =   [10.]
+                self.p0['tau']          =   [1.]
 
         if verbose:
 
@@ -530,8 +532,9 @@ class Spectrum  :
 
     def Get_cost_markov(self, p0):
         # senza Delta e tau, con le gauss
-
-        self.cost_markov        =   0.5*np.sum(self.Residuals_Markov(p0, self.y)**2)
+        prova = self.Residuals_Markov_Smart(p0, self.y)
+        print(prova)
+        self.cost_markov        =   0.5*np.sum(prova**2)
 
     def Get_cost_tot(self, p0, p_gauss):
         # senza le gauss
@@ -578,15 +581,24 @@ class Spectrum  :
         self.p0['tau']     = [100.]
         self.Get_p0(self.p0[list(cols_real)].values[0], cols_real)
 
-    def Take_A_Look_Before_Fitting(self):
+    def Take_A_Look_Before_Fitting(self, p0, fit):
         
-        print("Valore stimato della cost function prima del fit totale con fit markoviano:\n{}".format(self.cost_markov))
+        if fit == 'markov':
+            cost = 'cost_markov'
+            func = 'Gauss_Convolve_Markovian_Response_Smart_Fast'
+
+        elif fit == 'tot':
+            cost = 'cost_tot'
+            y_fit = 'y_fit'
+
+        #print("Valore stimato della cost function prima del fit totale con fit markoviano:\n{}".format(getattr(self, cost)))
 
         plt.figure()
-        plt.plot(self.x_freq, self.y_markov_fit, '-', label = 'Initial_Guess')
+        plt.plot(self.x_freq, getattr(self, func)(p0), '-', label = 'Initial_Guess on {} fit'.format(fit))
         plt.plot(self.x_freq, self.y, '+', label = 'Data')
-        plt.title('Goodness of initial guess, cost = %f'%(self.cost_markov))
+        plt.title('Goodness of initial guess')#, cost = {}'.format(getattr(self, cost)))
         plt.xlabel('Freq(GHz)')
+        plt.legend()
         plt.show()
 
     def Gauss_Convolve_Theoretical_Response (self, p, fantoccio = False, fig = False):
@@ -744,8 +756,8 @@ class Spectrum  :
 
         self.y_markov_convolution      =       np.zeros(conv_range.size)
         w_j_VIPA                       =       np.linspace(-35,35, self.x_VIPA_freq.size)
-        kernel                         =       self.Interpolate_VIPA(w_j_VIPA)
-        kernel                         =       kernel/(p[6]*(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
+        VIPA_w_j                        =       self.Interpolate_VIPA(w_j_VIPA)
+        kernel                         =       VIPA_w_j/(p[6]*(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
         
         for  ii in range(len(conv_range)):
 
@@ -755,8 +767,7 @@ class Spectrum  :
 
         self.y_Gauss_markov_convolution   =   p[10] + self.y_markov_convolution*p[6]*np.exp(-((conv_range - p[7])**2)/(2*(p[8]**2)))
         
-        return self.y_Gauss_convolution
-
+        
         if fig:
 
             plt.figure()
@@ -764,8 +775,9 @@ class Spectrum  :
             plt.title('convoluzione dati VIPA con funz S0 più moltiplicazione Gauss')
             if compare:
                 plt.plot(self.x_freq, self.y, '+', label = 'data')
-                plt.legend()
-                plt.show
+            plt.legend()
+            plt.show
+        return self.y_Gauss_markov_convolution
 
     def Interpolate_VIPA (self, freq):
 
@@ -823,11 +835,89 @@ class Spectrum  :
  
         self.y_Gauss_markov_convolution   =   p[10] + self.y_markov_convolution*p[6]*np.exp(-((self.x_freq - p[7])**2)/(2*(p[8]**2)))
 
+        return self.y_Gauss_markov_convolution 
+
+
+    def Gauss_Convolve_Markovian_Response_Smart (self, p, fantoccio = False, fig = False):
+
+        """
+        Versione veloce e smart della funzione Gauss_Convolve_Markovian
+        sfrutto intuizione ruocco sulla Delta
+        Funziona con modello Markov --> 11 parametri
+
+        """
+        if fantoccio :
+
+            conv_range = np.linspace(fantoccio[0], fantoccio[1], 200)
+
+        else:
+            
+            conv_range = self.x_freq
+
+        self.y_markov_convolution      =       np.zeros(conv_range.size)
+        _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
+        _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
+        w_j_VIPA                =       self.x_VIPA_freq[idx_min:idx_max]#-1 per azzeccare dim coi bins
+        VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
+        Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
+        w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
+        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/gaussian(w_j_VIPA, p[5], p[6], p[7])
+        
+        for  ii in range(len(conv_range)):
+
+            delta_w                 =   conv_range[ii] -   w_j_VIPA
+            y_VIPA                  =   p[4]*self.Interpolate_VIPA(delta_w - p[3])
+            theor                   =   y_VIPA + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[8], *p[0:3])
+            self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
+
+        self.y_Gauss_markov_convolution   =   p[9] + self.y_markov_convolution*gaussian(conv_range, p[5], p[6], p[7])
+
+        if fig:
+
+            plt.figure()
+            plt.plot(self.x_freq, self.y, '+', label = 'data')
+            plt.plot(conv_range, self.y_Gauss_markov_convolution, label = 'Initial fit values')
+            plt.legend()
+            plt.title('convoluzione dati VIPA con funz S0 più moltiplicazione Gauss')
+
+        return self.y_Gauss_markov_convolution
+
+    def Gauss_Convolve_Markovian_Response_Smart_Fast (self, p):
+
+        """
+        Versione veloce e smart della funzione Gauss_Convolve_Markovian
+        sfrutto intuizione ruocco sulla Delta
+        Funziona con modello Markov --> 11 parametri
+
+        """     
+
+        self.y_markov_convolution      =       np.zeros(self.x_freq.size)
+        _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
+        _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
+        w_j_VIPA                =       self.x_VIPA_freq[idx_min:idx_max]#-1 per azzeccare dim coi bins
+        VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
+        Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
+        w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
+        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/gaussian(w_j_VIPA, p[5], p[6], p[7])
+        
+        for  ii in range(self.x_freq.size):
+
+            delta_w                 =   self.x_freq[ii] -   w_j_VIPA
+            y_VIPA                  =   p[4]*self.Interpolate_VIPA(delta_w - p[3])
+            theor                   =   y_VIPA + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[8], *p[0:3])
+            self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
+        
+        self.y_Gauss_markov_convolution   =   p[9] + self.y_markov_convolution*gaussian(self.x_freq, p[5], p[6], p[7])
+
         return self.y_Gauss_markov_convolution
 
     def Residuals(self, p, y):
         
         return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)/self.y_err
+
+    def Residuals_Markov_Smart(self, p, y):
+
+        return (self.Gauss_Convolve_Markovian_Response_Smart_Fast(p) - y)/self.y_err
 
     def Residuals_NoGauss(self, p, y, p_gauss):
         
@@ -927,10 +1017,10 @@ class Spectrum  :
         
         return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/self.y_err
     
-    def Non_Linear_Least_Squares_Markov (self, bound = (-np.inf, np.inf), fig = False, **kwargs):
+    def Non_Linear_Least_Squares_Markov (self, cols, bound = (-np.inf, np.inf), fig = False, **kwargs):
 
         start            =    time.process_time()
-        self.res_lsq     =    least_squares(self.Residuals_Markov, self.p0.values[0], args= ([self.y]), bounds = bound,  **kwargs)
+        self.res_lsq     =    least_squares(self.Residuals_Markov_Smart, self.p0[list(cols)].values[0], args= ([self.y]), bounds = bound,  **kwargs)
         print("s impiegati a fare il fit ", time.process_time()-start, '\n')
         Parameters       =    self.res_lsq.x
         
