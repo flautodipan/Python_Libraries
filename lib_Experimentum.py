@@ -1576,3 +1576,34 @@ def Check_Peaks_Number(matrix, iterable_elements, n, v = False, fig = False):
                 plt.close()
     print('Ho trovato {} spettri con {} picchi\n'.format(len(n_peaks), n))
     return n_peaks
+
+def Get_Bad_Elements(matrix, iterable, treshold ):
+    too_bad = ()
+    for (ii,jj) in iterable:
+        if matrix[ii][jj].cost_markov > treshold:
+            too_bad += ((ii,jj),)
+    print('I found {} bad elements \n'.format(len(too_bad)))
+    return too_bad
+def Get_Good_Elements(matrix, iterable, treshold ):
+    too_good = ()
+    for (ii,jj) in iterable:
+        if matrix[ii][jj].cost_markov > treshold:
+            too_good += ((ii,jj),)
+    print('I found {} good elements \n'.format(len(too_good)))
+    return too_good
+def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), fit = False):
+    if fit == 'markov':
+        attr = 'y_markov_fit'
+    elif fit == 'tot':
+        attr = 'y_fit'
+
+    for(ii,jj) in elements_iterable:
+        plt.figure()
+        plt.title(str((ii,jj)))
+        plt.plot(matrix[ii][jj].x_freq, matrix[ii][jj].y, '+', label = 'data')
+        if fit:
+            plt.plot(matrix[ii][jj].x_freq, getattr(matrix[ii][jj], attr), label = fit+' fit')
+        plt.xlim(x_range[0], x_range[1])
+        plt.ylim(y_range[0], y_range[1])
+        plt.legend()
+        plt.show()
