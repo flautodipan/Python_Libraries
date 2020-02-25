@@ -229,14 +229,16 @@ class Trajectory():
 
         _ , self.EigenValues    = Parse_xvg(path+xvg_filename)
 
-        if ('fig' in kwargs) :
-            
-            plt.figure()
-            plt.plot(self.EigenValues, '.')
-            plt.title('Eigenvalues of MD trajetory for '+self.__str__())
-            plt.xlabel('Eig index (ordered by variance significance)')            
-            plt.savefig(path+kwargs['fig']+'.png')
-            plt.show()
+    def Print_EigenValues(self, path = './', **kwargs):
+
+        
+        plt.figure()
+        plt.plot(self.EigenValues, '.')
+        plt.title('Eigenvalues of MD trajetory for '+self.__str__())
+        plt.xlabel('Eig index (ordered by variance significance)') 
+        plt.text(400, 25, 'Percentage variance explained by\nfirst two eigens: {:3.2}'.format(self.perceigen))          
+        plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
+        plt.show()
 
     def Get_2D_Traj(self, time_range, xvg_filename = '2dproj.xvg', path = './',  **kwargs):
 
@@ -374,6 +376,7 @@ class Trajectory():
             i = 6
             idx = 'mu3'
             index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2', 'mu3', 'sigma3', 'A3')
+        
         elif (N_gauss == 2):
             i = 3
             fit_mode = bimodal

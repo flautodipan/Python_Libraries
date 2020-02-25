@@ -21,28 +21,27 @@ import      os
 
 
 #I/O 
-
-now_path            =   '../BRILLOUIN/TDP43/ARS_13_02/'
-spectra_filename    =   'ARS_13_02'
-VIPA_filename       =   'NO_ARS_13_02_VIPA_quasisat.tif'
+now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
+spectra_filename    =   'NO_ARS_12_02'
+VIPA_filename       =   'NO_ARS_12_02_VIPA_notsat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir       =   'analysis_best/'
-
+analysis_dir        =   'analysis_new/'
 #operatives
 
 #esclusi a mano
-to_add              =   [(66, 3),]
+to_add              =   []
 
-syg_kwargs          =   {'height': 80, 'distance': 31, 'width': 3.}
+syg_kwargs          =   {'height': 119, 'distance': 31, 'width': 3.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 3.}
+syg_kwargs_brill    =  {'height': 23, 'distance': 31, 'width': 3.}
 VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
 #quanto mi allontano dal VIPA
 pre_cut             =   False
 cut                 =   True
-cut_distance        =   0.25
+mean_dist01         =   37
+mean_dist23         =   34
 #markov_fit
 recover_markov = False
 percents_markov     =   ('positive', 0.2, 'positive', np.inf, 'positive', 'positive', 0.2, 0.2, 0.2,  np.inf, np.inf)
@@ -128,7 +127,10 @@ for ii in range(len(rows)):
                     boni += [(ii,jj),]
                 elif  (matrix[ii][jj].n_peaks == 3):
                     matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
-                    brillouin_higher += [(ii,jj), ]
+                    if (matrix[ii][jj].y.argmax() == matrix[ii][jj].peaks['idx'][1]) | (matrix[ii][jj].y.argmax() == matrix[ii][jj].peaks['idx'][2]):
+                        brillouin_highest += [(ii,jj), ]
+                    else:
+                        brillouin_higher += [(ii,jj), ]
                     boni += [(ii,jj),]
                 else:
                     raise ValueError("Numero di picchi non previsti ({} )dal codice per spettro {}".format(matrix[ii][jj].n_peaks, str((ii,jj))))
@@ -164,7 +166,7 @@ matrix[0][0].Fit_Pixel2GHz()
 matrix[0][0].VIPA_Pix2GHz()
 matrix[0][0].Spectrum_Pix2GHz()
 matrix[0][0].Align_Spectrum()
-matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, cut = cut, distanza = cut_distance)
+matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, cut = cut, mean_dist01 = mean_dist01, mean_dist23 = mean_dist23)
 matrix[0][0].Fit_VIPA_Gaussian()
 
 for ii in range(len(rows)):
@@ -176,7 +178,7 @@ for ii in range(len(rows)):
                 matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
                 matrix[ii][jj].Spectrum_Pix2GHz()
                 matrix[ii][jj].Align_Spectrum(alignment = matrix[0][0].alignment)
-                matrix[ii][jj].Cut_n_Estimate_Spectrum(cut = cut, distanza = cut_distance)
+                matrix[ii][jj].Cut_n_Estimate_Spectrum(cut = cut, mean_dist01 = mean_dist01, mean_dist23 = mean_dist23)
             elif ((ii,jj) in excluded):
                 matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
                 matrix[ii][jj].Spectrum_Pix2GHz()
@@ -184,6 +186,7 @@ for ii in range(len(rows)):
 mod_time    =   time.process_time()-start
 tempo       =   tempo + (('modifica',mod_time), )
 
+#%%
 with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\n\n######### MODIFICA SPETTRI #####################\n\n')
     f_log.write('\nTempo impiegato per modifica spettri: {} s\nTaglio spettri è {}\n\n'.format(mod_time, cut))
@@ -213,6 +216,13 @@ if recover_markov == False:
     start = time.process_time()
     isolated = Get_Isolated_Elements(excluded)
     
+    # je faccio fa un primo giro perchè no, così lo controllo e miglioro la mia stima di p0
+
+    matrix[0][0].Get_p0(matrix[0][0].p0.values[0], cols_mark)
+    matrix[0][0].Get_Fit_Bounds(percents_markov, cols_mark)
+    _ =  matrix[0][0].Non_Linear_Least_Squares_Markov(bound = (matrix[0][0].bounds['down'].values, matrix[0][0].bounds['up'].values),  max_nfev = 100)
+    Plot_Elements_Spectrum(matrix, [(0,0)], fit = 'markov')
+
     for (ii,jj) in boni:
 
         print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))

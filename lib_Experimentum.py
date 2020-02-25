@@ -237,27 +237,28 @@ class Spectrum  :
                 if verbose:
                     print("Ho trovato valore dell'altezza per avere %d picchi: %f\n"%(n_peaks, height), pk)
                     _ = Analyze_Peaks(self.x_freq, self.y, 'GHz', fig = fig, verbose = verbose, height= height, **syg_kwargs)
-    
+                self.spectrum_cut_height        =   height
                 break
             
             elif (height <= treshold):
 
                 print(pk)
-                raise ValueError('Errore: superata altezza minima %f\nQualcosa è andato storto'%(treshold))
-
+                print('Errore: superata altezza minima {}\nQualcosa è andato storto per il picco {}'.format(treshold, self.__str__()))
+                break
+            
             else: 
 
                 height-=delta
         
+        """
         #check che i picchi Brillouin siano dentro agli elastici, premesso che so che possano essere più alti degli elastici
 
         condition_peaks =   ((self.y[pk[0][0]] < self.y[pk[0][1]]) | ((self.y[pk[0][3]] < self.y[pk[0][2]])))
         
         if condition_peaks &  (i_know_it_is == False):
             raise ValueError("Picchi Brillouin non sono interni o sono più alti degli elastici, controllare")
+        """
 
-        self.spectrum_cut_height        =   height
-        self.spectrum_peaks_dist        =   syg_kwargs['distance']
     
     def How_Many_Peaks_To_VIPA(self, treshold, n_GHz_peaks = 5, n_gauss_peaks = 3, delta = 1., fig = False, verbose = False, **syg_kwargs):
 
@@ -452,8 +453,9 @@ class Spectrum  :
             plt.show()
             plt.close()
 
-    def Cut_n_Estimate_Spectrum(self, cut = True, estimate = False, columns = cols_mark,distanza = 2/3, verbose = False ):
+    def Cut_n_Estimate_Spectrum(self, cut = True, mean_dist01 = 37, mean_dist23 = 34, estimate = False, columns = cols_mark, verbose = False ):
         
+
         """
 
         Funzione che esegue 
@@ -473,11 +475,9 @@ class Spectrum  :
 
         """
 
-        query_min               =   self.x_freq[self.peaks['idx'][0]] + (self.peaks['widths'][0]*distanza)
-        _, idx_min              =   Find_Nearest(self.x_freq, query_min)
+        idx_min               =   self.peaks['idx'][1] - int(mean_dist01/2)
             
-        query_max               =   self.x_freq[self.peaks['idx'][3]] - (self.peaks['widths'][3]*distanza)
-        _, idx_max              =   Find_Nearest(self.x_freq, query_max)
+        idx_max               =   self.peaks['idx'][2] + int(mean_dist23/2)
         
         
         # STIMA PARAMETRI INIZIALI della funzione teorica
@@ -1017,10 +1017,10 @@ class Spectrum  :
         
         return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/self.y_err
     
-    def Non_Linear_Least_Squares_Markov (self, cols, bound = (-np.inf, np.inf), fig = False, **kwargs):
+    def Non_Linear_Least_Squares_Markov (self, bound = (-np.inf, np.inf), fig = False, **kwargs):
 
         start            =    time.process_time()
-        self.res_lsq     =    least_squares(self.Residuals_Markov_Smart, self.p0[list(cols)].values[0], args= ([self.y]), bounds = bound,  **kwargs)
+        self.res_lsq     =    least_squares(self.Residuals_Markov, self.p0.values[0], args= ([self.y]), bounds = bound,  **kwargs)
         print("s impiegati a fare il fit ", time.process_time()-start, '\n')
         Parameters       =    self.res_lsq.x
         
@@ -1591,7 +1591,15 @@ def Get_Good_Elements(matrix, iterable, treshold ):
             too_good += ((ii,jj),)
     print('I found {} good elements \n'.format(len(too_good)))
     return too_good
-def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), fit = False):
+def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), pix = False, peaks = False, fit = False):
+
+    if pix:
+
+        x = 'x'
+        
+    else:
+        x = 'x_freq'
+
     if fit == 'markov':
         attr = 'y_markov_fit'
     elif fit == 'tot':
@@ -1600,9 +1608,12 @@ def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), fit = False
     for(ii,jj) in elements_iterable:
         plt.figure()
         plt.title(str((ii,jj)))
-        plt.plot(matrix[ii][jj].x_freq, matrix[ii][jj].y, '+', label = 'data')
+        plt.plot(getattr(matrix[ii][jj], x), matrix[ii][jj].y, '+', label = 'data')
+        if peaks:
+            plt.plot(getattr(matrix[ii][jj], x)[matrix[ii][jj].peaks['idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['idx']], '*', label = 'peaks', markersize = 10)
+
         if fit:
-            plt.plot(matrix[ii][jj].x_freq, getattr(matrix[ii][jj], attr), label = fit+' fit')
+            plt.plot(getattr(matrix[ii][jj], x), getattr(matrix[ii][jj], attr), label = fit+' fit')
         plt.xlim(x_range[0], x_range[1])
         plt.ylim(y_range[0], y_range[1])
         plt.legend()

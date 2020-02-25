@@ -4,13 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot
 
-now_path    =   '../MD/GROMACS/RNA5/analysis/'
-now_name    =    'RNA5'
-now_temp    =   '350 K'
+now_path    =   '../GROMACS/RNA6/500K/analysis/'
+now_name    =    'RNA6'
+now_temp    =   '500 K'
+#RNA6
+color = 'firebrick'
+darkcolor = 'gold'
 
-#RNA5
-color = 'darkmagenta'
-darkcolor = 'chartreuse'
 
 """
 
@@ -34,6 +34,11 @@ darkcolor = 'navy'
 color       =   'darkgoldenrod'
 darkcolor   =   'darkslateblue'
 
+
+#RNA5
+color = 'darkmagenta'
+darkcolor = 'chartreuse'
+
 """
 #%%
 
@@ -41,8 +46,9 @@ darkcolor   =   'darkslateblue'
 #1) acquisisco e analizzo autovalori 
 
 RNA_traj = BA.Trajectory(bio_name = now_name+' in water (T = '+now_temp+')')
-RNA_traj.Get_EigenValues(path=now_path,  fig = 'Eigen_Values')
+RNA_traj.Get_EigenValues(path=now_path)
 RNA_traj.Analyze_Eig_Variance_Ratio(n_eig = 2)
+RNA_traj.Print_EigenValues(path=now_path,  fig = 'Eigen_Values')
 
 #%%
 #2) acquisisco proiezione 2D sui due autovettori principali e RMSD della traiettoria
@@ -56,9 +62,9 @@ RNA_traj.Get_Terminals_Dist(xvg_filename = 'ter_dist.xvg', skip_lines = 17, fig 
 # 3A) faccio il fit della distribuzione con N  gaussiane 
 # ordine params (mu, sigma, A)
 
-#p0 = (1.5, .3, 400, 2.4, 0.5, 150)
-p0 = (0.6, 0.051, 1400, 1.36, 0.4, 500, 2.8, 1., 50)
-N_gauss = 3
+p0 = (2.1, .9, 250, 3.3, 0.3, 150)
+#p0 = (1.75, .4, 400, 2.8, 0.5, 150, 3.8, 0.9, 10 )
+N_gauss = 2
 
 img_kwargs  =   {'path': now_path, 'fig_fit' : 'Gauss_fit_ter_dist', 'color_fold' : color, 'fit_color' : (0.5098039,0.1411765,0.2), 'color_unfold': darkcolor}
 RNA_traj.Analyze_Traj_by_Descriptor(descriptor = 'terminals distance', N_gauss=N_gauss,  p0=p0, bins=50, **img_kwargs )
