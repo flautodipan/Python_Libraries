@@ -563,10 +563,11 @@ class Spectrum  :
         else:
             return  0
 
-    def Initials_Parameters_from_Markov(self, columns):
-        print(self.p0)
-        self.p0[columns] = [value for value in self.Markov_Fit_Params[columns]['Values'][0]]
-        print(self.p0)
+    def Initials_Parameters_from_Markov(self, Markov_Fit_Params, columns):
+    
+        
+        self.p0.T.Values[list(columns)] = [value for value in Markov_Fit_Params[list(columns)].values[0]]
+        
 
     def Take_A_Look_Before_Fitting(self, p0, fit):
         

@@ -20,12 +20,15 @@ import      time
 import      os
 
 
+############
+
 #I/O 
 now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
 spectra_filename    =   'NO_ARS_12_02'
-VIPA_filename       =   'NO_ARS_12_02_VIPA_notsat.tif'
+VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir        =   'analysis_new/'
+analysis_dir        =   'analysis_new_nocut_delta_lor/'
+
 #operatives
 
 #esclusi a mano
@@ -39,14 +42,16 @@ sat_height          =   50000
 sat_width           =   13.5
 #quanto mi allontano dal VIPA
 pre_cut             =   False
-cut                 =   True
-mean_dist01         =   37
-mean_dist23         =   34
+cut                 =   False
+mean_dist_01 = 37
+mean_dist_23 = 34
 #markov_fit
 recover_markov = False
 percents_markov     =   ('positive', 0.2, 'positive', np.inf, 'positive', 'positive', 0.2, 0.2, 0.2,  np.inf, np.inf)
 #tot fit
+skip_tot = True
 percents_tot        = (0.2, 0.1, 0.5, 'positive', 'positive', 0.15,  0.15, 0.15, np.inf, np.inf)
+############
 
 #variables
 
@@ -74,7 +79,7 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(0,0, 1+1, 1+1)
+#matrix, rows, cols = Initialize_Matrix(66,32, 68, 34)
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
@@ -147,9 +152,11 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\n\n###############################INFO ON DATA ACQUISITION#######################################\n\n')
     f_log.write('\nTotale spettri saturati : {}\n'.format(len(saturated)))
     f_log.write(str(saturated))
-    f_log.write('\nTotale spettri con Brillouin più alti : {}\n'.format(len(brillouin_higher)))
+    f_log.write('\nTotale spettri con Brillouin più alti di un elastico : {}\n'.format(len(brillouin_higher)))
     f_log.write(str(brillouin_higher))
-    f_log.write('\nTotale spettri con Brillouin invisibili: {}\n'.format(len(invisible)))
+    f_log.write('\nTotale spettri con Brillouin più alti in assoluto : {}\n'.format(len(brillouin_highest)))
+    f_log.write(str(brillouin_highest))
+    f_log.write('\nTotale spettri con Brillouin invisibili (= aggiunti dopo ulteriore controllo): {}\n'.format(len(invisible)))
     f_log.write(str(invisible))
     f_log.write('\nTotale spettri boni :  {}'.format(len(boni)))
     f_log.write('\n\nTotale spettri : {}\ndi cui {} inutilizzabili, '.format(dim, len(invisible)+len(saturated)))
@@ -164,9 +171,9 @@ start = time.process_time()
 matrix[0][0].How_Many_Peaks_To_VIPA(treshold = VIPA_treshold, **syg_kwargs_VIPA)
 matrix[0][0].Fit_Pixel2GHz()
 matrix[0][0].VIPA_Pix2GHz()
-matrix[0][0].Spectrum_Pix2GHz()
 matrix[0][0].Align_Spectrum()
-matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, cut = cut, mean_dist01 = mean_dist01, mean_dist23 = mean_dist23)
+matrix[0][0].Spectrum_Pix2GHz()
+matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, cut = cut, mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
 matrix[0][0].Fit_VIPA_Gaussian()
 
 for ii in range(len(rows)):
@@ -176,9 +183,9 @@ for ii in range(len(rows)):
                 matrix[ii][jj].x_VIPA_freq   =   matrix[0][0].x_VIPA_freq
                 matrix[ii][jj].y_VIPA        =   matrix[0][0].y_VIPA
                 matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
-                matrix[ii][jj].Spectrum_Pix2GHz()
                 matrix[ii][jj].Align_Spectrum(alignment = matrix[0][0].alignment)
-                matrix[ii][jj].Cut_n_Estimate_Spectrum(cut = cut, mean_dist01 = mean_dist01, mean_dist23 = mean_dist23)
+                matrix[ii][jj].Spectrum_Pix2GHz()
+                matrix[ii][jj].Cut_n_Estimate_Spectrum(cut = cut, mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
             elif ((ii,jj) in excluded):
                 matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
                 matrix[ii][jj].Spectrum_Pix2GHz()
@@ -218,9 +225,8 @@ if recover_markov == False:
     
     # je faccio fa un primo giro perchè no, così lo controllo e miglioro la mia stima di p0
 
-    matrix[0][0].Get_p0(matrix[0][0].p0.values[0], cols_mark)
     matrix[0][0].Get_Fit_Bounds(percents_markov, cols_mark)
-    _ =  matrix[0][0].Non_Linear_Least_Squares_Markov(bound = (matrix[0][0].bounds['down'].values, matrix[0][0].bounds['up'].values),  max_nfev = 100)
+    _ =  matrix[0][0].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[0][0].bounds['down'].values, matrix[0][0].bounds['up'].values),  max_nfev = 100)
     Plot_Elements_Spectrum(matrix, [(0,0)], fit = 'markov')
 
     for (ii,jj) in boni:
@@ -229,20 +235,20 @@ if recover_markov == False:
 
         if (ii,jj) in isolated:
 
-            matrix[ii][jj].Get_p0(matrix[0][0].p0.values[0], cols_mark)
+            matrix[ii][jj].Initials_Parameters_from_Markov(matrix[0][0].Markov_Fit_Params, cols_mark)
         
         else:
 
             if ii == 0:
-                matrix[ii][jj].Get_p0(matrix[ii][jj-1].p0.values[0], cols_mark)
+                matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj-1].Markov_Fit_Params, cols_mark)
             else:
-                matrix[ii][jj].Get_p0(matrix[ii-1][jj].p0.values[0], cols_mark)
+                matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii-1][jj].Markov_Fit_Params, cols_mark)
 
-        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0.values[0])
+        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(cols_mark)].values[0], cols_mark)
         print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
         matrix[ii][jj].Get_Fit_Bounds(percents_markov, cols_mark)
-        fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
-        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0])
+        fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
+        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], cols_mark)
         print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
 
         del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
@@ -299,43 +305,50 @@ else:
 #%%
 ##################################################################################################################################
 # fit tot
+if not skip_tot:
+        
+    fit_tot = ()
+    print("\n\nI'm beginning total fit\n\n")
+    start = time.process_time()
+    for (ii,jj) in boni:
 
-fit_tot = ()
-print("\n\nI'm beginning total fit\n\n")
-start = time.process_time()
-for (ii,jj) in boni:
-
-    print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
-    p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
-    matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params.T['Values'].values)
-    matrix[ii][jj].Get_Fit_Bounds(percents_tot, columns = cols_real)
-    matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss)
-    print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
-    fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
-    matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss)
-    print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot))
-    #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
+        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+        p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
+        matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params.T['Values'].values)
+        matrix[ii][jj].Get_Fit_Bounds(percents_tot, columns = cols_real)
+        matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss)
+        print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
+        fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
+        matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss)
+        print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot))
+        #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
 
 
 
-tot_time     =   time.process_time()-start
-tempo           =   tempo + (('fit tot', tot_time),)
+    tot_time     =   time.process_time()-start
+    tempo           =   tempo + (('fit tot', tot_time),)
 
-#after fit
-non_fitted_tot, accomplished_tot, exceded_tot, fitted_tot = Unpack_Fit(fit_tot)
+    #after fit
+    non_fitted_tot, accomplished_tot, exceded_tot, fitted_tot = Unpack_Fit(fit_tot)
 
-Save_Fit_Info(fit_tot, filename = 'tot_fit.txt', path=analysis_path)
-Save_Tot_Fit_Parameters(matrix, fitted_tot, out_filename = 'tot_fit_params.txt', path = analysis_path)
-Save_y_fit(matrix, boni, path = analysis_path)
-Save_cost_tot(matrix, boni, path = analysis_path)
+    Save_Fit_Info(fit_tot, filename = 'tot_fit.txt', path=analysis_path)
+    Save_Tot_Fit_Parameters(matrix, fitted_tot, out_filename = 'tot_fit_params.txt', path = analysis_path)
+    Save_y_fit(matrix, boni, path = analysis_path)
+    Save_cost_tot(matrix, boni, path = analysis_path)
 
+    with open(analysis_path+log_file, 'a') as f_log:
+        f_log.write("\n\n################## TOTAL FIT ####################\n\n")
+
+else:
+    print("\n\nSkippato fit tot\n\n")
+    with open(analysis_path+log_file, 'a') as f_log:
+
+        f_log.write("\n\n################## TOTAL FIT ####################\n\n")
+        f_log.write("\n\nskipped\n\n")
 
 super_time = super_start - time.process_time()
-
-with open(analysis_path+log_file, 'a') as f_log:
-    f_log.write("\n\n################## TOTAL FIT ####################\n\n")
-
-
+### FINAL
+#%%
 with open(analysis_path+log_file, 'a') as f_log:
     f_log.write("\n\n################### FINAL PERFORMACES ########################\n\n")
     f_log.write('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3600))
