@@ -7,10 +7,11 @@ from matplotlib.pyplot import plot
 now_path    =   '../GROMACS/RNA6/500K/analysis/'
 now_name    =    'RNA6'
 now_temp    =   '500 K'
+
+
 #RNA6
 color = 'firebrick'
 darkcolor = 'gold'
-
 
 """
 
@@ -62,9 +63,9 @@ RNA_traj.Get_Terminals_Dist(xvg_filename = 'ter_dist.xvg', skip_lines = 17, fig 
 # 3A) faccio il fit della distribuzione con N  gaussiane 
 # ordine params (mu, sigma, A)
 
-p0 = (2.1, .9, 250, 3.3, 0.3, 150)
-#p0 = (1.75, .4, 400, 2.8, 0.5, 150, 3.8, 0.9, 10 )
-N_gauss = 2
+#p0 = (2.1, .9, 250, 3.3, 0.3, 150)
+p0 = (1.24, .44, 440, 2.938, 1., 300, 3.7, 0.5, 100 )
+N_gauss = 3
 
 img_kwargs  =   {'path': now_path, 'fig_fit' : 'Gauss_fit_ter_dist', 'color_fold' : color, 'fit_color' : (0.5098039,0.1411765,0.2), 'color_unfold': darkcolor}
 RNA_traj.Analyze_Traj_by_Descriptor(descriptor = 'terminals distance', N_gauss=N_gauss,  p0=p0, bins=50, **img_kwargs )

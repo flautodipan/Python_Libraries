@@ -11,17 +11,17 @@ import      time
 import      os
 
 #I/O 
-
-now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
-spectra_filename    =   'NO_ARS_12_02'
-VIPA_filename       =   'NO_ARS_12_02_VIPA_notsat.tif'
+#I/O 
+now_path        =   '../BRILLOUIN/TDP43/NO_ARS_13_02/'
+spectra_filename    =   'NO_ARS_13_02'
+VIPA_filename       =   'NO_ARS_13_02_VIPA_not_sat.tif'
 
 #operatives
-syg_kwargs_test          =   {'height': 20, 'distance': 31, 'width': 3.}
+syg_kwargs_test          =   {'height': 20, 'distance': 31, 'width': 2.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
 
 #elementi da eliminare a mano
-too_add = []#[(66,3),]
+too_add              =   [(0,58), (57, 32),]
 
 
 # %%
@@ -65,14 +65,12 @@ for ii in range(len(rows)):
 not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols))
 
 #varie aggiunte a mano
-too_add = [(66,3),]
 excluded = saturated.copy()
 excluded = Escludi_a_Mano(too_add, excluded)
 
-print(len(four))
-
-print(len(more_than_four))
-print(len(less_than_four))
+print("Lunghezza di spettri con 4 picchi: {}".format(len(four)))
+print('Lunghezza di spettri con più di 4 picchi: {}'.format(len(more_than_four)))
+print('Lunghezza di spettri con meno di 4 picchi: {}'.format(len(less_than_four)))
 
 #%%
 #VERIFICHIAMO IL VIPA
@@ -89,7 +87,8 @@ print('Lunghezza iniziale more_than_four = {}'.format(len(more_than_four)))
 
 for ii in range(len(rows)):
     for jj in range(len(cols)):
-        
+        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+
         if (ii,jj) in excluded:
             if (ii,jj) in more_than_four :  more_than_four.remove((ii,jj))
             elif (ii,jj) in less_than_four: less_than_four.remove((ii,jj))
@@ -104,7 +103,8 @@ for ii in range(len(rows)):
 
             elif ((ii,jj) in less_than_four):
                 matrix[ii][jj].How_Many_Peaks_To(width = syg_kwargs_test['width'], distance = syg_kwargs_test['distance'])
-                matrix[ii][jj].Get_Spectrum_Peaks(height =  matrix[ii][jj].spectrum_cut_height, width = syg_kwargs_test['width'], distance = syg_kwargs_test['distance'])
+                if hasattr(matrix[ii][jj], 'spectrum_cut_height'):
+                    matrix[ii][jj].Get_Spectrum_Peaks(height =  matrix[ii][jj].spectrum_cut_height, width = syg_kwargs_test['width'], distance = syg_kwargs_test['distance'])
 
                 if matrix[ii][jj].n_peaks == 4:
                     lowest_height += ((matrix[ii][jj].spectrum_cut_height, (ii,jj)),)
@@ -114,16 +114,17 @@ for ii in range(len(rows)):
                     bizarre.append((ii,jj))
                     print('\nSpettro {} ha evidentemente meno di quattro picchi, check it\n'.format(str((ii,jj))))
 
-print(lowest_height)
 print('\n\nSpettri tot = {}\nSpettri esclusi = {} \n--> Spettri disponibili = {}'.format(dim, len(excluded), (dim -len(excluded))))
 print('Ho trovato {} spettri su {} con 4 picchi\n'.format(len(four),  (dim -len(excluded))))
 print('Ho trovato {} spettri su {} con meno di 4 picchi\n'.format(len(less_than_four),  (dim -len(excluded))))
 print('Ho trovato {} spettri su {} con più  4 picchi\n'.format(len(more_than_four),  (dim -len(excluded))))
 
 if lowest_height:
-        
-    min_elastic_height = np.min([heights[0] for heights in lowest_height])
-    print("Il minimo dell'altezza per trovare 4 picchi è stata {:3.2} nello spettro {}".format(*min_elastic_height))
+    arg_min = np.argmin([heights[0] for heights in lowest_height])
+    min_elastic_height = lowest_height[arg_min][0]
+    min_elastic_name   = lowest_height[arg_min][1]
+    print("Il minimo dell'altezza per trovare 4 picchi è stata {} nello spettro {}".format(min_elastic_height, min_elastic_name))
+
 else:
     print('Tutto ok, non vi erano spettri less_than_four non esclusi')
 
@@ -249,7 +250,7 @@ es. 4288
 poi si fa un ciclo sui more_than_four per avere quale (ii,jj) 
 
 count = 0
-for (ii,jj) in more_than_four:
+for (ii,jj) in four:
     if (count == 3989):
         print(str((ii,jj)))
         
