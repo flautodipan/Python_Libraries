@@ -1008,7 +1008,7 @@ class Spectrum  :
         
         return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/self.y_err
     
-    def Non_Linear_Least_Squares_Markov (self, columns, bound = (-np.inf, np.inf), fig = False, zoom = False, **kwargs):
+    def Non_Linear_Least_Squares_Markov (self, columns, p0 = 'auto',  bound = (-np.inf, np.inf), fig = False, zoom = False, **kwargs):
 
         if columns == cols_smart:
             attribute = 'Residuals_Markov_Smart'
@@ -1017,7 +1017,10 @@ class Spectrum  :
         else : raise ValueError('Choose columns for fit')
 
         start            =    time.process_time()
-        self.res_lsq     =    least_squares(getattr(self, attribute), self.p0[list(columns)].values[0], args= ([self.y]), bounds = bound,  **kwargs)
+        if p0 == 'auto':
+            self.res_lsq     =    least_squares(getattr(self, attribute), self.p0[list(columns)].values[0], args= ([self.y]), bounds = bound,  **kwargs)    
+        else:
+            self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y]), bounds = bound,  **kwargs)    
         print("s impiegati a fare il fit ", time.process_time()-start, '\n')
         Parameters       =    self.res_lsq.x
         
@@ -1088,7 +1091,10 @@ class Spectrum  :
 
     def Get_p0(self,p0, columns):
 
-        self.p0      =   pd.DataFrame({idx : value for (idx, value) in zip(columns, p0)}, index = ['Values'])
+
+        self.p0.T.Values[list(columns)] = [value for value in p0]
+
+        #self.p0      =   pd.DataFrame({idx : value for (idx, value) in zip(columns, p0)}, index = ['Values'])
 
     def Get_p_gauss(self, p_gauss):
 
@@ -1099,7 +1105,17 @@ class Spectrum  :
 
     def Recover_cost_tot(self, cost):
         self.cost_tot = cost
-    
+
+    def Get_Best_p0(self, p0s, columns):
+
+        costs = np.zeros(len(p0s))
+
+        for (p0, kk) in zip(p0s, range(costs.size)):
+            self.Get_cost_markov(p0, columns)
+            costs[kk] = self.cost_markov
+
+        self.Get_p0(p0s[np.argmin(costs)], columns)
+
 def Initialize_Matrix(ii_0, jj_0, ii_stop, jj_stop):
 
     matrix = ()
@@ -1592,7 +1608,7 @@ def Get_Bad_Elements(matrix, iterable, treshold ):
 def Get_Good_Elements(matrix, iterable, treshold ):
     too_good = ()
     for (ii,jj) in iterable:
-        if matrix[ii][jj].cost_markov > treshold:
+        if matrix[ii][jj].cost_markov < treshold:
             too_good += ((ii,jj),)
     print('I found {} good elements \n'.format(len(too_good)))
     return too_good
@@ -1623,3 +1639,13 @@ def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), pix = False
         plt.ylim(y_range[0], y_range[1])
         plt.legend()
         plt.show()
+
+    
+def Get_p0_by_Neighbours(matrix, ii_0, jj_0, n_rows, n_cols):
+
+    p0s = []
+    neigh = Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols)
+    for (ii,jj) in neigh:
+        if hasattr(matrix[ii][jj], 'Markov_Fit_Params'):
+            p0s.append(matrix[ii][jj].Markov_Fit_Params.values[0])
+    return p0s

@@ -10,18 +10,18 @@ from        Alessandria         import  *
 import      time
 import      os
 
+
 #I/O 
-#I/O 
-now_path        =   '../BRILLOUIN/TDP43/NO_ARS_13_02/'
-spectra_filename    =   'NO_ARS_13_02'
-VIPA_filename       =   'NO_ARS_13_02_VIPA_not_sat.tif'
+now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
+spectra_filename    =   'NO_ARS_12_02'
+VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
 
 #operatives
 syg_kwargs_test          =   {'height': 20, 'distance': 31, 'width': 2.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
 
 #elementi da eliminare a mano
-too_add              =   [(0,58), (57, 32),]
+too_add              =   []
 
 
 # %%

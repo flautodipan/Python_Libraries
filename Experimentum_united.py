@@ -27,7 +27,7 @@ now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
 spectra_filename    =   'NO_ARS_12_02'
 VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir        =   'analysis_new_nocut_delta_lor/'
+analysis_dir        =   'analysis_new_nocut/'
 
 #operatives
 
@@ -40,17 +40,30 @@ syg_kwargs_brill    =  {'height': 23, 'distance': 31, 'width': 3.}
 VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
+almost_treshold     =   15000
+
 #quanto mi allontano dal VIPA
 pre_cut             =   False
 cut                 =   False
+
 mean_dist_01 = 37
 mean_dist_23 = 34
 #markov_fit
+p0_normal = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
+        1.448930518e-01,  8.34614271,  4.79747192e+03, -1.00904973e+01,
+        1.58007162e+01,  2.11019859e-01, -3.10388495e-01])
+p0_brillouin = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
+        1.48930518e-01,  2.34614271e-01,  4.79747192e+03, -1.00904973e+01,
+        1.58007162e+01,  2.11019859e-01, -3.10388495e-01])
+p0_almost = np.array([ 1.08633225e-01,  7.70983143e+00,  1.58967633e-01,  1.70455195e+00,
+        6.40427573e-01,  2.20351667e+00,  5.23638443e+03, -9.18245455e+00,
+        1.43788115e+01,  2.73907418e-01,  8.73821212e+00])
+
 recover_markov = False
-percents_markov     =   ('positive', 0.2, 'positive', np.inf, 'positive', 'positive', 0.2, 0.2, 0.2,  np.inf, np.inf)
+percents_markov     =   ('positive', 0.2, 'positive', np.inf, 'positive', 'positive', 0.2, 0.01, 0.01,  np.inf, np.inf)
 #tot fit
 skip_tot = True
-percents_tot        = (0.2, 0.1, 0.5, 'positive', 'positive', 0.15,  0.15, 0.15, np.inf, np.inf)
+percents_tot        = (0.1, 0.1, 0.5, 'positive', 'positive', 0.15,  0.15, 0.15, np.inf, np.inf)
 ############
 
 #variables
@@ -60,6 +73,8 @@ brillouin_higher    =   []
 brillouin_highest   =   []
 boni                =   []
 excluded            =   []
+almost_height       =   []
+normals             =   []
 
 cols_smart  =  ('Co', 'Omega', 'Gamma', 'delta_position',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
@@ -79,7 +94,7 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(66,32, 68, 34)
+#matrix, rows, cols = Initialize_Matrix(66,32, 70, 35)
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
@@ -125,7 +140,14 @@ for ii in range(len(rows)):
                     matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
                     if matrix[ii][jj].Check_Brillouin_Distances(average = 70, stdev = 70/10):
                         invisible += [(ii,jj), ]
-                    else: boni += [(ii,jj),]
+                    else: 
+
+                        if matrix[ii][jj].y.max() > almost_treshold:
+                            almost_height += [(ii,jj),]
+                        else:
+                            normals += [(ii,jj),]
+
+                        boni += [(ii,jj),]
                 elif (matrix[ii][jj].n_peaks == 2):
                     matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
                     brillouin_highest += [(ii,jj), ]
@@ -158,7 +180,9 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write(str(brillouin_highest))
     f_log.write('\nTotale spettri con Brillouin invisibili (= aggiunti dopo ulteriore controllo): {}\n'.format(len(invisible)))
     f_log.write(str(invisible))
-    f_log.write('\nTotale spettri boni :  {}'.format(len(boni)))
+    f_log.write('\nTotale spettri boni :  {} di cui\n'.format(len(boni)))
+    f_log.write('\nTotale spettri con elastici più alti di {} : {}\n'.format(almost_treshold, len(almost_height)))
+    f_log.write('\nTotale spettri normali : {}\n'.format(len(normals)))
     f_log.write('\n\nTotale spettri : {}\ndi cui {} inutilizzabili, '.format(dim, len(invisible)+len(saturated)))
     f_log.write('ossia il %3.2f percento\n'%(float(len(invisible)+len(saturated))*100/dim))
     f_log.write('Di cui il {} invisibili e il {} saturati\n\n'.format(len(invisible)*100/dim, len(saturated)*100/dim))
@@ -224,25 +248,25 @@ if recover_markov == False:
     isolated = Get_Isolated_Elements(excluded)
     
     # je faccio fa un primo giro perchè no, così lo controllo e miglioro la mia stima di p0
-
+    """
     matrix[0][0].Get_Fit_Bounds(percents_markov, cols_mark)
     _ =  matrix[0][0].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[0][0].bounds['down'].values, matrix[0][0].bounds['up'].values),  max_nfev = 100)
     Plot_Elements_Spectrum(matrix, [(0,0)], fit = 'markov')
-
+    """
     for (ii,jj) in boni:
 
         print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
 
-        if (ii,jj) in isolated:
+        p0s = Get_p0_by_Neighbours(matrix, ii, jj, len(rows), len(cols))
+    
+        if (ii,jj) in almost_height:
+            p0s.append(p0_almost)
+        elif ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
+            p0s.append(p0_brillouin)
+        else:#normals
+            p0s.append(p0_normal)
 
-            matrix[ii][jj].Initials_Parameters_from_Markov(matrix[0][0].Markov_Fit_Params, cols_mark)
-        
-        else:
-
-            if ii == 0:
-                matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj-1].Markov_Fit_Params, cols_mark)
-            else:
-                matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii-1][jj].Markov_Fit_Params, cols_mark)
+        matrix[ii][jj].Get_Best_p0(p0s, cols_mark)
 
         matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(cols_mark)].values[0], cols_mark)
         print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
