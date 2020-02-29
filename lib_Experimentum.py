@@ -959,7 +959,7 @@ class Spectrum  :
             return 2
         else: return 1
 
-    def Get_Fit_Bounds(self, percents, columns): 
+    def Get_Fit_Bounds(self, rules, columns): 
 
         """
         Funzione che definisce un attributo self.bounds, un dataframe con le colonne up and down
@@ -975,34 +975,35 @@ class Spectrum  :
 
         """
 
-        if len(percents) != len(columns):
+        if len(rules) != len(columns):
 
-            raise ValueError ("Lunghezza della tupla percents = %d errata, deve essere uguale alla dimensione delle colonne passate = %d"%(len(percents), len(columns)))
+            raise ValueError ("Lunghezza della tupla percents = %d errata, deve essere uguale alla dimensione delle colonne passate = %d"%(len(rules), len(columns)))
                 
         self.bounds = pd.DataFrame( {}, index= columns, columns=('down', 'up'))
 
-        for (col, frac) in zip(columns, percents):
+        for (col, rule) in zip(columns, rules):
     
-            if  frac    ==  np.inf:
+            if  rule    ==  'inf':
 
-                self.bounds['down'][col]     =    -np.inf
-                self.bounds['up'][col]       =    np.inf
+                self.bounds._set_value(col, 'down', -np.inf)   
+                self.bounds._set_value(col, 'up', +np.inf)   
             
-            elif    frac == 'positive':
+            elif    rule == 'positive':
 
-                self.bounds['down'][col]     =    0
-                self.bounds['up'][col]       =    np.inf
-            
-            elif frac == 'zero':
+                self.bounds._set_value(col, 'down', 0)   
+                self.bounds._set_value(col, 'up', +np.inf) 
 
-                self.bounds['down']         =   -1.5
-                self.bounds['up']           =   1.5
+            elif (type(rule) == list):
                 
+                self.bounds._set_value(col, 'down', rule[0])   
+                self.bounds._set_value(col, 'up', rule[1]) 
+
             else:
                     
-                bound   =   Get_Around(self.p0[col]['Values'], frac)
-                self.bounds['down'][col]     =   bound[0]
-                self.bounds['up'][col]       =   bound[1]
+                bound   =   Get_Around(self.p0[col]['Values'], rule)
+                self.bounds._set_value(col, 'down', bound[0])   
+                self.bounds._set_value(col, 'up', bound[1]) 
+
 
     def Residuals_Markov(self, p, y):
         
@@ -1649,3 +1650,23 @@ def Get_p0_by_Neighbours(matrix, ii_0, jj_0, n_rows, n_cols):
         if hasattr(matrix[ii][jj], 'Markov_Fit_Params'):
             p0s.append(matrix[ii][jj].Markov_Fit_Params.values[0])
     return p0s
+
+def serpentine_range(n_rows, n_cols, start):
+
+    new_boni = []
+    
+    for ii in range(n_rows):
+        if start == 'right':
+            for jj in np.arange(n_cols-1, -1, -1):
+                new_boni.append((ii,jj))
+            start = 'left'
+            continue
+            
+        elif start == 'left':
+            for jj in np.arange(0, n_cols, 1):
+                new_boni.append((ii,jj))
+            start = 'right'
+            continue
+            
+            
+    return new_boni

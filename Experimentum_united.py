@@ -27,7 +27,7 @@ now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
 spectra_filename    =   'NO_ARS_12_02'
 VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir        =   'analysis_new_nocut/'
+analysis_dir        =   'analysis_new_cut_best/'
 
 #operatives
 
@@ -44,7 +44,7 @@ almost_treshold     =   15000
 
 #quanto mi allontano dal VIPA
 pre_cut             =   False
-cut                 =   False
+cut                 =   True
 
 mean_dist_01 = 37
 mean_dist_23 = 34
@@ -55,12 +55,12 @@ p0_normal = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.1901
 p0_brillouin = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
         1.48930518e-01,  2.34614271e-01,  4.79747192e+03, -1.00904973e+01,
         1.58007162e+01,  2.11019859e-01, -3.10388495e-01])
-p0_almost = np.array([ 1.08633225e-01,  7.70983143e+00,  1.58967633e-01,  1.70455195e+00,
-        6.40427573e-01,  2.20351667e+00,  5.23638443e+03, -9.18245455e+00,
-        1.43788115e+01,  2.73907418e-01,  8.73821212e+00])
+p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.97510814e+00,
+        5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
+        1.59365161e+01,  2.77695117e-01,  6.43211621e+00])
 
 recover_markov = False
-percents_markov     =   ('positive', 0.2, 'positive', np.inf, 'positive', 'positive', 0.2, 0.01, 0.01,  np.inf, np.inf)
+rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', 'inf')
 #tot fit
 skip_tot = True
 percents_tot        = (0.1, 0.1, 0.5, 'positive', 'positive', 0.15,  0.15, 0.15, np.inf, np.inf)
@@ -253,29 +253,39 @@ if recover_markov == False:
     _ =  matrix[0][0].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[0][0].bounds['down'].values, matrix[0][0].bounds['up'].values),  max_nfev = 100)
     Plot_Elements_Spectrum(matrix, [(0,0)], fit = 'markov')
     """
-    for (ii,jj) in boni:
+    for (ii,jj) in serpentine_range(len(rows), len(cols), 'right'):
 
-        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+        if (ii,jj) in boni:
 
-        p0s = Get_p0_by_Neighbours(matrix, ii, jj, len(rows), len(cols))
-    
-        if (ii,jj) in almost_height:
-            p0s.append(p0_almost)
-        elif ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
-            p0s.append(p0_brillouin)
-        else:#normals
-            p0s.append(p0_normal)
+            print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
 
-        matrix[ii][jj].Get_Best_p0(p0s, cols_mark)
+            p0s = Get_p0_by_Neighbours(matrix, ii, jj, len(rows), len(cols))
+        
+            if (ii,jj) in almost_height:
+                p0s.append(p0_almost)
+            elif ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
+                p0s.append(p0_brillouin)
+            else:#normals
+                p0s.append(p0_normal)
 
-        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(cols_mark)].values[0], cols_mark)
-        print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
-        matrix[ii][jj].Get_Fit_Bounds(percents_markov, cols_mark)
-        fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
-        matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], cols_mark)
-        print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
+            matrix[ii][jj].Get_Best_p0(p0s, cols_mark)
 
-        del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
+            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(cols_mark)].values[0], cols_mark)
+            print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
+            matrix[ii][jj].Get_Fit_Bounds(rules_markov_bounds, cols_mark)
+            fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
+            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], cols_mark)
+            print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
+
+            if (ii,jj) in almost_height:
+                p0_almost = matrix[ii][jj].Markov_Fit_Params.values[0]
+            elif ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
+                p0_brillouin =  matrix[ii][jj].Markov_Fit_Params.values[0]
+            else:#normals
+                p0_normal =  matrix[ii][jj].Markov_Fit_Params.values[0]
+
+
+            del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
 
         #afterfit
 
