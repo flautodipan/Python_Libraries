@@ -54,8 +54,8 @@ RNA_traj.Print_EigenValues(path=now_path,  fig = 'Eigen_Values')
 #%%
 #2) acquisisco proiezione 2D sui due autovettori principali e RMSD della traiettoria
 
-RNA_traj.Get_2D_Traj(time_range = [0, 1000000], path=now_path, fig = 'Essential', verbose = True)
-RNA_traj.Get_RMSD(xvg_filename = 'rmsd_md_'+now_name+'.xvg', fig = now_name+'_RMSD', skip_lines = 18, histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
+RNA_traj.Get_RMSD(time_range = [0, 1000000], xvg_filename = 'rmsd_md_'+now_name+'.xvg', fig = now_name+'_RMSD', skip_lines = 18, histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
+RNA_traj.Get_2D_Traj(path=now_path, fig = 'Essential')
 RNA_traj.Get_Terminals_Dist(xvg_filename = 'ter_dist.xvg', skip_lines = 17, fig = now_name+'_Ter_dist', histo = now_name+'_ter_dist_Histogram', bins = 50, path = now_path, color = color)
 
 

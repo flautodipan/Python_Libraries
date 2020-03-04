@@ -240,21 +240,34 @@ class Trajectory():
         plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
         plt.show()
 
-    def Get_2D_Traj(self, time_range, xvg_filename = '2dproj.xvg', path = './',  **kwargs):
+    def Set_Time_Info(self, n_frames, time_range, timestep = 100):
+
+
+        self.n_frames       =   n_frames
+        self.initial_time   =  time_range[0]
+        self.final_time     =  time_range[1]
+        self.timestep       =  timestep
+        self.time_range     = time_range
+
+        time_step = (self.final_time-self.initial_time)/(self.n_frames-1)
+        if time_step != self.timestep:
+            raise ValueError("Errore in acquisizione: timestep inserito = {}\ntimestep calcolato = {}".format(self.timestep, time_step))
+
+        print('Acquisito correttamente informazioni temporali:\n')
+        print('Tempo iniziale =\t{} ps \nTempo finale =\t{} ps \ntime step =\t{} ps\nN frame =\t{}\n'.format(self.initial_time, self.final_time, self.timestep, self.n_frames))
+
+
+    def Get_2D_Traj(self, xvg_filename = '2dproj.xvg', path = './',  **kwargs):
 
 
         self.x_proj, self.y_proj    =   Parse_xvg(xvg_filename, path = path)
-        
-        self.n_frames               =   self.x_proj.size
-        self.initial_time   =  time_range[0]
-        self.final_time     =  time_range[1]
-        self.timestep       =  (self.final_time-self.initial_time)/self.x_proj.size
+        if (self.n_frames != self.x_proj.size):
 
-        if kwargs['verbose']:
+           raise ValueError("Dimensione spazio essenziale differente da #frame \n #frames = %d \t len(essential) = %d \n Sicuro hai scelto il file giusto?\n" %(self.n_frames, self.RMSD.size))
 
-            print   ('Acquisito proiezioni su PC1 e PC2 della traiettoria.\n')
-            print   ('Tempo iniziale =\t{} ps \nTempo finale =\t{} ps \ntime step =\t{} ps'.format(self.initial_time, self.final_time, self.timestep))
-            print   ('Numero di punti nello spazio essenziale : {}\n'.format(self.n_frames))
+
+        print   ('Acquisito proiezioni su PC1 e PC2 della traiettoria.\n')
+        print   ('Numero di punti nello spazio essenziale : {}\n'.format(self.n_frames))
 
         if ('fig' in kwargs) :
 
@@ -268,45 +281,81 @@ class Trajectory():
             fig.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')  
             plt.show()
 
-    def Get_RMSD(self, xvg_filename, path='./', skip = False, **kwargs):
+    
+    def Get_RMSD(self, xvg_filename, equilibrium = False, mode = 'tot', path='./', skip = False, **kwargs):
 
-        """
-        Prendo RMSD da file xvg associata alla traiettoria
-        OSS : taglia RMSD == taglia x_proj
+        if equilibrium:
+            
+            if mode == 'RNA':
+                RMSD = 'RMSD_eq_RNA'
+            elif mode == 'BS':
+                RMSD = 'RMSD_eq_BS'
 
-        - skip: fattore di cui si vuole ridurre numerosità
+            time_range = 'time_range_eq'
+            n_frames = 'n_frames_eq'
 
-        - fig solita kwarg
+        else:
+            n_frames = 'n_frames'
+            time_range = 'time_range'
+            RMSD = 'RMSD'
 
-        - histo come fig ma stampa istogramma distribuzione RMSD, da accompagnare
-          con n_bins
+        setattr(self, RMSD, Parse_xvg_skip(xvg_filename, skip = skip, path = path)[1])
+        print('lunghezza iniz = {}'.format(len(getattr(self, RMSD))))
+        if equilibrium:
+            setattr(self, RMSD, getattr(self, RMSD)[self.idx_eq:])
 
-        """
-
-        _ ,  self.RMSD =  Parse_xvg_skip(xvg_filename, skip = skip, path = path)
-
-        if (self.RMSD.size != self.x_proj.size):
-
-           raise ValueError("Dimensione RMSD differente da #frame \n #frames = %d \t len(RMSD) = %d \n Sicuro hai scelto il file giusto?\n" %(self.n_frames, self.RMSD.size))
+        if getattr(self, n_frames) != getattr(self, RMSD).size:
+            raise ValueError("Incompatibilità tra numero frame = {} e len({}) = {}".format(getattr(self, n_frames), RMSD, len(getattr(self, RMSD))))
+  
         
         if ('fig' in kwargs):
 
             plt.figure()
-            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
+            plt.plot(np.arange(getattr(self, time_range)[0], getattr(self, time_range)[1]+self.timestep, self.timestep), getattr(self, RMSD), ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
             plt.xlabel('Time (ps)')
-            plt.ylabel('RMSD (nm)')
-            plt.title('RMSD for '+self.__str__())
+            plt.ylabel('{} (nm)'.format(RMSD))
+            plt.title('{} for {}'.format(RMSD, self.__str__()))
             plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
         
 
         if ('histo' in kwargs):
 
             plt.figure()
-            _ =   plt.hist(self.RMSD, bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=kwargs['color'], alpha = 0.9)
-            plt.xlabel('RMSD (nm)')
-            plt.title("Distribuzione RMSD per "+self.__str__())
+            _ =   plt.hist(getattr(self, RMSD), bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=kwargs['color'], alpha = 0.9)
+            plt.xlabel('{} (nm)'.format(RMSD))
+            plt.title("Distribuzione {} per {}".format(RMSD, self.__str__()))
             plt.savefig(path+kwargs['histo']+'.pdf', format = 'pdf')
             plt.show()
+
+    def Define_Equilibrium_by_RMSD(self, time_range_eq, path = './', **kwargs):
+
+        self.time_range_eq = time_range_eq
+        self.idx_eq = int((time_range_eq[0] - self.initial_time)/self.timestep)
+
+        if (time_range_eq[0] - self.initial_time)%self.timestep != 0:
+            raise ValueError("tempo inserito  {} come iniziale non è multiplo del timetep {}".format(time_range_eq[0], self.timestep))
+        
+        self.RMSD_eq = self.RMSD[self.idx_eq:]
+        self.n_frames_eq = len(self.RMSD_eq)
+
+        if 'fig' in kwargs:
+
+            f = plt.figure()
+            ax = plt.subplot(111)
+            ax.plot(np.arange(self.time_range[0], self.time_range[1]+self.timestep, self.timestep), self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8, label = 'RMSD')
+            plt.xlabel('Time (ps)')
+            plt.ylabel('RMSD (nm)')
+            plt.fill_betweenx(np.arange(ax.get_ylim()[0], ax.get_ylim()[1], 0.1), time_range_eq[0], time_range_eq[1], alpha = kwargs['alpha'], color = kwargs['darkcolor'], label = 'Equilibrium time range')
+            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')    
+            plt.title('Equilibrium RMSD for {}'.format(self.__str__()))
+            plt.legend()
+            plt.show()
+            plt.close()
+
+        print("Selezionata zona di equilibrio da {} ps  a {} ps".format(time_range_eq[0], time_range_eq[1]))
+        print('Pari a un numero di frame = {}'.format(self.n_frames_eq))
+        print("l'indice di riferimento da cui partire rispoetto all'array RMSD completo è  {}".format(self.idx_eq))
+
 
 
     def Get_Terminals_Dist(self, xvg_filename, path='./', skip = False, **kwargs):
