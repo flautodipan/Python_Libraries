@@ -12,9 +12,27 @@ import warnings
 import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
-now_path    =   '../MD/GROMACS/WTC2/'
-now_name    =    'wtc2'
+now_path    =   '../MD/GROMACS/WTC3/'
+now_name    =    'wtc3'
 now_temp    =   '300 K'
+
+#WTC3
+
+n_frames = 20001
+time_range = [0, 2000000]
+time_range_eq = [600000, 2000000]
+color       =   'darkgoldenrod'
+darkcolor   =   'darkslateblue'
+
+
+
+"""
+#WTC1
+n_frames = 9700
+time_range  =   [30060, 999960]
+time_range_eq = [400060, 999960]
+color = 'royalblue'
+darkcolor = 'navy'
 
 #WTC2
 
@@ -26,13 +44,6 @@ darkcolor   =   'crimson'
 
 
 """
-#WTC1
-n_frames = 9700
-time_range  =   [30060, 999960]
-time_range_eq = [400060, 999960]
-color = 'royalblue'
-darkcolor = 'navy'
-"""
 
 #%%
 #1) acquisizione dati spazio essenziale e RMSD
@@ -40,6 +51,7 @@ darkcolor = 'navy'
 WTC_traj = BA.Trajectory(bio_name='{} in water (T = {})'.format(now_name, now_temp))
 WTC_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 )
 WTC_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
+#%%
 WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.1, color = color, darkcolor = darkcolor)
 
 
@@ -100,8 +112,8 @@ time_steps = np.arange(WTC_traj.time_range_eq[0], WTC_traj.time_range_eq[1]+1, W
 plt.figure()
 plt.title('Equilibrium RMSD comparison between {} groups'.format(now_name))
 plt.plot(time_steps, WTC_traj.RMSD_eq[sampling], '--', color = color, alpha = 0.8, label = 'Prot+RNA')
-plt.plot(time_steps, WTC_traj.RMSD_eq_RNA[sampling], color = 'tomato', alpha = 0.8, label = 'RNA')
-plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = 'darkgoldenrod', alpha = 0.8, label = 'Prot BS')
+plt.plot(time_steps, WTC_traj.RMSD_eq_RNA[sampling], color = 'seagreen', alpha = 0.8, label = 'RNA')
+plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = 'brown', alpha = 0.8, label = 'Prot BS')
 plt.legend()
 plt.savefig(now_path+'RMSD_comparison.pdf', format = 'pdf')
 
