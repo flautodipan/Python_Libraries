@@ -12,18 +12,17 @@ import warnings
 import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
-now_path    =   '../MD/GROMACS/WTC3/'
-now_name    =    'wtc3'
+now_path    =   '../MD/GROMACS/WTC5/'
+now_name    =    'wtc5'
 now_temp    =   '300 K'
 
-#WTC3
+#WTC5
 
 n_frames = 20001
 time_range = [0, 2000000]
-time_range_eq = [600000, 2000000]
-color       =   'darkgoldenrod'
-darkcolor   =   'darkslateblue'
-
+time_range_eq = [400000, 1000000]
+color = 'darkmagenta'
+darkcolor = 'chartreuse'
 
 
 """
@@ -42,6 +41,21 @@ time_range_eq = [400000, 1000000]
 color       =   'darkolivegreen'
 darkcolor   =   'crimson'
 
+#WTC3
+
+n_frames = 20001
+time_range = [0, 2000000]
+time_range_eq = [600000, 2000000]
+color       =   'darkgoldenrod'
+darkcolor   =   'darkslateblue'
+
+#WTC4
+
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [400000, 1000000]
+color = 'darkorange'
+darkcolor = 'slategray'
 
 """
 
