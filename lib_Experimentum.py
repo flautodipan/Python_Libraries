@@ -565,7 +565,7 @@ class Spectrum  :
 
     def Initials_Parameters_from_Markov(self, Markov_Fit_Params, columns):
     
-        
+
         self.p0.T.Values[list(columns)] = [value for value in Markov_Fit_Params[list(columns)].values[0]]
         
 
@@ -914,16 +914,21 @@ class Spectrum  :
         
         return (self.Convolve_Theoretical_Response_Fast(p, p_gauss) - y)/self.y_err
     
-    def Non_Linear_Least_Squares (self, p_gauss, columns, bound = (-np.inf, np.inf), fig = False, **kwargs):
+    def Non_Linear_Least_Squares (self, p_gauss, columns, p0 = 'auto', bound = (-np.inf, np.inf), fig = False, **kwargs):
 
         """
 
         OSS le kwargs sono quelle di least_squares() di scipy.optimize
 
-        """
+        """       
+        start            =    time.process_time()
 
-        start            =    time.process_time()        
-        self.res_lsq     =    least_squares(self.Residuals_NoGauss, self.p0.values[0], args= ([self.y, p_gauss]), bounds = bound, **kwargs)
+        if p0 == 'auto':
+
+            self.res_lsq     =    least_squares(self.Residuals_NoGauss, self.p0[list(columns)].values[0], args= ([self.y, p_gauss]), bounds = bound,  **kwargs)    
+        else:
+            self.res_lsq     =    least_squares(self.Residuals_NoGauss, p0, args= ([self.y]), bounds = bound,  **kwargs)    
+            
         print("s impiegati a fare il fit totale ", time.process_time()-start, '\n')
 
         Parameters       =    self.res_lsq.x
@@ -954,7 +959,7 @@ class Spectrum  :
             plt.legend()
         
         
-        self.Tot_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
+        self.Tot_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0[list(columns)].values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
         if (self.res_lsq['success'] == False):
             return 2
         else: return 1
@@ -1022,6 +1027,7 @@ class Spectrum  :
             self.res_lsq     =    least_squares(getattr(self, attribute), self.p0[list(columns)].values[0], args= ([self.y]), bounds = bound,  **kwargs)    
         else:
             self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y]), bounds = bound,  **kwargs)    
+
         print("s impiegati a fare il fit ", time.process_time()-start, '\n')
         Parameters       =    self.res_lsq.x
         

@@ -90,6 +90,7 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 #######    ||    ||
 #######   ||||  ||||
 
+
 #import dati spettro
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
@@ -130,7 +131,7 @@ for ii in range(len(rows)):
 not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = sat_height, saturation_width = sat_width)
 excluded        = saturated.copy()
 excluded        = Escludi_a_Mano(to_add, excluded)
-for ii in range(len(rows)):
+for ii in range(len(rows)):  
     for jj in range(len(cols)):
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
             if (ii,jj) not in excluded:
