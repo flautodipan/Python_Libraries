@@ -4,14 +4,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import plot
 
-now_path    =   '../GROMACS/RNA6/500K/analysis/'
-now_name    =    'RNA6'
-now_temp    =   '500 K'
+now_path    =   '../MD/GROMACS/RNA4/analysis/'
+now_name    =    'RNA4'
+now_temp    =   '400 K'
 
 
-#RNA6
-color = 'firebrick'
-darkcolor = 'gold'
+
+n_frames = 10001
+time_range = [0, 1000000]
+
+#RNA2
+color       =   'darkolivegreen'
+darkcolor   =   'crimson'
 
 """
 
@@ -47,6 +51,7 @@ darkcolor = 'chartreuse'
 #1) acquisisco e analizzo autovalori 
 
 RNA_traj = BA.Trajectory(bio_name = now_name+' in water (T = '+now_temp+')')
+RNA_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100)
 RNA_traj.Get_EigenValues(path=now_path)
 RNA_traj.Analyze_Eig_Variance_Ratio(n_eig = 2)
 RNA_traj.Print_EigenValues(path=now_path,  fig = 'Eigen_Values')
@@ -54,7 +59,7 @@ RNA_traj.Print_EigenValues(path=now_path,  fig = 'Eigen_Values')
 #%%
 #2) acquisisco proiezione 2D sui due autovettori principali e RMSD della traiettoria
 
-RNA_traj.Get_RMSD(time_range = [0, 1000000], xvg_filename = 'rmsd_md_'+now_name+'.xvg', fig = now_name+'_RMSD', skip_lines = 18, histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
+RNA_traj.Get_RMSD(xvg_filename = 'rmsd_md_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
 RNA_traj.Get_2D_Traj(path=now_path, fig = 'Essential')
 RNA_traj.Get_Terminals_Dist(xvg_filename = 'ter_dist.xvg', skip_lines = 17, fig = now_name+'_Ter_dist', histo = now_name+'_ter_dist_Histogram', bins = 50, path = now_path, color = color)
 
@@ -165,6 +170,8 @@ b = (105689, 157984, 244375)
 # %%
 #provo metodo A con altro descrittore
 RNA_traj = BA.Trajectory(bio_name = now_name+' in water (T = 350K)')
+RNA_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 )
+
 RNA_traj.Get_EigenValues(path=now_path,  fig = 'Eigen_Values')
 RNA_traj.Analyze_Eig_Variance_Ratio(n_eig = 2)
 

@@ -233,10 +233,10 @@ class Trajectory():
 
         
         plt.figure()
-        plt.plot(self.EigenValues, '.')
+        plt.plot(self.EigenValues, '.', label = '\nEigenvalues of covariance matrix')
         plt.title('Eigenvalues of MD trajetory for '+self.__str__())
         plt.xlabel('Eig index (ordered by variance significance)') 
-        plt.text(400, 25, 'Percentage variance explained by\nfirst two eigens: {:3.2}'.format(self.perceigen))          
+        plt.legend(title = 'Percentage variance explained by\nfirst two eigens: {:3.2}'.format(self.perceigen), loc = 'upper right')          
         plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
         plt.show()
 
@@ -282,7 +282,7 @@ class Trajectory():
             plt.show()
 
     
-    def Get_RMSD(self, xvg_filename, equilibrium = False, mode = 'tot', path='./', skip = False, **kwargs):
+    def Get_RMSD(self, xvg_filename, equilibrium = False, mode = 'tot', scale = 'ps', path='./', skip = False, **kwargs):
 
         if equilibrium:
             
@@ -311,8 +311,12 @@ class Trajectory():
         if ('fig' in kwargs):
 
             plt.figure()
-            plt.plot(np.arange(getattr(self, time_range)[0], getattr(self, time_range)[1]+self.timestep, self.timestep), getattr(self, RMSD), ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
-            plt.xlabel('Time (ps)')
+            if scale = 'ns':
+                plt.plot(np.arange(getattr(self, time_range)[0], getattr(self, time_range)[1]+self.timestep, self.timestep)/1000, getattr(self, RMSD), ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
+                plt.xlabel('Time (ns)')
+            else:
+                plt.plot(np.arange(getattr(self, time_range)[0], getattr(self, time_range)[1]+self.timestep, self.timestep), getattr(self, RMSD), ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
+                plt.xlabel('Time (ps)')
             plt.ylabel('{} (nm)'.format(RMSD))
             plt.title('{} for {}'.format(RMSD, self.__str__()))
             plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
@@ -342,8 +346,18 @@ class Trajectory():
 
             f = plt.figure()
             ax = plt.subplot(111)
-            ax.plot(np.arange(self.time_range[0], self.time_range[1]+self.timestep, self.timestep), self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8, label = 'RMSD')
-            plt.xlabel('Time (ps)')
+
+            if scale == 'ns':
+
+                ax.plot(np.arange(self.time_range[0], self.time_range[1]+self.timestep, self.timestep)/1000, self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8, label = 'RMSD')
+                plt.xlabel('Time (ns)')
+            else:
+                ax.plot(np.arange(self.time_range[0], self.time_range[1]+self.timestep, self.timestep), self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8, label = 'RMSD')
+                plt.xlabel('Time (ps)')   
+
+            if 'ylim' in kwargs:
+                plt.ylim(kwargs['ylim'][0], ykwargs['ylim]lim[1])
+
             plt.ylabel('RMSD (nm)')
             plt.fill_betweenx(np.arange(ax.get_ylim()[0], ax.get_ylim()[1], 0.1), time_range_eq[0], time_range_eq[1], alpha = kwargs['alpha'], color = kwargs['darkcolor'], label = 'Equilibrium time range')
             plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')    

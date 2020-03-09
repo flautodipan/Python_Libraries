@@ -12,17 +12,18 @@ import warnings
 import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
-now_path    =   '../MD/GROMACS/WTC5/'
-now_name    =    'wtc5'
-now_temp    =   '300 K'
+now_path    =   '../MD/GROMACS/WTC6/'
+now_name    =    'wtc6'
+now_temp    =   '400 K'
 
-#WTC5
 
-n_frames = 20001
-time_range = [0, 2000000]
+#WTC6
+
+n_frames = 10001
+time_range = [0, 1000000]
 time_range_eq = [400000, 1000000]
-color = 'darkmagenta'
-darkcolor = 'chartreuse'
+color = 'firebrick'
+darkcolor = 'gold'
 
 
 """
@@ -57,6 +58,15 @@ time_range_eq = [400000, 1000000]
 color = 'darkorange'
 darkcolor = 'slategray'
 
+#WTC5
+
+n_frames = 20001
+time_range = [0, 2000000]
+time_range_eq = [400000, 1000000]
+color = 'darkmagenta'
+darkcolor = 'chartreuse'
+
+
 """
 
 #%%
@@ -66,7 +76,7 @@ WTC_traj = BA.Trajectory(bio_name='{} in water (T = {})'.format(now_name, now_te
 WTC_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 )
 WTC_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
 #%%
-WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.1, color = color, darkcolor = darkcolor)
+WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.3, color = color, darkcolor = darkcolor)
 
 
 #%%
@@ -126,8 +136,8 @@ time_steps = np.arange(WTC_traj.time_range_eq[0], WTC_traj.time_range_eq[1]+1, W
 plt.figure()
 plt.title('Equilibrium RMSD comparison between {} groups'.format(now_name))
 plt.plot(time_steps, WTC_traj.RMSD_eq[sampling], '--', color = color, alpha = 0.8, label = 'Prot+RNA')
-plt.plot(time_steps, WTC_traj.RMSD_eq_RNA[sampling], color = 'seagreen', alpha = 0.8, label = 'RNA')
-plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = 'brown', alpha = 0.8, label = 'Prot BS')
+plt.plot(time_steps, WTC_traj.RMSD_eq_RNA[sampling], color = 'darkgoldenrod', alpha = 0.8, label = 'RNA')
+plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = 'indigo', alpha = 0.8, label = 'Prot BS')
 plt.legend()
 plt.savefig(now_path+'RMSD_comparison.pdf', format = 'pdf')
 
