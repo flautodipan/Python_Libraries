@@ -12,59 +12,102 @@ import warnings
 import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
-now_path    =   '../MD/GROMACS/WTC6/'
-now_name    =    'wtc6'
-now_temp    =   '400 K'
-
-
-#WTC6
-
-n_frames = 10001
-time_range = [0, 1000000]
-time_range_eq = [400000, 1000000]
-color = 'firebrick'
-darkcolor = 'gold'
-
-
-"""
-#WTC1
-n_frames = 9700
-time_range  =   [30060, 999960]
-time_range_eq = [400060, 999960]
-color = 'royalblue'
-darkcolor = 'navy'
-
-#WTC2
-
-n_frames = 10001
-time_range = [0, 1000000]
-time_range_eq = [400000, 1000000]
-color       =   'darkolivegreen'
-darkcolor   =   'crimson'
 
 #WTC3
 
+now_path    =   '../GROMACS/WTC3/'
+now_name    =    'wtc3'
 n_frames = 20001
 time_range = [0, 2000000]
 time_range_eq = [600000, 2000000]
 color       =   'darkgoldenrod'
 darkcolor   =   'darkslateblue'
+ylim = (0,1.4)
+
+
+now_temp = '350 K'
+scale='ns'
+
+
+"""
+#WTC1_h
+now_path    =   '../GROMACS/WTC1_home/'
+now_name    =    'wtc1_h'
+n_frames = 10001
+time_range  =   [0, 1000000]
+time_range_eq = [400000, 1000000]
+color = 'seagreen'
+darkcolor = 'forestgreen'
+ylim = (0,1)
+
+
+#WTC1
+now_path    =   '../GROMACS/WTC1/'
+now_name    =    'wtc1'
+n_frames = 9700
+time_range  =   [30060, 999960]
+time_range_eq = [400060, 999960]
+color = 'royalblue'
+darkcolor = 'navy'
+ylim = (0,1)
+
+
+#WTC2
+
+now_path    =   '../GROMACS/WTC2/'
+now_name    =    'wtc2'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [400000, 1000000]
+color       =   'darkolivegreen'
+darkcolor   =   'crimson'
+ylim = (0,1)
+
+
+#WTC3
+
+now_path    =   '../GROMACS/WTC3/'
+now_name    =    'wtc3'
+n_frames = 20001
+time_range = [0, 2000000]
+time_range_eq = [600000, 2000000]
+color       =   'darkgoldenrod'
+darkcolor   =   'darkslateblue'
+ylim = (0,1.4)
+
 
 #WTC4
 
+now_path    =   '../GROMACS/WTC4/'
+now_name    =    'wtc4'
 n_frames = 10001
 time_range = [0, 1000000]
 time_range_eq = [400000, 1000000]
 color = 'darkorange'
 darkcolor = 'slategray'
+ylim = (0,1.2)
 
 #WTC5
 
+now_path    =   '../GROMACS/WTC5/'
+now_name    =    'wtc5'
 n_frames = 20001
 time_range = [0, 2000000]
-time_range_eq = [400000, 1000000]
+time_range_eq = [1400000, 2000000]
 color = 'darkmagenta'
 darkcolor = 'chartreuse'
+ylim = (0,2)
+
+#WTC6
+
+now_path    =   '../GROMACS/WTC6/'
+now_name    =    'wtc6'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [400000, 1000000]
+color = 'firebrick'
+darkcolor = 'gold'
+ylim = (0,1)
 
 
 """
@@ -74,9 +117,9 @@ darkcolor = 'chartreuse'
 
 WTC_traj = BA.Trajectory(bio_name='{} in water (T = {})'.format(now_name, now_temp))
 WTC_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 )
-WTC_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color)
+WTC_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, scale = 'ns', ylim = ylim)
 #%%
-WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.3, color = color, darkcolor = darkcolor)
+WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.1, color = color, darkcolor = darkcolor, scale = 'ns', ylim = ylim)
 
 
 #%%
@@ -123,8 +166,13 @@ with open  (now_path+filename, 'w') as f:
 #%%
 #2) Acquisisco gli altri RMSD generati 
 
-WTC_traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = True, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA', color = color)
-WTC_traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = True, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS', color = color)
+WTC_traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = False, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA_tot', color = color, scale = scale)
+WTC_traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = False, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS_tot', color = color, scale = scale)
+
+
+
+WTC_traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = True, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA', color = color, scale = scale)
+WTC_traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = True, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS', color = color, scale = scale)
 
 
 
@@ -136,8 +184,8 @@ time_steps = np.arange(WTC_traj.time_range_eq[0], WTC_traj.time_range_eq[1]+1, W
 plt.figure()
 plt.title('Equilibrium RMSD comparison between {} groups'.format(now_name))
 plt.plot(time_steps, WTC_traj.RMSD_eq[sampling], '--', color = color, alpha = 0.8, label = 'Prot+RNA')
-plt.plot(time_steps, WTC_traj.RMSD_eq_RNA[sampling], color = 'darkgoldenrod', alpha = 0.8, label = 'RNA')
-plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = 'indigo', alpha = 0.8, label = 'Prot BS')
+plt.plot(time_steps, WTC_traj.RMSD_eq_RNA[sampling], color = darkcolor, alpha = 0.8, label = 'RNA')
+plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = 'orange', alpha = 0.8, label = 'Prot BS')
 plt.legend()
 plt.savefig(now_path+'RMSD_comparison.pdf', format = 'pdf')
 

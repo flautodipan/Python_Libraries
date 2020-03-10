@@ -311,16 +311,19 @@ class Trajectory():
         if ('fig' in kwargs):
 
             plt.figure()
-            if scale = 'ns':
+            if scale == 'ns':
                 plt.plot(np.arange(getattr(self, time_range)[0], getattr(self, time_range)[1]+self.timestep, self.timestep)/1000, getattr(self, RMSD), ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
                 plt.xlabel('Time (ns)')
             else:
                 plt.plot(np.arange(getattr(self, time_range)[0], getattr(self, time_range)[1]+self.timestep, self.timestep), getattr(self, RMSD), ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
                 plt.xlabel('Time (ps)')
+            if 'ylim' in kwargs:
+                plt.ylim(kwargs['ylim'][0], kwargs['ylim'][1])
+            
             plt.ylabel('{} (nm)'.format(RMSD))
             plt.title('{} for {}'.format(RMSD, self.__str__()))
             plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
-        
+            
 
         if ('histo' in kwargs):
 
@@ -331,7 +334,7 @@ class Trajectory():
             plt.savefig(path+kwargs['histo']+'.pdf', format = 'pdf')
             plt.show()
 
-    def Define_Equilibrium_by_RMSD(self, time_range_eq, path = './', **kwargs):
+    def Define_Equilibrium_by_RMSD(self, time_range_eq, path = './', scale = 'ps', **kwargs):
 
         self.time_range_eq = time_range_eq
         self.idx_eq = int((time_range_eq[0] - self.initial_time)/self.timestep)
@@ -348,7 +351,6 @@ class Trajectory():
             ax = plt.subplot(111)
 
             if scale == 'ns':
-
                 ax.plot(np.arange(self.time_range[0], self.time_range[1]+self.timestep, self.timestep)/1000, self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8, label = 'RMSD')
                 plt.xlabel('Time (ns)')
             else:
@@ -356,15 +358,14 @@ class Trajectory():
                 plt.xlabel('Time (ps)')   
 
             if 'ylim' in kwargs:
-                plt.ylim(kwargs['ylim'][0], ykwargs['ylim]lim[1])
+                plt.ylim(kwargs['ylim'][0], kwargs['ylim'][1])
 
             plt.ylabel('RMSD (nm)')
-            plt.fill_betweenx(np.arange(ax.get_ylim()[0], ax.get_ylim()[1], 0.1), time_range_eq[0], time_range_eq[1], alpha = kwargs['alpha'], color = kwargs['darkcolor'], label = 'Equilibrium time range')
-            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')    
+            plt.fill_betweenx(np.arange(ax.get_ylim()[0], 10, 0.1), time_range_eq[0]/1000, time_range_eq[1]/1000, alpha = kwargs['alpha'], color = kwargs['darkcolor'], label = 'Equilibrium time range')
             plt.title('Equilibrium RMSD for {}'.format(self.__str__()))
+            
             plt.legend()
-            plt.show()
-            plt.close()
+            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf') 
 
         print("Selezionata zona di equilibrio da {} ps  a {} ps".format(time_range_eq[0], time_range_eq[1]))
         print('Pari a un numero di frame = {}'.format(self.n_frames_eq))
