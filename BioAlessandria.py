@@ -297,12 +297,18 @@ class Trajectory():
         else:
             n_frames = 'n_frames'
             time_range = 'time_range'
-            RMSD = 'RMSD'
+            if mode == 'RNA':
+                RMSD = 'RMSD_RNA'
+            elif mode == 'BS':
+                RMSD = 'RMSD_BS'
+            else:
+                RMSD = 'RMSD'
 
         setattr(self, RMSD, Parse_xvg_skip(xvg_filename, skip = skip, path = path)[1])
         print('lunghezza iniz = {}'.format(len(getattr(self, RMSD))))
         if equilibrium:
             setattr(self, RMSD, getattr(self, RMSD)[self.idx_eq:])
+        print('lunghezza fin = {}'.format(len(getattr(self, RMSD))))
 
         if getattr(self, n_frames) != getattr(self, RMSD).size:
             raise ValueError("Incompatibilità tra numero frame = {} e len({}) = {}".format(getattr(self, n_frames), RMSD, len(getattr(self, RMSD))))
@@ -371,6 +377,61 @@ class Trajectory():
         print('Pari a un numero di frame = {}'.format(self.n_frames_eq))
         print("l'indice di riferimento da cui partire rispoetto all'array RMSD completo è  {}".format(self.idx_eq))
 
+    def Acquire_Atoms_List(self, xvg_filename, what, path = './' , **kwargs):
+
+            if what == 'RNA':
+                attr = 'RNA_index'
+            elif what == 'BS':
+                attr = 'BS_index'
+
+            setattr(self, attr, np.array(Parse_xvg_skip(xvg_filename, path, **kwargs)[0], dtype = int))
+
+
+    def Get_RMSF(self, xvg_filename, equilibrium = False, path='./', skip_lines = 17, **kwargs):
+
+        n_tot, self.RMSF = Parse_xvg_skip(xvg_filename, path, skip_lines = skip_lines)
+
+        self.remaining_index = list(n_tot)
+
+        for ii in n_tot:
+            if (ii in self.RNA_index) | (ii in self.BS_index):
+                self.remaining_index.remove(ii)
+        
+        self.remaining_index = np.array(self.remaining_index, dtype = int)
+
+        if (len(self.remaining_index)+ self.RNA_index.size + self.BS_index.size) != n_tot.size:
+            raise ValueError("Dimensioni degli indici non tornano\nBS = {}\tRNA={}\tremaining={}\nTot={}".format(self.BS_index.size, self.RNA_index.size, len(self.remaining_index), n_tot.size))
+
+        if 'fig' in kwargs:
+
+            plt.figure()
+            plt.title('Equilibrium RMSF for {}'.format(self.__str__()))
+            plt.plot(self.remaining_index, self.RMSF[self.remaining_index], color = kwargs['thirdcolor'], alpha=0.65)       
+            plt.plot(self.RNA_index, self.RMSF[self.RNA_index-1], '--', color = kwargs['color'], label = 'RNA')
+            plt.plot(self.BS_index, self.RMSF[self.BS_index-1], '.',color = kwargs['darkcolor'], label = 'BS')
+            if 'ylim' in kwargs:
+                plt.ylim(kwargs['ylim'][0], kwargs['ylim'][1])
+            plt.legend()
+            plt.xlabel('Number of atom')
+            plt.ylabel('RMSF (nm)')
+            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
+
+    def Get_Gyradium(self, xvg_filename, path  = './', skip_lines = 28, **kwargs):
+
+        self.Gyradium = Parse_xvg_skip(xvg_filename, path, skip_lines=skip_lines)[1]
+
+        if 'fig' in kwargs:
+
+            plt.figure()
+            plt.title('Radium of Gyration BS+RNA for {}'.format(self.__str__()))
+            plt.plot(np.arange(self.time_range[0], self.time_range[1]+self.timestep, self.timestep)/1000, self.Gyradium, '-', c = kwargs['color'], label = 'Gyration radium')
+            plt.fill_betweenx(np.arange(0, 10, 0.1), self.time_range_eq[0]/1000, self.time_range_eq[1]/1000, alpha = kwargs['alpha'], color = kwargs['darkcolor'], label = 'Equilibrium time range')
+            plt.legend()
+            plt.xlabel('Time (ns)')
+            plt.ylabel('Gyration Radium (nm)')
+            if 'ylim' in kwargs:
+                plt.ylim(kwargs['ylim'][0], kwargs['ylim'][1])
+            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
 
 
     def Get_Terminals_Dist(self, xvg_filename, path='./', skip = False, **kwargs):
@@ -993,15 +1054,19 @@ def Parse_xvg_skip(filename, path='./', skip_lines = 18, skip = False):
 
     """Funzione che legge file xvg indicato da filename
     e ritorna i conseguenti  array
+
+    se sono più di due colonne, legge solo le prime 2
+
     """
 
-    f = open(path+filename, 'r')
-    parser    =  f.readlines()[skip_lines:]
-    f.close()
+    with open(path+filename, 'r') as f:
+        parser    =  f.readlines()[skip_lines:]
+    
     temp      =  np.zeros((len(parser),2))
+
     for row in range(len(parser)):
 
-        temp[row]   =   np.array(str(parser[row]).split(), dtype=np.float64)
+        temp[row]   =   np.array(str(parser[row]).split()[:2], dtype=np.float64)
 
 
     if skip:

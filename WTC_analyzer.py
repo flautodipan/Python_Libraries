@@ -13,16 +13,18 @@ import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
 
-#WTC3
-
-now_path    =   '../GROMACS/WTC3/'
-now_name    =    'wtc3'
-n_frames = 20001
-time_range = [0, 2000000]
-time_range_eq = [600000, 2000000]
-color       =   'darkgoldenrod'
-darkcolor   =   'darkslateblue'
-ylim = (0,1.4)
+#WTC2
+now_path    =   '../GROMACS/WTC2/'
+now_name    =    'wtc2'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [400000, 1000000]
+color       =   'darkolivegreen'
+darkcolor   =   'crimson'
+thirdcolor = 'mediumslateblue'
+contrastcolor = 'darkred'
+ylim = (0,1)
+gyrad_ylim = (1.3, 1.9)
 
 
 now_temp = '350 K'
@@ -31,15 +33,17 @@ scale='ns'
 
 """
 #WTC1_h
-now_path    =   '../GROMACS/WTC1_home/'
+now_path    =   '../GROMACS/WTC1_h/'
 now_name    =    'wtc1_h'
 n_frames = 10001
 time_range  =   [0, 1000000]
 time_range_eq = [400000, 1000000]
 color = 'seagreen'
 darkcolor = 'forestgreen'
+thirdcolor = 'orange'
+contrastcolor = 'darkred'
 ylim = (0,1)
-
+gyrad_ylim = (1.1, 1.8)
 
 #WTC1
 now_path    =   '../GROMACS/WTC1/'
@@ -49,11 +53,11 @@ time_range  =   [30060, 999960]
 time_range_eq = [400060, 999960]
 color = 'royalblue'
 darkcolor = 'navy'
+contrastcolor='orange'
 ylim = (0,1)
-
+gyrad_ylim = (1.4, 2.2)
 
 #WTC2
-
 now_path    =   '../GROMACS/WTC2/'
 now_name    =    'wtc2'
 n_frames = 10001
@@ -61,23 +65,27 @@ time_range = [0, 1000000]
 time_range_eq = [400000, 1000000]
 color       =   'darkolivegreen'
 darkcolor   =   'crimson'
+thirdcolor = 'mediumslateblue'
+contrastcolor = 'darkred'
 ylim = (0,1)
+gyrad_ylim = (1.3, 1.9)
 
 
 #WTC3
-
 now_path    =   '../GROMACS/WTC3/'
 now_name    =    'wtc3'
 n_frames = 20001
 time_range = [0, 2000000]
 time_range_eq = [600000, 2000000]
 color       =   'darkgoldenrod'
-darkcolor   =   'darkslateblue'
+darkcolor   =   'chocolate'
+thirdcolor = 'mediumslateblue'
+contrastcolor = 'darkred'
 ylim = (0,1.4)
+gyrad_ylim = (1.65, 2.3)
 
 
 #WTC4
-
 now_path    =   '../GROMACS/WTC4/'
 now_name    =    'wtc4'
 n_frames = 10001
@@ -85,10 +93,12 @@ time_range = [0, 1000000]
 time_range_eq = [400000, 1000000]
 color = 'darkorange'
 darkcolor = 'slategray'
+thirdcolor = 'yellowgreen'
+contrastcolor = 'darkred'
 ylim = (0,1.2)
+gyrad_ylim = (0.8, 1.5)
 
 #WTC5
-
 now_path    =   '../GROMACS/WTC5/'
 now_name    =    'wtc5'
 n_frames = 20001
@@ -96,7 +106,10 @@ time_range = [0, 2000000]
 time_range_eq = [1400000, 2000000]
 color = 'darkmagenta'
 darkcolor = 'chartreuse'
+thirdcolor = 'palevioletred'
+contrastcolor = 'lawngreen'
 ylim = (0,2)
+gyrad_ylim = (1.1, 1.7)
 
 #WTC6
 
@@ -146,6 +159,8 @@ RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B')
 
 print('Ok, acquisito correttamente pdb')
 
+#%%
+#stampa
 
 TDP43.Get_CA_Coord()
 RNA.Get_P_Coord()
@@ -166,8 +181,8 @@ with open  (now_path+filename, 'w') as f:
 #%%
 #2) Acquisisco gli altri RMSD generati 
 
-WTC_traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = False, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA_tot', color = color, scale = scale)
-WTC_traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = False, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS_tot', color = color, scale = scale)
+WTC_traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = False, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA_tot', color = color, scale = scale, ylim = ylim)
+WTC_traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = False, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS_tot', color = color, scale = scale, ylim = ylim)
 
 
 
@@ -185,8 +200,16 @@ plt.figure()
 plt.title('Equilibrium RMSD comparison between {} groups'.format(now_name))
 plt.plot(time_steps, WTC_traj.RMSD_eq[sampling], '--', color = color, alpha = 0.8, label = 'Prot+RNA')
 plt.plot(time_steps, WTC_traj.RMSD_eq_RNA[sampling], color = darkcolor, alpha = 0.8, label = 'RNA')
-plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = 'orange', alpha = 0.8, label = 'Prot BS')
+plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = thirdcolor, alpha = 0.8, label = 'Prot BS')
 plt.legend()
 plt.savefig(now_path+'RMSD_comparison.pdf', format = 'pdf')
+
+# %%
+# Acquisizione Raggio di Girazione
+WTC_traj.Acquire_Atoms_List('rmsf_RNA_'+now_name+'.xvg', 'RNA', path = now_path, skip_lines=17 )
+WTC_traj.Acquire_Atoms_List('rmsf_BS_'+now_name+'.xvg', 'BS', path = now_path, skip_lines = 17)
+WTC_traj.Get_RMSF(xvg_filename='rmsf_'+now_name+'.xvg', path = now_path, fig = now_name+'_rmsf', color = color, darkcolor = contrastcolor, thirdcolor = thirdcolor)
+#%%
+WTC_traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA.xvg', now_path, fig = now_name+'_gyradium', ylim = gyrad_ylim, alpha = 0.2, color = color, darkcolor = darkcolor, skip_lines= 27 )
 
 # %%
