@@ -95,8 +95,8 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-matrix, rows, cols = Initialize_Matrix(66,32, 68, 34)
-#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+#matrix, rows, cols = Initialize_Matrix(66,32, 68, 34)
+matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
 
@@ -315,11 +315,12 @@ if recover_markov == False:
 
 else:
 
-    print('\n\n You chose to SKIP the markovian fit and recover info \n\n')
+    print('\n\n You chose to SKIP the markovian fit and recover info from {}\n\n'.format(now_path+analysis_dir))
 
     ############## faccio er ricovery
 
     with open(analysis_path+'markov_fit.txt', 'r') as fin:
+
         fit     =   eval(fin.read())
 
     non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
@@ -327,8 +328,8 @@ else:
     with open(analysis_path+'markov_fit_params.txt', 'r') as fin:
         lines   =   fin.readlines()
 
-    if (len(fitted) != len(lines)):
-        raise ValueError("Incompatibilità tra lunghezza file parametri ({}) e informazioni fit ({})".format(len(fitted), len(lines)))
+    if (len(boni) != len(lines)):
+        raise ValueError("Incompatibilità tra lunghezza file parametri ({}) e lunghezza boni fit ({})\nFILE SBAGLIATO".format(len(lines), len(boni)))
 
     for (line, (ii,jj)) in zip(lines, fitted) :
         matrix[ii][jj].Recover_Markov_Fit_Params(line)
