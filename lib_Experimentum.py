@@ -564,10 +564,11 @@ class Spectrum  :
             return  0
 
     def Initials_Parameters_from_Markov(self, Markov_Fit_Params, columns):
-    
-
-        self.p0.T.Values[list(columns)] = [value for value in Markov_Fit_Params[list(columns)].values[0]]
         
+        self.p0 =  pd.DataFrame({}, columns = cols, index = ['Values'])
+        self.p0.T.Values[list(columns)] = [value for value in Markov_Fit_Params[list(columns)].values[0]]
+        self.p0['Delta']            =   self.p0['Gamma']
+        self.p0['tau']              =   [1.]
 
     def Take_A_Look_Before_Fitting(self, p0, fit):
         
@@ -1524,7 +1525,7 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
 
             elif fit == 'tot':
                 plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_fit, label = 'tot fit')
-                print(matrix[ii][jj].Markov_Fit_Params)
+                print(matrix[ii][jj].Tot_Fit_Params)
 
 
         if peaks:

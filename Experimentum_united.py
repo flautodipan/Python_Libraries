@@ -27,7 +27,7 @@ now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
 spectra_filename    =   'NO_ARS_12_02'
 VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir        =   'analysis_new_cut_best/'
+analysis_dir        =   'da_buttare/'
 
 #operatives
 
@@ -59,11 +59,11 @@ p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.9751
         5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
         1.59365161e+01,  2.77695117e-01,  6.43211621e+00])
 
-recover_markov = False
+recover_markov = True
 rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', 'inf')
 #tot fit
-skip_tot = True
-percents_tot        = (0.1, 0.1, 0.5, 'positive', 'positive', 0.15,  0.15, 0.15, np.inf, np.inf)
+skip_tot = False
+rules_tot_bounds                   =   (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 'inf')
 ############
 
 #variables
@@ -95,8 +95,8 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(66,32, 70, 35)
-matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+matrix, rows, cols = Initialize_Matrix(66,32, 68, 34)
+#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
 
@@ -339,7 +339,15 @@ else:
 
 #%%
 ##################################################################################################################################
-# fit tot
+######################################################################################################################
+
+
+#######   ||||   ||      ||   TOT FIT: - opero fit totale con tutti i parametri
+#######    ||     ||    ||               viscoelastici ma senza più i gaussiani
+#######    ||      ||  ||
+#######    ||       ||||   
+#######   ||||       ||
+
 if not skip_tot:
         
     fit_tot = ()
@@ -349,8 +357,8 @@ if not skip_tot:
 
         print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
         p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
-        matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params.T['Values'].values)
-        matrix[ii][jj].Get_Fit_Bounds(percents_tot, columns = cols_real)
+        matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params, cols_mark)
+        matrix[ii][jj].Get_Fit_Bounds(rules_tot_bounds, columns = cols_real)
         matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss)
         print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
         fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
@@ -389,6 +397,9 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3600))
     for (what,t) in tempo:
         f_log.write('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
+
+
+# %%
 
 
 # %%
