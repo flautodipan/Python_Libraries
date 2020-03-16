@@ -943,7 +943,7 @@ class Spectrum  :
 
             if 'Singular matrix' in str(err):
                 print('Ho trovato matrice singolare')
-                Delta_Parameters    =   np.empty(len(self.p0.values[0]))
+                Delta_Parameters    =   np.empty(len(self.p0[list(columns)].values[0]))
                 Delta_Parameters[:]    =   np.nan
             else :
                 raise

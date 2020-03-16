@@ -385,7 +385,45 @@ class Trajectory():
                 attr = 'BS_index'
 
             setattr(self, attr, np.array(Parse_xvg_skip(xvg_filename, path, **kwargs)[0], dtype = int))
+    
+    """
+    def Get_RMSF_res(self, xvg_filename, now_name, text_size = 7, path = './'):
+    
+        self.res, self.RMSF_res = Parse_xvg_skip(xvg_filename, path)
 
+        #scambio RNA e PROT per coerenza con altre figure 
+        idx_RNA_start = np.where( self.res == 1.)[0][0]
+        self.res[idx_RNA_start:] += self.res[idx_RNA_start-1]
+
+        text = []   
+        size = text_size
+        start = 0
+
+        for ii in range(int(BS.size/size)):
+            text.append([str(v) for v in BS[start:start+size]])
+            start+=size
+        if BS.size%size != 0:
+            final = [str(v) for v in BS[start:]]
+            if len(final) != size:
+                while True:
+                    final.append(' ')
+                    if len(final) == size:
+                        break
+                text.append(final)
+
+        f, ax = plt.subplots(1,1)
+        ax.stem(self.res[:idx_RNA_start], self.RMSF_res[:idx_RNA_start],  markerfmt='orangered', basefmt='orangered', linefmt='orange', label = 'Protein')
+        ax.stem(self.res[idx_RNA_start:], self.RMSF_res[idx_RNA_start:], markerfmt=color, basefmt=color, linefmt='yellowgreen', label = 'RNA')
+        ax.legend(title = 'RNA starts at self.res {}'.format(int(self.res[idx_RNA_start])))
+        ax.set_title('RMSF for {} residues'.format(now_name), pad = 1.3)
+        ax.table(text)
+        ax.xaxis.set_ticks_position('top')
+        ax.xaxis.set_label_position('top')
+        ax.set_xlabel('Residue number')
+        ax.set_ylabel('RMSF (nm)')
+
+        f.savefig(path+'RMSF_res_'+now_name+'.pdf', format = 'pdf')
+    """
 
     def Get_RMSF(self, xvg_filename, equilibrium = False, path='./', skip_lines = 17, **kwargs):
 
@@ -922,6 +960,110 @@ def Contacts_Matrix (Dist, treshold, fig = False):
         plt.show()
 
     return Cont_Matrix
+
+def Get_Covariance_Matrix(N, filename, path = './',):
+    
+    """
+
+    Leggo matrice covarianza atomica in formato .dat 
+    che esce da cova di GROMACS opzione -ascii
+
+    """
+
+    cov_matrix = np.zeros((3*N,3*N), dtype = float)
+
+    with open (path+filename+'.dat', 'r') as fin:
+        lines = fin.readlines()
+    
+
+    if N != (np.sqrt(len(lines)/3)):
+        raise ValueError ('Incompatibile lunghezza WTC {} con N da file di covarianza {}'.format(N, (np.sqrt(len(lines)/3))))
+
+    init = 0
+    for ii in range(3*N):
+        print('riga {}'.format(ii)) 
+
+        jj = 0
+        line_scroll = lines[init:init+N]
+
+        for line in line_scroll:
+            array = np.array(line.split(), dtype= 'float')        
+            cov_matrix[ii, jj] = array[0]
+            cov_matrix[ii,jj+1] = array[1]
+            cov_matrix[ii,jj+2] = array[2]
+            jj+=3
+
+        init+= N
+    
+    return cov_matrix
+
+def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS,  text = False, text_size = 5, path = './', **kwargs):
+        
+    if c_type == 'Atoms':
+        ylabel = 'Atom number'
+    elif c_type == 'CA':
+        ylabel = 'Residue Number'
+    else:
+        raise ValueError ('Select type of cov matrix\n Atoms or CA\n')
+    
+    if text:
+        text = []   
+        size = text_size
+        start = 0
+
+        for ii in range(int(BS.size/size)):
+            text.append([str(v) for v in BS[start:start+size]])
+            start+=size
+        if BS.size%size != 0:
+            final = [str(v) for v in BS[start:]]
+            if len(final) != size:
+                while True:
+                    final.append(' ')
+                    if len(final) == size:
+                        break
+                text.append(final)
+
+
+    f, ax = plt.subplots(1,1)
+
+    cm = ax.imshow(c_matrix, cmap = 'jet')    
+    if text:
+        ax.table(text)
+    ax.set_title('{} Covariance Matrix for {}'.format(c_type, name), pad = 1.)
+    plt.colorbar(cm) 
+    ax.set_ylabel(ylabel)
+
+    if 'clim' in kwargs:
+        cm.set_clim(kwargs['clim'])
+    ax.xaxis.set_ticks_position('top')
+
+    f.savefig(path+name+'_'+c_type+'cov_matrix.pdf', format = 'pdf')
+
+
+def CAP_Cov_Matrix(cov_matrix, idx, save_filename, save_path = './'):
+
+    """
+    Calcolo covarianza degli atomi di CA per proteina e P per RNA
+    a partire dalla matrice di covarianza atomica in cui CA e P hanno n_atom in idx
+    """
+
+    cov_matrix_CAP = np.zeros((idx.size, idx.size))
+
+    for (ii, first_idx) in zip(range(idx.size), idx):
+
+        jj_0 = first_idx*3
+
+        for (jj, second_idx) in zip(range(idx.size), idx):
+
+            ii_0 = second_idx*3
+            cov_matrix_CAP[ii,jj] = np.mean(cov_matrix[ii_0:ii_0+3, jj_0:jj_0+3])
+            
+    np.savetxt(save_path+save_filename, cov_matrix_CAP)
+
+    return cov_matrix_CAP
+
+
+
 
 def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first = ('Proteina', 0), second = ('RNA', 0), fig = False, verbose = False):
 
