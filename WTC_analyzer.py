@@ -13,18 +13,20 @@ import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
 
-#WTC1_h
-now_path    =   '../GROMACS/WTC1_h/'
-now_name    =    'wtc1_h'
-n_frames = 10001
-time_range  =   [0, 1000000]
-time_range_eq = [400000, 1000000]
-color = 'seagreen'
-darkcolor = 'forestgreen'
-thirdcolor = 'orange'
-contrastcolor = 'darkred'
-ylim = (0,1)
-gyrad_ylim = (1.1, 1.8)
+
+#WTC5
+now_path    =   '../GROMACS/WTC5/'
+now_name    =    'wtc5'
+n_frames = 30001
+time_range = [0, 3000000]
+time_range_eq = [2100000, 3000000]
+color = 'darkmagenta'
+darkcolor = 'darkslateblue'
+thirdcolor = 'palevioletred'
+contrastcolor = 'lawngreen'
+ylim = (0,2)
+gyrad_ylim = (1.1, 1.7)
+
 
 now_temp = '300 K'
 scale='ns'
@@ -111,16 +113,17 @@ ylim = (0,2)
 gyrad_ylim = (1.1, 1.7)
 
 #WTC6
-
 now_path    =   '../GROMACS/WTC6/'
 now_name    =    'wtc6'
 n_frames = 10001
 time_range = [0, 1000000]
 time_range_eq = [400000, 1000000]
 color = 'firebrick'
-darkcolor = 'gold'
+darkcolor = 'black'
+thirdcolor = 'forestgreen'
+contrastcolor='gold'
 ylim = (0,1)
-
+gyrad_ylim = (1.1, 1.8)
 
 """
 #%%
@@ -223,6 +226,7 @@ WTC_traj.Get_RMSF(xvg_filename='rmsf_'+now_name+'.xvg', path = now_path, fig = n
 text_size = 7
 
 res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path)
+res = np.array(res, dtype=int)
 #scambio RNA e PROT per coerenza con altre figure 
 idx_RNA_start = np.where( res == 1.)[0][0]
 res[idx_RNA_start:] += res[idx_RNA_start-1]
@@ -244,8 +248,8 @@ if BS.size%size != 0:
         text.append(final)
 
 f, ax = plt.subplots(1,1)
-ax.stem(res[:idx_RNA_start], RMSF_res[:idx_RNA_start],  markerfmt='darkred', basefmt='darkred', linefmt='lightcoral', label = 'Protein')
-ax.stem(res[idx_RNA_start:], RMSF_res[idx_RNA_start:], markerfmt=color, basefmt=color, linefmt='mediumseagreen', label = 'RNA')
+ax.stem(res[:idx_RNA_start], RMSF_res[:idx_RNA_start],  markerfmt='forestgreen', basefmt='forestgreen', linefmt='limegreen', label = 'Protein')
+ax.stem(res[idx_RNA_start:], RMSF_res[idx_RNA_start:], markerfmt=darkcolor, basefmt=darkcolor, linefmt=color, label = 'RNA')
 ax.legend(title = 'RNA starts at res {}'.format(int(res[idx_RNA_start])))
 ax.set_title('RMSF for {} residues'.format(now_name), pad = 1.3)
 ax.table(text)
@@ -278,7 +282,7 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
 cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_'+now_name, now_path)
-BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS, path = now_path, clim = (-0.05, 0.05))
+BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS, res, path = now_path, clim = (-0.05, 0.05))
 # MATRICE COVARIANZA CAP
 #%%
 # prendo gli indici atomici dei CA e P
@@ -286,7 +290,7 @@ CA_idx = TDP43.CA['atom_number'].values -1
 P_idx = RNA.P['atom_number'].values -1 
 idx = np.concatenate((CA_idx, P_idx))
 cov_matrix_CAP = BA.CAP_Cov_Matrix(cov_matrix, idx, now_name+'CAP_cov_matrix.txt', now_path)
-BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, text = True, path = now_path, clim = (-0.01, 0.01))
+BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.05, 0.05))
 
 
 

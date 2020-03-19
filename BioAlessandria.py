@@ -997,7 +997,7 @@ def Get_Covariance_Matrix(N, filename, path = './',):
     
     return cov_matrix
 
-def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS,  text = False, text_size = 5, path = './', **kwargs):
+def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, text = False, text_size = 5, path = './', **kwargs):
         
     if c_type == 'Atoms':
         ylabel = 'Atom number'
@@ -1025,8 +1025,17 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS,  text = False, text_size = 5
 
 
     f, ax = plt.subplots(1,1)
+    
+    cm = ax.imshow(c_matrix, cmap = 'jet')  
 
-    cm = ax.imshow(c_matrix, cmap = 'jet')    
+    if c_type == 'CA':
+        ticks =  np.linspace(0, len(idx)-1, 8, dtype = int)
+        tickslabels = idx[ticks]
+        ax.set_xticks(ticks)
+        ax.set_yticks(ticks)
+        ax.set_xticklabels(tickslabels)
+        ax.set_yticklabels(tickslabels)
+
     if text:
         ax.table(text)
     ax.set_title('{} Covariance Matrix for {}'.format(c_type, name), pad = 1.)
@@ -1038,7 +1047,6 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS,  text = False, text_size = 5
     ax.xaxis.set_ticks_position('top')
 
     f.savefig(path+name+'_'+c_type+'cov_matrix.pdf', format = 'pdf')
-
 
 def CAP_Cov_Matrix(cov_matrix, idx, save_filename, save_path = './'):
 
