@@ -233,15 +233,15 @@ class Trajectory():
 
         
         plt.figure()
-        plt.plot(self.EigenValues, '.', label = '\nEigenvalues of covariance matrix')
+        plt.plot(self.EigenValues[2:], '.', c = kwargs['color'])
+        plt.plot(self.EigenValues[0:2], '*', c = kwargs['contrastcolor'], label = 'First two eigenvalues\nExplained Variance Ratio = {:3.2f}'.format(self.perceigen) )
         plt.title('Eigenvalues of MD trajetory for '+self.__str__())
-        plt.xlabel('Eig index (ordered by variance significance)') 
-        plt.legend(title = 'Percentage variance explained by\nfirst two eigens: {:3.2}'.format(self.perceigen), loc = 'upper right')          
+        plt.xlabel('Eig index (ordered by explained variance)') 
+        plt.legend()          
         plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
         plt.show()
 
     def Set_Time_Info(self, n_frames, time_range, timestep = 100):
-
 
         self.n_frames       =   n_frames
         self.initial_time   =  time_range[0]
@@ -271,14 +271,17 @@ class Trajectory():
 
         if ('fig' in kwargs) :
 
-            fig = plt.figure()
+            fig, ax = plt.subplots()
+
             c = range(self.n_frames)
-            plt.scatter(self.x_proj,self.y_proj, c=c, cmap= 'viridis', s = 10)
-            plt.colorbar()
-            plt.xlabel(' PC 1 ')
-            plt.ylabel(' PC 2 ')
-            plt.title('PCA of MD traj for '+self.__str__())
-            fig.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')  
+            scatt = ax.scatter(self.x_proj,self.y_proj, c=c, cmap= 'viridis', s = 10)
+            cbar = plt.colorbar(scatt, ax = ax, label = 'Time (ns)')
+            cbar.ax.set_label('Time (ns)',)
+            ax.set_xlabel(' PC 1 ')
+            ax.set_ylabel(' PC 2 ')
+            ax.set_title('PCA of MD traj for '+self.__str__())
+            plt.tight_layout()
+            fig.savefig(path+kwargs['fig']+'.pdf', format = 'pdf', bbox_inches = 'tight')  
             plt.show()
 
     
@@ -336,7 +339,7 @@ class Trajectory():
             plt.figure()
             _ =   plt.hist(getattr(self, RMSD), bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=kwargs['color'], alpha = 0.9)
             plt.xlabel('{} (nm)'.format(RMSD))
-            plt.title("Distribuzione {} per {}".format(RMSD, self.__str__()))
+            plt.title("{} distribution for {}".format(RMSD, self.__str__()))
             plt.savefig(path+kwargs['histo']+'.pdf', format = 'pdf')
             plt.show()
 
@@ -495,10 +498,10 @@ class Trajectory():
         if ('fig' in kwargs):
 
             plt.figure()
-            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.ter_dist,  ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
-            plt.xlabel('Time (ps)')
+            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep)/1000, self.ter_dist,  ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
+            plt.xlabel('Time (ns)')
             plt.ylabel('terminals distance(nm)')
-            plt.title('Distance of terminal elements for '+self.__str__())
+            plt.title('Terminals distance for '+self.__str__())
             plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
         
 
@@ -623,9 +626,9 @@ class Trajectory():
             plt.scatter(self.x_unfold, self.y_unfold, s = 7, color = image_kwargs['darkcolor'])
             plt.xlabel(' PC 1 ')
             plt.ylabel(' PC 2 ')
-            title = 'Division in {:3.2f} % of population by {} for {}'.format(self.unfold_percentage, descrittore, self.__str__())
+            title = 'Folded/Unfolded states division for {}'.format( self.__str__())
             plt.title(title)
-            plt.legend(['fold', 'unfold']) #, title = 'percentage of unfolded population = {:3.2f}'.format(self.unfold_percentage))
+            plt.legend(['fold', 'unfold = {:3.2f} of population'.format(self.unfold_percentage)]) #, title = 'percentage of unfolded population = {:3.2f}'.format(self.unfold_percentage))
 
             fig.savefig(image_kwargs['path']+image_kwargs['fig']+'.pdf', format = 'pdf') 
             plt.show()
@@ -828,10 +831,11 @@ class Cluster_2DAnalysis():
                 fig = plt.figure()
 
                 plt.scatter(self.xy[:,0], self.xy[:,1], c=self.Cluster.labels_, cmap= 'viridis', s = 10)
-                plt.scatter(self.Cluster.cluster_centers_[:,0],self.Cluster.cluster_centers_[:,1], marker='*', edgecolors='black')
+                plt.scatter(self.Cluster.cluster_centers_[:,0],self.Cluster.cluster_centers_[:,1], marker='*', edgecolors='black', label = 'Cluster centroids')
                 plt.xlabel(' PC 1 ')
                 plt.ylabel(' PC 2 ')
                 plt.title(str(self.n_clusters)+ ' Cluster representation for '+self.__str__())
+                plt.legend()
                 fig.savefig(kwargs['path']+kwargs['fig']+'.png')
                 plt.show()
 
@@ -1021,7 +1025,7 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, text = False, text_size
                     final.append(' ')
                     if len(final) == size:
                         break
-                text.append(final)
+            text.append(final)
 
 
     f, ax = plt.subplots(1,1)
@@ -1046,7 +1050,9 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, text = False, text_size
         cm.set_clim(kwargs['clim'])
     ax.xaxis.set_ticks_position('top')
 
-    f.savefig(path+name+'_'+c_type+'cov_matrix.pdf', format = 'pdf')
+    plt.tight_layout()
+    f.autolayout=True
+    f.savefig(path+name+'_'+c_type+'cov_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
 
 def CAP_Cov_Matrix(cov_matrix, idx, save_filename, save_path = './'):
 

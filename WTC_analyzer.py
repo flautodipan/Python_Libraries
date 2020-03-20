@@ -14,18 +14,20 @@ warnings.filterwarnings("ignore")
 
 
 
-#WTC5
-now_path    =   '../GROMACS/WTC5/'
-now_name    =    'wtc5'
-n_frames = 30001
-time_range = [0, 3000000]
-time_range_eq = [2100000, 3000000]
-color = 'darkmagenta'
-darkcolor = 'darkslateblue'
-thirdcolor = 'palevioletred'
-contrastcolor = 'lawngreen'
-ylim = (0,2)
-gyrad_ylim = (1.1, 1.7)
+
+#WTC6
+now_path    =   '../GROMACS/WTC6/'
+now_name    =    'wtc6'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [400000, 1000000]
+color = 'firebrick'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastclor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
 
 
 now_temp = '300 K'
@@ -36,13 +38,14 @@ scale='ns'
 #WTC1_h
 now_path    =   '../GROMACS/WTC1_h/'
 now_name    =    'wtc1_h'
-n_frames = 10001
-time_range  =   [0, 1000000]
-time_range_eq = [400000, 1000000]
+n_frames = 20001
+time_range  =   [0, 2000000]
+time_range_eq = [1000000, 2000000]
 color = 'seagreen'
 darkcolor = 'forestgreen'
-thirdcolor = 'orange'
-contrastcolor = 'darkred'
+brightcolor='magenta'
+contrastcolor = 'orange'
+darkcontrastcolor = 'orangered'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
 
@@ -54,9 +57,12 @@ time_range  =   [30060, 999960]
 time_range_eq = [400060, 999960]
 color = 'royalblue'
 darkcolor = 'navy'
+brightcolor = 'magenta'
 contrastcolor='orange'
+darkcontrastcolor='orangered'
 ylim = (0,1)
 gyrad_ylim = (1.4, 2.2)
+
 
 #WTC2
 now_path    =   '../GROMACS/WTC2/'
@@ -64,10 +70,11 @@ now_name    =    'wtc2'
 n_frames = 10001
 time_range = [0, 1000000]
 time_range_eq = [400000, 1000000]
-color       =   'darkolivegreen'
-darkcolor   =   'crimson'
-thirdcolor = 'mediumslateblue'
-contrastcolor = 'darkred'
+color       =   'lightseagreen'
+darkcolor   =   'darkslatesgray'
+brightcolor = 'mediumslateblue'
+contrastcolor = 'crimson'
+darkcontrastcolor = 'darkred'
 ylim = (0,1)
 gyrad_ylim = (1.3, 1.9)
 
@@ -78,10 +85,11 @@ now_name    =    'wtc3'
 n_frames = 20001
 time_range = [0, 2000000]
 time_range_eq = [600000, 2000000]
-color       =   'darkgoldenrod'
-darkcolor   =   'chocolate'
-thirdcolor = 'mediumslateblue'
-contrastcolor = 'darkred'
+color       =   'goldenrod'
+darkcolor   =   'darkgoldenrod'
+brightcolor = 'mediumslateblue'
+contrastcolor = 'indianred'
+darkcontrastcolor = 'darkred'
 ylim = (0,1.4)
 gyrad_ylim = (1.65, 2.3)
 
@@ -92,25 +100,28 @@ now_name    =    'wtc4'
 n_frames = 10001
 time_range = [0, 1000000]
 time_range_eq = [400000, 1000000]
-color = 'darkorange'
-darkcolor = 'slategray'
-thirdcolor = 'yellowgreen'
-contrastcolor = 'darkred'
+color = 'orange'
+darkcolor = 'darkorange'
+brightcolor = 'yellowgreen'
+contrastcolor = 'darkorchid'
+darkcontrastcolor = 'darkslateblue'
 ylim = (0,1.2)
-gyrad_ylim = (0.8, 1.5)
+gyrad_ylim = (0.8, 1.5))
 
 #WTC5
 now_path    =   '../GROMACS/WTC5/'
 now_name    =    'wtc5'
-n_frames = 20001
-time_range = [0, 2000000]
-time_range_eq = [1400000, 2000000]
-color = 'darkmagenta'
-darkcolor = 'chartreuse'
-thirdcolor = 'palevioletred'
-contrastcolor = 'lawngreen'
+n_frames = 30001
+time_range = [0, 3000000]
+time_range_eq = [2100000, 3000000]
+color = 'darkorchid'
+darkcolor = 'indigo'
+brightcolor = 'crimson'
+contrastcolor = 'chartreuse'
+darkcontrastcolor = 'yellowgreen'
 ylim = (0,2)
 gyrad_ylim = (1.1, 1.7)
+
 
 #WTC6
 now_path    =   '../GROMACS/WTC6/'
@@ -119,11 +130,13 @@ n_frames = 10001
 time_range = [0, 1000000]
 time_range_eq = [400000, 1000000]
 color = 'firebrick'
-darkcolor = 'black'
-thirdcolor = 'forestgreen'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
 contrastcolor='gold'
+darkcontrastclor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
+
 
 """
 #%%
@@ -205,13 +218,16 @@ WTC_traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = True, mode = 'BS', 
 #3) Plotto insieme, versione campionata
 reduction = 50
 sampling = np.arange(0, len(WTC_traj.RMSD_eq), reduction, dtype=int)
-time_steps = np.arange(WTC_traj.time_range_eq[0], WTC_traj.time_range_eq[1]+1, WTC_traj.timestep*reduction)
+time_steps = np.arange(WTC_traj.time_range_eq[0], WTC_traj.time_range_eq[1]+1, WTC_traj.timestep*reduction)/1000
 plt.figure()
 plt.title('Equilibrium RMSD comparison between {} groups'.format(now_name))
-plt.plot(time_steps, WTC_traj.RMSD_eq[sampling], '--', color = color, alpha = 0.8, label = 'Prot+RNA')
-plt.plot(time_steps, WTC_traj.RMSD_eq_RNA[sampling], color = darkcolor, alpha = 0.8, label = 'RNA')
-plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = thirdcolor, alpha = 0.8, label = 'Prot BS')
+plt.plot(time_steps, WTC_traj.RMSD_eq[sampling], '--', color = brightcolor, alpha = 0.8, label = 'Prot+RNA')
+plt.plot(time_steps, WTC_traj.RMSD_eq_RNA[sampling], color = color,  label = 'RNA')
+plt.plot(time_steps, WTC_traj.RMSD_eq_BS[sampling], '-.',  color = contrastcolor, alpha = 0.8, label = 'Prot BS')
 plt.legend()
+plt.xlabel('Time (ns)')
+plt.ylabel('RMSD (nm)')
+plt.tight_layout()
 plt.savefig(now_path+'RMSD_comparison.pdf', format = 'pdf')
 
 # %%
@@ -219,7 +235,7 @@ plt.savefig(now_path+'RMSD_comparison.pdf', format = 'pdf')
 
 WTC_traj.Acquire_Atoms_List('rmsf_RNA_'+now_name+'.xvg', 'RNA', path = now_path, skip_lines=17 )
 WTC_traj.Acquire_Atoms_List('rmsf_BS_'+now_name+'.xvg', 'BS', path = now_path, skip_lines = 17)
-WTC_traj.Get_RMSF(xvg_filename='rmsf_'+now_name+'.xvg', path = now_path, fig = now_name+'_rmsf', color = color, darkcolor = contrastcolor, thirdcolor = thirdcolor)
+WTC_traj.Get_RMSF(xvg_filename='rmsf_'+now_name+'.xvg', path = now_path, fig = now_name+'_rmsf', color = color, darkcolor = contrastcolor, thirdcolor = brightcolor)
 
 #%%
 #RMSF for residues
@@ -230,6 +246,32 @@ res = np.array(res, dtype=int)
 #scambio RNA e PROT per coerenza con altre figure 
 idx_RNA_start = np.where( res == 1.)[0][0]
 res[idx_RNA_start:] += res[idx_RNA_start-1]
+idx_BS = np.zeros(len(BS), dtype = int)
+for (ii,bs) in zip(range(len(BS)), BS):
+    idx_BS[ii] = np.where(res == bs)[0]
+
+BS_split = []
+split = [BS[0],]
+
+for ii in range(len(BS)): 
+
+    if ii < len(BS)-1 :
+        if BS[ii+1] == BS[ii]+1:
+            split.append(BS[ii+1])
+
+        else:
+            BS_split.append(split)
+            split = [BS[ii+1],]
+    else:
+        if BS[ii]  - 1 == BS[ii-1]:
+            split.append(BS[ii])
+            BS_split.append(split)
+
+        else:
+            BS_split.append(split)
+            split = [BS[ii],]
+            BS_split.append(split)
+
 
 text = []   
 size = text_size
@@ -248,17 +290,27 @@ if BS.size%size != 0:
         text.append(final)
 
 f, ax = plt.subplots(1,1)
-ax.stem(res[:idx_RNA_start], RMSF_res[:idx_RNA_start],  markerfmt='forestgreen', basefmt='forestgreen', linefmt='limegreen', label = 'Protein')
+
+ax.stem(res[:idx_RNA_start], RMSF_res[:idx_RNA_start],  markerfmt = 'white', basefmt = 'silver' ,linefmt='silver')
 ax.stem(res[idx_RNA_start:], RMSF_res[idx_RNA_start:], markerfmt=darkcolor, basefmt=darkcolor, linefmt=color, label = 'RNA')
+for bs in BS_split:
+    bs = np.array(bs, dtype = int)
+    if bs[0] == BS_split[0][0]:
+        ax.stem(bs, RMSF_res[np.where([res == b for b in bs])[1]], markerfmt=darkcontrastcolor, basefmt=darkcontrastcolor, linefmt=contrastcolor, label = 'BS')
+    else:
+        ax.stem(bs, RMSF_res[np.where([res == b for b in bs])[1]], markerfmt=darkcontrastcolor, basefmt=darkcontrastcolor, linefmt=contrastcolor,)
+
+
 ax.legend(title = 'RNA starts at res {}'.format(int(res[idx_RNA_start])))
 ax.set_title('RMSF for {} residues'.format(now_name), pad = 1.3)
+
 ax.table(text)
 ax.xaxis.set_ticks_position('top')
 ax.xaxis.set_label_position('top')
 ax.set_xlabel('Residue number')
 ax.set_ylabel('RMSF (nm)')
-
-f.savefig(now_path+'RMSF_res_'+now_name+'.pdf', format = 'pdf')
+plt.tight_layout()
+f.savefig(now_path+'RMSF_res_'+now_name+'.pdf', format = 'pdf', bbox_inches = 'tight')
 
 #%%
 #GYRADIUM
@@ -279,18 +331,25 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 #%%
 # MATRICE COVARIANZA ATOMICA
-
-N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
-cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_'+now_name, now_path)
-BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS, res, path = now_path, clim = (-0.05, 0.05))
+skip_cov = True
+if not skip_cov:
+        
+    N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
+    cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_'+now_name, now_path)
+    BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS, res, path = now_path, clim = (-0.05, 0.05))
 # MATRICE COVARIANZA CAP
 #%%
 # prendo gli indici atomici dei CA e P
 CA_idx = TDP43.CA['atom_number'].values -1
 P_idx = RNA.P['atom_number'].values -1 
 idx = np.concatenate((CA_idx, P_idx))
-cov_matrix_CAP = BA.CAP_Cov_Matrix(cov_matrix, idx, now_name+'CAP_cov_matrix.txt', now_path)
-BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.05, 0.05))
+if not skip_cov:
+
+    cov_matrix_CAP = BA.CAP_Cov_Matrix(cov_matrix, idx, now_name+'CAP_cov_matrix.txt', now_path)
+else:
+    cov_matrix_CAP = np.genfromtxt(now_path+now_name+'CAP_cov_matrix.txt')  
+
+BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.01, 0.01))
 
 
 
