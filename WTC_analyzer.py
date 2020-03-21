@@ -15,19 +15,19 @@ warnings.filterwarnings("ignore")
 
 
 
-#WTC6
-now_path    =   '../GROMACS/WTC6/'
-now_name    =    'wtc6'
-n_frames = 10001
-time_range = [0, 1000000]
-time_range_eq = [400000, 1000000]
-color = 'firebrick'
-darkcolor = 'darkred'
-brightcolor = 'limegreen'
-contrastcolor='gold'
-darkcontrastclor = 'darkgoldenrod'
+#WTC1
+now_path    =   '../GROMACS/WTC1/'
+now_name    =    'wtc1'
+n_frames = 9700
+time_range  =   [30060, 999960]
+time_range_eq = [400060, 999960]
+color = 'royalblue'
+darkcolor = 'navy'
+brightcolor = 'magenta'
+contrastcolor='orange'
+darkcontrastcolor='orangered'
 ylim = (0,1)
-gyrad_ylim = (1.1, 1.8)
+gyrad_ylim = (1.4, 2.2)
 
 
 now_temp = '300 K'
@@ -41,8 +41,8 @@ now_name    =    'wtc1_h'
 n_frames = 20001
 time_range  =   [0, 2000000]
 time_range_eq = [1000000, 2000000]
-color = 'seagreen'
-darkcolor = 'forestgreen'
+color = 'cornflowerblue'
+darkcolor = 'midnightblue'
 brightcolor='magenta'
 contrastcolor = 'orange'
 darkcontrastcolor = 'orangered'
@@ -327,11 +327,10 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 #%%
 # MATRICE COVARIANZA ATOMICA
-skip_cov = True
+skip_cov = False
 if not skip_cov:
-        
     N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
-    cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_'+now_name, now_path)
+    cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
     BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS, res, path = now_path, clim = (-0.05, 0.05))
 # MATRICE COVARIANZA CAP
 #%%
@@ -345,12 +344,12 @@ if not skip_cov:
 else:
     cov_matrix_CAP = np.genfromtxt(now_path+now_name+'CAP_cov_matrix.txt')  
 
-BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.01, 0.01))
+BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.005, 0.005))
 
 
 
 
-
+"""
 # %%
 #NO FIGURE
 
@@ -396,7 +395,7 @@ for (ii,bs) in zip(range(len(BS)), BS):
     
 WTC_traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA.xvg', now_path, skip_lines= 27 )
 
-
+"""
 
 # %%
 print("Tempo totale = {} ns".format(np.array(time_range)/1000))

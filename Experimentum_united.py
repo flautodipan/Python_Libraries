@@ -59,7 +59,7 @@ p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.9751
         5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
         1.59365161e+01,  2.77695117e-01,  6.43211621e+00])
 
-recover_markov = True
+recover_markov = False
 rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', 'inf')
 #tot fit
 skip_tot = False
