@@ -229,82 +229,250 @@ class Trajectory():
 
         _ , self.EigenValues    = Parse_xvg(path+xvg_filename)
 
-        if ('fig' in kwargs) :
-            
-            plt.figure()
-            plt.plot(self.EigenValues, '.')
-            plt.title('Eigenvalues of MD trajetory for '+self.__str__())
-            plt.xlabel('Eig index (ordered by variance significance)')            
-            plt.savefig(path+kwargs['fig']+'.png')
-            plt.show()
+    def Print_EigenValues(self, path = './', **kwargs):
 
-    def Get_2D_Traj(self, time_range, xvg_filename = '2dproj.xvg', path = './',  **kwargs):
+        
+        plt.figure()
+        plt.plot(self.EigenValues[2:], '.', c = kwargs['color'])
+        plt.plot(self.EigenValues[0:2], '*', c = kwargs['contrastcolor'], label = 'First two eigenvalues\nExplained Variance Ratio = {:3.2f}'.format(self.perceigen) )
+        plt.title('Eigenvalues of MD trajetory for '+self.__str__())
+        plt.xlabel('Eig index (ordered by explained variance)') 
+        plt.legend()          
+        plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
+        plt.show()
+
+    def Set_Time_Info(self, n_frames, time_range, timestep = 100):
+
+        self.n_frames       =   n_frames
+        self.initial_time   =  time_range[0]
+        self.final_time     =  time_range[1]
+        self.timestep       =  timestep
+        self.time_range     = time_range
+
+        time_step = (self.final_time-self.initial_time)/(self.n_frames-1)
+        if time_step != self.timestep:
+            raise ValueError("Errore in acquisizione: timestep inserito = {}\ntimestep calcolato = {}".format(self.timestep, time_step))
+
+        print('Acquisito correttamente informazioni temporali:\n')
+        print('Tempo iniziale =\t{} ps \nTempo finale =\t{} ps \ntime step =\t{} ps\nN frame =\t{}\n'.format(self.initial_time, self.final_time, self.timestep, self.n_frames))
+
+
+    def Get_2D_Traj(self, xvg_filename = '2dproj.xvg', path = './',  **kwargs):
 
 
         self.x_proj, self.y_proj    =   Parse_xvg(xvg_filename, path = path)
-        
-        self.n_frames               =   self.x_proj.size
-        self.initial_time   =  time_range[0]
-        self.final_time     =  time_range[1]
-        self.timestep       =  (self.final_time-self.initial_time)/self.x_proj.size
+        if (self.n_frames != self.x_proj.size):
 
-        if kwargs['verbose']:
+           raise ValueError("Dimensione spazio essenziale differente da #frame \n #frames = %d \t len(essential) = %d \n Sicuro hai scelto il file giusto?\n" %(self.n_frames, self.RMSD.size))
 
-            print   ('Acquisito proiezioni su PC1 e PC2 della traiettoria.\n')
-            print   ('Tempo iniziale =\t{} ps \nTempo finale =\t{} ps \ntime step =\t{} ps'.format(self.initial_time, self.final_time, self.timestep))
-            print   ('Numero di punti nello spazio essenziale : {}\n'.format(self.n_frames))
+
+        print   ('Acquisito proiezioni su PC1 e PC2 della traiettoria.\n')
+        print   ('Numero di punti nello spazio essenziale : {}\n'.format(self.n_frames))
 
         if ('fig' in kwargs) :
 
-            fig = plt.figure()
+            fig, ax = plt.subplots()
+
             c = range(self.n_frames)
-            plt.scatter(self.x_proj,self.y_proj, c=c, cmap= 'viridis', s = 10)
-            plt.colorbar()
-            plt.xlabel(' PC 1 ')
-            plt.ylabel(' PC 2 ')
-            plt.title('PCA of MD traj for '+self.__str__())
-            fig.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')  
+            scatt = ax.scatter(self.x_proj,self.y_proj, c=c, cmap= 'viridis', s = 10)
+            cbar = plt.colorbar(scatt, ax = ax, label = 'Time (ns)')
+            cbar.ax.set_label('Time (ns)',)
+            ax.set_xlabel(' PC 1 ')
+            ax.set_ylabel(' PC 2 ')
+            ax.set_title('PCA of MD traj for '+self.__str__())
+            plt.tight_layout()
+            fig.savefig(path+kwargs['fig']+'.pdf', format = 'pdf', bbox_inches = 'tight')  
             plt.show()
 
-    def Get_RMSD(self, xvg_filename, path='./', skip = False, **kwargs):
+    
+    def Get_RMSD(self, xvg_filename, equilibrium = False, mode = 'tot', scale = 'ps', path='./', skip = False, **kwargs):
 
-        """
-        Prendo RMSD da file xvg associata alla traiettoria
-        OSS : taglia RMSD == taglia x_proj
+        if equilibrium:
+            
+            if mode == 'RNA':
+                RMSD = 'RMSD_eq_RNA'
+            elif mode == 'BS':
+                RMSD = 'RMSD_eq_BS'
 
-        - skip: fattore di cui si vuole ridurre numerosità
+            time_range = 'time_range_eq'
+            n_frames = 'n_frames_eq'
 
-        - fig solita kwarg
+        else:
+            n_frames = 'n_frames'
+            time_range = 'time_range'
+            if mode == 'RNA':
+                RMSD = 'RMSD_RNA'
+            elif mode == 'BS':
+                RMSD = 'RMSD_BS'
+            else:
+                RMSD = 'RMSD'
 
-        - histo come fig ma stampa istogramma distribuzione RMSD, da accompagnare
-          con n_bins
+        setattr(self, RMSD, Parse_xvg_skip(xvg_filename, skip = skip, path = path)[1])
+        print('lunghezza iniz = {}'.format(len(getattr(self, RMSD))))
+        if equilibrium:
+            setattr(self, RMSD, getattr(self, RMSD)[self.idx_eq:])
+        print('lunghezza fin = {}'.format(len(getattr(self, RMSD))))
 
-        """
-
-        _ ,  self.RMSD =  Parse_xvg_skip(xvg_filename, skip = skip, path = path)
-
-        if (self.RMSD.size != self.x_proj.size):
-
-           raise ValueError("Dimensione RMSD differente da #frame \n #frames = %d \t len(RMSD) = %d \n Sicuro hai scelto il file giusto?\n" %(self.n_frames, self.RMSD.size))
+        if getattr(self, n_frames) != getattr(self, RMSD).size:
+            raise ValueError("Incompatibilità tra numero frame = {} e len({}) = {}".format(getattr(self, n_frames), RMSD, len(getattr(self, RMSD))))
+  
         
         if ('fig' in kwargs):
 
             plt.figure()
-            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
-            plt.xlabel('Time (ps)')
-            plt.ylabel('RMSD (nm)')
-            plt.title('RMSD for '+self.__str__())
+            if scale == 'ns':
+                plt.plot(np.arange(getattr(self, time_range)[0], getattr(self, time_range)[1]+self.timestep, self.timestep)/1000, getattr(self, RMSD), ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
+                plt.xlabel('Time (ns)')
+            else:
+                plt.plot(np.arange(getattr(self, time_range)[0], getattr(self, time_range)[1]+self.timestep, self.timestep), getattr(self, RMSD), ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
+                plt.xlabel('Time (ps)')
+            if 'ylim' in kwargs:
+                plt.ylim(kwargs['ylim'][0], kwargs['ylim'][1])
+            
+            plt.ylabel('{} (nm)'.format(RMSD))
+            plt.title('{} for {}'.format(RMSD, self.__str__()))
             plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
-        
+            
 
         if ('histo' in kwargs):
 
             plt.figure()
-            _ =   plt.hist(self.RMSD, bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=kwargs['color'], alpha = 0.9)
-            plt.xlabel('RMSD (nm)')
-            plt.title("Distribuzione RMSD per "+self.__str__())
+            _ =   plt.hist(getattr(self, RMSD), bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=kwargs['color'], alpha = 0.9)
+            plt.xlabel('{} (nm)'.format(RMSD))
+            plt.title("{} distribution for {}".format(RMSD, self.__str__()))
             plt.savefig(path+kwargs['histo']+'.pdf', format = 'pdf')
             plt.show()
+
+    def Define_Equilibrium_by_RMSD(self, time_range_eq, path = './', scale = 'ps', **kwargs):
+
+        self.time_range_eq = time_range_eq
+        self.idx_eq = int((time_range_eq[0] - self.initial_time)/self.timestep)
+
+        if (time_range_eq[0] - self.initial_time)%self.timestep != 0:
+            raise ValueError("tempo inserito  {} come iniziale non è multiplo del timetep {}".format(time_range_eq[0], self.timestep))
+        
+        self.RMSD_eq = self.RMSD[self.idx_eq:]
+        self.n_frames_eq = len(self.RMSD_eq)
+
+        if 'fig' in kwargs:
+
+            f = plt.figure()
+            ax = plt.subplot(111)
+
+            if scale == 'ns':
+                ax.plot(np.arange(self.time_range[0], self.time_range[1]+self.timestep, self.timestep)/1000, self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8, label = 'RMSD')
+                plt.xlabel('Time (ns)')
+            else:
+                ax.plot(np.arange(self.time_range[0], self.time_range[1]+self.timestep, self.timestep), self.RMSD, ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8, label = 'RMSD')
+                plt.xlabel('Time (ps)')   
+
+            if 'ylim' in kwargs:
+                plt.ylim(kwargs['ylim'][0], kwargs['ylim'][1])
+
+            plt.ylabel('RMSD (nm)')
+            plt.fill_betweenx(np.arange(ax.get_ylim()[0], 10, 0.1), time_range_eq[0]/1000, time_range_eq[1]/1000, alpha = kwargs['alpha'], color = kwargs['darkcolor'], label = 'Equilibrium time range')
+            plt.title('Equilibrium RMSD for {}'.format(self.__str__()))
+            
+            plt.legend()
+            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf') 
+
+        print("Selezionata zona di equilibrio da {} ps  a {} ps".format(time_range_eq[0], time_range_eq[1]))
+        print('Pari a un numero di frame = {}'.format(self.n_frames_eq))
+        print("l'indice di riferimento da cui partire rispoetto all'array RMSD completo è  {}".format(self.idx_eq))
+
+    def Acquire_Atoms_List(self, xvg_filename, what, path = './' , **kwargs):
+
+            if what == 'RNA':
+                attr = 'RNA_index'
+            elif what == 'BS':
+                attr = 'BS_index'
+
+            setattr(self, attr, np.array(Parse_xvg_skip(xvg_filename, path, **kwargs)[0], dtype = int))
+    
+    """
+    def Get_RMSF_res(self, xvg_filename, now_name, text_size = 7, path = './'):
+    
+        self.res, self.RMSF_res = Parse_xvg_skip(xvg_filename, path)
+
+        #scambio RNA e PROT per coerenza con altre figure 
+        idx_RNA_start = np.where( self.res == 1.)[0][0]
+        self.res[idx_RNA_start:] += self.res[idx_RNA_start-1]
+
+        text = []   
+        size = text_size
+        start = 0
+
+        for ii in range(int(BS.size/size)):
+            text.append([str(v) for v in BS[start:start+size]])
+            start+=size
+        if BS.size%size != 0:
+            final = [str(v) for v in BS[start:]]
+            if len(final) != size:
+                while True:
+                    final.append(' ')
+                    if len(final) == size:
+                        break
+                text.append(final)
+
+        f, ax = plt.subplots(1,1)
+        ax.stem(self.res[:idx_RNA_start], self.RMSF_res[:idx_RNA_start],  markerfmt='orangered', basefmt='orangered', linefmt='orange', label = 'Protein')
+        ax.stem(self.res[idx_RNA_start:], self.RMSF_res[idx_RNA_start:], markerfmt=color, basefmt=color, linefmt='yellowgreen', label = 'RNA')
+        ax.legend(title = 'RNA starts at self.res {}'.format(int(self.res[idx_RNA_start])))
+        ax.set_title('RMSF for {} residues'.format(now_name), pad = 1.3)
+        ax.table(text)
+        ax.xaxis.set_ticks_position('top')
+        ax.xaxis.set_label_position('top')
+        ax.set_xlabel('Residue number')
+        ax.set_ylabel('RMSF (nm)')
+
+        f.savefig(path+'RMSF_res_'+now_name+'.pdf', format = 'pdf')
+    """
+
+    def Get_RMSF(self, xvg_filename, equilibrium = False, path='./', skip_lines = 17, **kwargs):
+
+        n_tot, self.RMSF = Parse_xvg_skip(xvg_filename, path, skip_lines = skip_lines)
+
+        self.remaining_index = list(n_tot)
+
+        for ii in n_tot:
+            if (ii in self.RNA_index) | (ii in self.BS_index):
+                self.remaining_index.remove(ii)
+        
+        self.remaining_index = np.array(self.remaining_index, dtype = int)
+
+        if (len(self.remaining_index)+ self.RNA_index.size + self.BS_index.size) != n_tot.size:
+            raise ValueError("Dimensioni degli indici non tornano\nBS = {}\tRNA={}\tremaining={}\nTot={}".format(self.BS_index.size, self.RNA_index.size, len(self.remaining_index), n_tot.size))
+
+        if 'fig' in kwargs:
+
+            plt.figure()
+            plt.title('Equilibrium RMSF for {}'.format(self.__str__()))
+            plt.plot(self.remaining_index, self.RMSF[self.remaining_index], color = kwargs['thirdcolor'], alpha=0.65)       
+            plt.plot(self.RNA_index, self.RMSF[self.RNA_index-1], '--', color = kwargs['color'], label = 'RNA')
+            plt.plot(self.BS_index, self.RMSF[self.BS_index-1], '.',color = kwargs['darkcolor'], label = 'BS')
+            if 'ylim' in kwargs:
+                plt.ylim(kwargs['ylim'][0], kwargs['ylim'][1])
+            plt.legend()
+            plt.xlabel('Number of atom')
+            plt.ylabel('RMSF (nm)')
+            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
+
+    def Get_Gyradium(self, xvg_filename, path  = './', skip_lines = 28, **kwargs):
+
+        self.Gyradium = Parse_xvg_skip(xvg_filename, path, skip_lines=skip_lines)[1]
+
+        if 'fig' in kwargs:
+
+            plt.figure()
+            plt.title('Radium of Gyration BS+RNA for {}'.format(self.__str__()))
+            plt.plot(np.arange(self.time_range[0], self.time_range[1]+self.timestep, self.timestep)/1000, self.Gyradium, '-', c = kwargs['color'], label = 'Gyration radium')
+            plt.fill_betweenx(np.arange(0, 10, 0.1), self.time_range_eq[0]/1000, self.time_range_eq[1]/1000, alpha = kwargs['alpha'], color = kwargs['darkcolor'], label = 'Equilibrium time range')
+            plt.legend()
+            plt.xlabel('Time (ns)')
+            plt.ylabel('Gyration Radium (nm)')
+            if 'ylim' in kwargs:
+                plt.ylim(kwargs['ylim'][0], kwargs['ylim'][1])
+            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
 
 
     def Get_Terminals_Dist(self, xvg_filename, path='./', skip = False, **kwargs):
@@ -330,10 +498,10 @@ class Trajectory():
         if ('fig' in kwargs):
 
             plt.figure()
-            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep), self.ter_dist,  ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
-            plt.xlabel('Time (ps)')
+            plt.plot(np.arange(0,self.x_proj.size*self.timestep, self.timestep)/1000, self.ter_dist,  ls = '--', lw = 0.3, color=kwargs['color'], alpha = 0.8)
+            plt.xlabel('Time (ns)')
             plt.ylabel('terminals distance(nm)')
-            plt.title('Distance of terminal elements for '+self.__str__())
+            plt.title('Terminals distance for '+self.__str__())
             plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
         
 
@@ -374,6 +542,7 @@ class Trajectory():
             i = 6
             idx = 'mu3'
             index = ('mu1', 'sigma1', 'A1', 'mu2', 'sigma2', 'A2', 'mu3', 'sigma3', 'A3')
+        
         elif (N_gauss == 2):
             i = 3
             fit_mode = bimodal
@@ -457,9 +626,9 @@ class Trajectory():
             plt.scatter(self.x_unfold, self.y_unfold, s = 7, color = image_kwargs['darkcolor'])
             plt.xlabel(' PC 1 ')
             plt.ylabel(' PC 2 ')
-            title = 'Division in {:3.2f} % of population by {} for {}'.format(self.unfold_percentage, descrittore, self.__str__())
+            title = 'Folded/Unfolded states division for {}'.format( self.__str__())
             plt.title(title)
-            plt.legend(['fold', 'unfold']) #, title = 'percentage of unfolded population = {:3.2f}'.format(self.unfold_percentage))
+            plt.legend(['fold', 'unfold = {:3.2f} of population'.format(self.unfold_percentage)]) #, title = 'percentage of unfolded population = {:3.2f}'.format(self.unfold_percentage))
 
             fig.savefig(image_kwargs['path']+image_kwargs['fig']+'.pdf', format = 'pdf') 
             plt.show()
@@ -662,10 +831,11 @@ class Cluster_2DAnalysis():
                 fig = plt.figure()
 
                 plt.scatter(self.xy[:,0], self.xy[:,1], c=self.Cluster.labels_, cmap= 'viridis', s = 10)
-                plt.scatter(self.Cluster.cluster_centers_[:,0],self.Cluster.cluster_centers_[:,1], marker='*', edgecolors='black')
+                plt.scatter(self.Cluster.cluster_centers_[:,0],self.Cluster.cluster_centers_[:,1], marker='*', edgecolors='black', label = 'Cluster centroids')
                 plt.xlabel(' PC 1 ')
                 plt.ylabel(' PC 2 ')
                 plt.title(str(self.n_clusters)+ ' Cluster representation for '+self.__str__())
+                plt.legend()
                 fig.savefig(kwargs['path']+kwargs['fig']+'.png')
                 plt.show()
 
@@ -794,6 +964,120 @@ def Contacts_Matrix (Dist, treshold, fig = False):
         plt.show()
 
     return Cont_Matrix
+
+def Get_Covariance_Matrix(N, filename, path = './',):
+    
+    """
+
+    Leggo matrice covarianza atomica in formato .dat 
+    che esce da cova di GROMACS opzione -ascii
+
+    """
+
+    cov_matrix = np.zeros((3*N,3*N), dtype = float)
+
+    with open (path+filename+'.dat', 'r') as fin:
+        lines = fin.readlines()
+    
+
+    if N != (np.sqrt(len(lines)/3)):
+        raise ValueError ('Incompatibile lunghezza WTC {} con N da file di covarianza {}'.format(N, (np.sqrt(len(lines)/3))))
+
+    init = 0
+    for ii in range(3*N):
+        print('riga {}'.format(ii)) 
+
+        jj = 0
+        line_scroll = lines[init:init+N]
+
+        for line in line_scroll:
+            array = np.array(line.split(), dtype= 'float')        
+            cov_matrix[ii, jj] = array[0]
+            cov_matrix[ii,jj+1] = array[1]
+            cov_matrix[ii,jj+2] = array[2]
+            jj+=3
+
+        init+= N
+    
+    return cov_matrix
+
+def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, text = False, text_size = 5, path = './', **kwargs):
+        
+    if c_type == 'Atoms':
+        ylabel = 'Atom number'
+    elif c_type == 'CA':
+        ylabel = 'Residue Number'
+    else:
+        raise ValueError ('Select type of cov matrix\n Atoms or CA\n')
+    
+    if text:
+        text = []   
+        size = text_size
+        start = 0
+
+        for ii in range(int(BS.size/size)):
+            text.append([str(v) for v in BS[start:start+size]])
+            start+=size
+        if BS.size%size != 0:
+            final = [str(v) for v in BS[start:]]
+            if len(final) != size:
+                while True:
+                    final.append(' ')
+                    if len(final) == size:
+                        break
+            text.append(final)
+
+
+    f, ax = plt.subplots(1,1)
+    
+    cm = ax.imshow(c_matrix, cmap = 'jet')  
+
+    if c_type == 'CA':
+        ticks =  np.linspace(0, len(idx)-1, 8, dtype = int)
+        tickslabels = idx[ticks]
+        ax.set_xticks(ticks)
+        ax.set_yticks(ticks)
+        ax.set_xticklabels(tickslabels)
+        ax.set_yticklabels(tickslabels)
+
+    if text:
+        ax.table(text)
+    ax.set_title('{} Covariance Matrix for {}'.format(c_type, name), pad = 1.)
+    plt.colorbar(cm) 
+    ax.set_ylabel(ylabel)
+
+    if 'clim' in kwargs:
+        cm.set_clim(kwargs['clim'])
+    ax.xaxis.set_ticks_position('top')
+
+    plt.tight_layout()
+    f.autolayout=True
+    f.savefig(path+name+'_'+c_type+'cov_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
+
+def CAP_Cov_Matrix(cov_matrix, idx, save_filename, save_path = './'):
+
+    """
+    Calcolo covarianza degli atomi di CA per proteina e P per RNA
+    a partire dalla matrice di covarianza atomica in cui CA e P hanno n_atom in idx
+    """
+
+    cov_matrix_CAP = np.zeros((idx.size, idx.size))
+
+    for (ii, first_idx) in zip(range(idx.size), idx):
+
+        jj_0 = first_idx*3
+
+        for (jj, second_idx) in zip(range(idx.size), idx):
+
+            ii_0 = second_idx*3
+            cov_matrix_CAP[ii,jj] = np.mean(cov_matrix[ii_0:ii_0+3, jj_0:jj_0+3])
+            
+    np.savetxt(save_path+save_filename, cov_matrix_CAP)
+
+    return cov_matrix_CAP
+
+
+
 
 def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first = ('Proteina', 0), second = ('RNA', 0), fig = False, verbose = False):
 
@@ -926,15 +1210,19 @@ def Parse_xvg_skip(filename, path='./', skip_lines = 18, skip = False):
 
     """Funzione che legge file xvg indicato da filename
     e ritorna i conseguenti  array
+
+    se sono più di due colonne, legge solo le prime 2
+
     """
 
-    f = open(path+filename, 'r')
-    parser    =  f.readlines()[skip_lines:]
-    f.close()
+    with open(path+filename, 'r') as f:
+        parser    =  f.readlines()[skip_lines:]
+    
     temp      =  np.zeros((len(parser),2))
+
     for row in range(len(parser)):
 
-        temp[row]   =   np.array(str(parser[row]).split(), dtype=np.float64)
+        temp[row]   =   np.array(str(parser[row]).split()[:2], dtype=np.float64)
 
 
     if skip:

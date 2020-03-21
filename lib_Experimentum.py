@@ -10,15 +10,18 @@ from    scipy.optimize      import curve_fit
 from    scipy.io            import loadmat
 import  json
 
-from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate, S_Dynamical_Form_Factor_0, S_0_Generate        
+from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate, S_Dynamical_Form_Factor_0, S_0_Generate, S_Dynamical_Form_Factor_0_nodelta, S_Dynamical_Form_Factor_2_nodelta     
 from    Alessandria         import *
 from    lmfit               import Model
 
 free_spectral_range =   29.9702547 #GHz
+
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
+cols_smart  =  ('Co', 'Omega', 'Gamma', 'delta_position',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+
 
 
 #       PARTE   2       Classi 
@@ -235,27 +238,28 @@ class Spectrum  :
                 if verbose:
                     print("Ho trovato valore dell'altezza per avere %d picchi: %f\n"%(n_peaks, height), pk)
                     _ = Analyze_Peaks(self.x_freq, self.y, 'GHz', fig = fig, verbose = verbose, height= height, **syg_kwargs)
-    
+                self.spectrum_cut_height        =   height
                 break
             
             elif (height <= treshold):
 
                 print(pk)
-                raise ValueError('Errore: superata altezza minima %f\nQualcosa è andato storto'%(treshold))
-
+                print('Errore: superata altezza minima {}\nQualcosa è andato storto per il picco {}'.format(treshold, self.__str__()))
+                break
+            
             else: 
 
                 height-=delta
         
+        """
         #check che i picchi Brillouin siano dentro agli elastici, premesso che so che possano essere più alti degli elastici
 
         condition_peaks =   ((self.y[pk[0][0]] < self.y[pk[0][1]]) | ((self.y[pk[0][3]] < self.y[pk[0][2]])))
         
         if condition_peaks &  (i_know_it_is == False):
             raise ValueError("Picchi Brillouin non sono interni o sono più alti degli elastici, controllare")
+        """
 
-        self.spectrum_cut_height        =   height
-        self.spectrum_peaks_dist        =   syg_kwargs['distance']
     
     def How_Many_Peaks_To_VIPA(self, treshold, n_GHz_peaks = 5, n_gauss_peaks = 3, delta = 1., fig = False, verbose = False, **syg_kwargs):
 
@@ -429,13 +433,15 @@ class Spectrum  :
 
         if alignment == 'dx':
             
-            self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][0]]
-        
+            #self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][0]]
+            self.x      = self.x - self.x[self.peaks['idx'][0]]
+
         elif alignment == 'sx':
 
-            self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][3]]
+            #self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][3]]
+            self.x      = self.x - self.x[self.peaks['idx'][3]]
 
-    def Spectrum_Pix2GHz (self, align = True, fig = False):
+    def Spectrum_Pix2GHz (self, fig = False):
 
         #modifico in GHz le ascisse dello spettro
 
@@ -450,8 +456,9 @@ class Spectrum  :
             plt.show()
             plt.close()
 
-    def Cut_n_Estimate_Spectrum(self, cut = True, estimate = False, columns = cols_mark,distanza = 2/3, verbose = False ):
+    def Cut_n_Estimate_Spectrum(self, cut = True, mean_dist01 = 37, mean_dist23 = 34, estimate = False, verbose = False):
         
+
         """
 
         Funzione che esegue 
@@ -471,17 +478,13 @@ class Spectrum  :
 
         """
 
-        query_min               =   self.x_freq[self.peaks['idx'][0]] + (self.peaks['widths'][0]*distanza)
-        _, idx_min              =   Find_Nearest(self.x_freq, query_min)
-            
-        query_max               =   self.x_freq[self.peaks['idx'][3]] - (self.peaks['widths'][3]*distanza)
-        _, idx_max              =   Find_Nearest(self.x_freq, query_max)
-        
-        
+        idx_min               =   self.peaks['idx'][1] - int(mean_dist01/2)
+        idx_max               =   self.peaks['idx'][2] + int(mean_dist23/2)
+    
         # STIMA PARAMETRI INIZIALI della funzione teorica
         # (quelli che posso, e devo farlo  prima di tagliare)
         
-        self.p0  =   pd.DataFrame({}, columns = columns, index = ['Initials'])
+        self.p0  =   pd.DataFrame({}, columns = cols, index = ['Values'])
 
         # 1)    stima dei parametri dai dati
         #       Omega come la media della posizione dei massimi brillouin
@@ -492,31 +495,14 @@ class Spectrum  :
                 
             self.p0['Omega']            =   [np.absolute(self.x_freq[self.peaks['idx'][2]] - self.x_freq[self.peaks['idx'][1]])*0.5]
             self.p0['Gamma']            =   [0.1]
-            #self.p0['Gamma']            =   [(self.peaks['widths'][2]+self.peaks['widths'][1])/20]
-            self.p0['offset']           = [0]
-            #self.p0['offset']           =   np.mean(self.y[self.peaks['idx'][1]:self.peaks['idx'][2]])
-            
-
-            # 2)i parametri iniziali che dovrebbero andare bene sempre
-            self.p0['Co']               =   [0.1]#amplitude factor
+            self.p0['offset']           =   [0]
+            self.p0['Co']               =   [0.01]
             self.p0['shift']            =   [0.]
             self.p0['delta_position']   =   [0.]
-            self.p0['delta_amplitude']  =   [.1]
-            self.p0['delta_width']      =   [0.05]
-
-            if len(columns) == len(cols):
-
-                self.p0['Delta']        =   self.p0['Gamma']
-                self.p0['tau']          =   [10.]
-
-        if verbose:
-
-            print ("\n\nHo stimato %d parametri iniziali per il fit che andrai a fare\n" %(self.p0.size))
-
-            for p in self.p0.T.index :
-
-                print(p, ' = %4.3f \n' %(self.p0[p][0]))
-
+            self.p0['delta_amplitude']  =   [1]
+            self.p0['delta_width']      =   [0.1]
+            self.p0['Delta']            =   self.p0['Gamma']
+            self.p0['tau']              =   [1.]
 
         
         # procedo con il taglio se è voluto
@@ -524,14 +510,20 @@ class Spectrum  :
         if cut:           
             
             self.x_freq         =   self.x_freq[idx_min:idx_max]
-            self.x          =   self.x[idx_min:idx_max]
+            self.x              =   self.x[idx_min:idx_max]
             self.y              =   self.y[idx_min:idx_max]
             self.y_err          =   self.y_err[idx_min:idx_max]
 
-    def Get_cost_markov(self, p0):
-        # senza Delta e tau, con le gauss
 
-        self.cost_markov        =   0.5*np.sum(self.Residuals_Markov(p0, self.y)**2)
+    def Get_cost_markov(self, p0, columns):
+        
+        if columns == cols_smart:
+            attribute = 'Residuals_Markov_Smart'
+        elif columns == cols_mark:
+            attribute = 'Residuals_Markov'
+        else : raise ValueError('Choose columns for cost')
+
+        self.cost_markov        =   0.5*np.sum(getattr(self, attribute)(p0, self.y)**2)
 
     def Get_cost_tot(self, p0, p_gauss):
         # senza le gauss
@@ -571,22 +563,31 @@ class Spectrum  :
         else:
             return  0
 
-    def Initials_Parameters_from_Markov(self, p0):
-
-        self.Get_p0(p0,cols_mark)
-        self.p0['Delta']    = self.p0['Gamma']
-        self.p0['tau']     = [100.]
-        self.Get_p0(self.p0[list(cols_real)].values[0], cols_real)
-
-    def Take_A_Look_Before_Fitting(self):
+    def Initials_Parameters_from_Markov(self, Markov_Fit_Params, columns):
         
-        print("Valore stimato della cost function prima del fit totale con fit markoviano:\n{}".format(self.cost_markov))
+        self.p0 =  pd.DataFrame({}, columns = cols, index = ['Values'])
+        self.p0.T.Values[list(columns)] = [value for value in Markov_Fit_Params[list(columns)].values[0]]
+        self.p0['Delta']            =   self.p0['Gamma']
+        self.p0['tau']              =   [1.]
+
+    def Take_A_Look_Before_Fitting(self, p0, fit):
+        
+        if fit == 'markov':
+            cost = 'cost_markov'
+            func = 'Gauss_Convolve_Markovian_Response_Smart_Fast'
+
+        elif fit == 'tot':
+            cost = 'cost_tot'
+            y_fit = 'y_fit'
+
+        #print("Valore stimato della cost function prima del fit totale con fit markoviano:\n{}".format(getattr(self, cost)))
 
         plt.figure()
-        plt.plot(self.x_freq, self.y_markov_fit, '-', label = 'Initial_Guess')
+        plt.plot(self.x_freq, getattr(self, func)(p0), '-', label = 'Initial_Guess on {} fit'.format(fit))
         plt.plot(self.x_freq, self.y, '+', label = 'Data')
-        plt.title('Goodness of initial guess, cost = %f'%(self.cost_markov))
+        plt.title('Goodness of initial guess')#, cost = {}'.format(getattr(self, cost)))
         plt.xlabel('Freq(GHz)')
+        plt.legend()
         plt.show()
 
     def Gauss_Convolve_Theoretical_Response (self, p, fantoccio = False, fig = False):
@@ -711,7 +712,7 @@ class Spectrum  :
 
         return self.y_Gauss_convolution
 
-    def Gauss_Convolve_Markovian_Response (self, p, fantoccio = False, fig = False, compare = False):
+    def Gauss_Convolve_Markovian_Response (self, p, fantoccio = False, fig = False, compare = False, zoom = False):
         
         #       nomenclatura:   p[0] = Co
         #                       p[1] = Omega
@@ -728,12 +729,7 @@ class Spectrum  :
         #   questi ultimi       p[9] = shift
         #   per forza           p[10] = offset       
 
-        p = np.asarray(p)
-        
-        if (p.size != 11):
-
-            raise ValueError("Calcola stai a usa modello Markov \n p deve avere 11 elementi! Ne ha {}".format(p.size))
-
+    
         if fantoccio :
 
             conv_range = np.linspace(fantoccio[0], fantoccio[1], 200)
@@ -743,20 +739,19 @@ class Spectrum  :
             conv_range = self.x_freq
 
         self.y_markov_convolution      =       np.zeros(conv_range.size)
-        w_j_VIPA                       =       np.linspace(-35,35, self.x_VIPA_freq.size)
-        kernel                         =       self.Interpolate_VIPA(w_j_VIPA)
-        kernel                         =       kernel/(p[6]*(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
+        w_j_VIPA                       =       np.linspace(-35,35, 3000)
+        VIPA_w_j                        =       self.Interpolate_VIPA(w_j_VIPA)
+        kernel                         =       VIPA_w_j/(p[6]*(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
         
         for  ii in range(len(conv_range)):
 
             delta_w                         =   conv_range[ii] -   w_j_VIPA
-            theor                           =   S_Dynamical_Form_Factor_0(delta_w-p[8], *p[0:6])
+            theor                           =   delta_function(delta_w, *p[3:6]) + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[8], *p[0:3])
             self.y_markov_convolution[ii]   =   np.sum(theor*kernel)
 
         self.y_Gauss_markov_convolution   =   p[10] + self.y_markov_convolution*p[6]*np.exp(-((conv_range - p[7])**2)/(2*(p[8]**2)))
         
-        return self.y_Gauss_convolution
-
+        
         if fig:
 
             plt.figure()
@@ -764,8 +759,16 @@ class Spectrum  :
             plt.title('convoluzione dati VIPA con funz S0 più moltiplicazione Gauss')
             if compare:
                 plt.plot(self.x_freq, self.y, '+', label = 'data')
-                plt.legend()
-                plt.show
+            plt.legend()
+            plt.show
+            if zoom:
+                if self.alignment == 'dx':
+                    plt.xlim(3, 27)
+                else:
+                    plt.xlim(-27, -3)
+                plt.ylim(-10, 250)
+
+        return self.y_Gauss_markov_convolution
 
     def Interpolate_VIPA (self, freq):
 
@@ -818,10 +821,85 @@ class Spectrum  :
         for  ii in range(len(self.x_freq)):
 
             delta_w                 =   self.x_freq[ii] -   w_j_VIPA
-            theor                   =   S_Dynamical_Form_Factor_0(delta_w-p[9], *p[0:6])
+            theor                   =   delta_function(delta_w, *p[3:6]) + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[9], *p[0:3])
+
             self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
  
         self.y_Gauss_markov_convolution   =   p[10] + self.y_markov_convolution*p[6]*np.exp(-((self.x_freq - p[7])**2)/(2*(p[8]**2)))
+
+        return self.y_Gauss_markov_convolution 
+
+
+    def Gauss_Convolve_Markovian_Response_Smart (self, p, fantoccio = False, fig = False):
+
+        """
+        Versione veloce e smart della funzione Gauss_Convolve_Markovian
+        sfrutto intuizione ruocco sulla Delta
+        Funziona con modello Markov --> 11 parametri
+
+        """
+        if fantoccio :
+
+            conv_range = np.linspace(fantoccio[0], fantoccio[1], 200)
+
+        else:
+            
+            conv_range = self.x_freq
+
+        self.y_markov_convolution      =       np.zeros(conv_range.size)
+        _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
+        _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
+        w_j_VIPA                =       self.x_VIPA_freq[idx_min:idx_max]#-1 per azzeccare dim coi bins
+        VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
+        Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
+        w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
+        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/gaussian(w_j_VIPA, p[5], p[6], p[7])
+        
+        for  ii in range(len(conv_range)):
+
+            delta_w                 =   conv_range[ii] -   w_j_VIPA
+            y_VIPA                  =   p[4]*self.Interpolate_VIPA(delta_w - p[3])
+            theor                   =   y_VIPA + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[8], *p[0:3])
+            self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
+
+        self.y_Gauss_markov_convolution   =   p[9] + self.y_markov_convolution*gaussian(conv_range, p[5], p[6], p[7])
+
+        if fig:
+
+            plt.figure()
+            plt.plot(self.x_freq, self.y, '+', label = 'data')
+            plt.plot(conv_range, self.y_Gauss_markov_convolution, label = 'Initial fit values')
+            plt.legend()
+            plt.title('convoluzione dati VIPA con funz S0 più moltiplicazione Gauss')
+
+        return self.y_Gauss_markov_convolution
+
+    def Gauss_Convolve_Markovian_Response_Smart_Fast (self, p):
+
+        """
+        Versione veloce e smart della funzione Gauss_Convolve_Markovian
+        sfrutto intuizione ruocco sulla Delta
+        Funziona con modello Markov --> 11 parametri
+
+        """     
+
+        self.y_markov_convolution      =       np.zeros(self.x_freq.size)
+        _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
+        _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
+        w_j_VIPA                =       self.x_VIPA_freq[idx_min:idx_max]#-1 per azzeccare dim coi bins
+        VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
+        Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
+        w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
+        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/gaussian(w_j_VIPA, p[5], p[6], p[7])
+        
+        for  ii in range(self.x_freq.size):
+
+            delta_w                 =   self.x_freq[ii] -   w_j_VIPA
+            y_VIPA                  =   p[4]*self.Interpolate_VIPA(delta_w - p[3])
+            theor                   =   y_VIPA + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[8], *p[0:3])
+            self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
+        
+        self.y_Gauss_markov_convolution   =   p[9] + self.y_markov_convolution*gaussian(self.x_freq, p[5], p[6], p[7])
 
         return self.y_Gauss_markov_convolution
 
@@ -829,20 +907,29 @@ class Spectrum  :
         
         return (self.Gauss_Convolve_Theoretical_Response_Fast(p) - y)/self.y_err
 
+    def Residuals_Markov_Smart(self, p, y):
+
+        return (self.Gauss_Convolve_Markovian_Response_Smart_Fast(p) - y)/self.y_err
+
     def Residuals_NoGauss(self, p, y, p_gauss):
         
         return (self.Convolve_Theoretical_Response_Fast(p, p_gauss) - y)/self.y_err
     
-    def Non_Linear_Least_Squares (self, p_gauss, columns, bound = (-np.inf, np.inf), fig = False, **kwargs):
+    def Non_Linear_Least_Squares (self, p_gauss, columns, p0 = 'auto', bound = (-np.inf, np.inf), fig = False, **kwargs):
 
         """
 
         OSS le kwargs sono quelle di least_squares() di scipy.optimize
 
-        """
+        """       
+        start            =    time.process_time()
 
-        start            =    time.process_time()        
-        self.res_lsq     =    least_squares(self.Residuals_NoGauss, self.p0.values[0], args= ([self.y, p_gauss]), bounds = bound, **kwargs)
+        if p0 == 'auto':
+
+            self.res_lsq     =    least_squares(self.Residuals_NoGauss, self.p0[list(columns)].values[0], args= ([self.y, p_gauss]), bounds = bound,  **kwargs)    
+        else:
+            self.res_lsq     =    least_squares(self.Residuals_NoGauss, p0, args= ([self.y]), bounds = bound,  **kwargs)    
+            
         print("s impiegati a fare il fit totale ", time.process_time()-start, '\n')
 
         Parameters       =    self.res_lsq.x
@@ -856,7 +943,7 @@ class Spectrum  :
 
             if 'Singular matrix' in str(err):
                 print('Ho trovato matrice singolare')
-                Delta_Parameters    =   np.empty(len(self.p0.values[0]))
+                Delta_Parameters    =   np.empty(len(self.p0[list(columns)].values[0]))
                 Delta_Parameters[:]    =   np.nan
             else :
                 raise
@@ -873,12 +960,12 @@ class Spectrum  :
             plt.legend()
         
         
-        self.Tot_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
+        self.Tot_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0[list(columns)].values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
         if (self.res_lsq['success'] == False):
             return 2
         else: return 1
 
-    def Get_Fit_Bounds(self, percents, columns): 
+    def Get_Fit_Bounds(self, rules, columns): 
 
         """
         Funzione che definisce un attributo self.bounds, un dataframe con le colonne up and down
@@ -894,43 +981,54 @@ class Spectrum  :
 
         """
 
-        if len(percents) != len(columns):
+        if len(rules) != len(columns):
 
-            raise ValueError ("Lunghezza della tupla percents = %d errata, deve essere uguale alla dimensione delle colonne passate = %d"%(len(percents), len(columns)))
+            raise ValueError ("Lunghezza della tupla percents = %d errata, deve essere uguale alla dimensione delle colonne passate = %d"%(len(rules), len(columns)))
                 
         self.bounds = pd.DataFrame( {}, index= columns, columns=('down', 'up'))
 
-        for (col, frac) in zip(columns, percents):
+        for (col, rule) in zip(columns, rules):
     
-            if  frac    ==  np.inf:
+            if  rule    ==  'inf':
 
-                self.bounds['down'][col]     =    -np.inf
-                self.bounds['up'][col]       =    np.inf
+                self.bounds._set_value(col, 'down', -np.inf)   
+                self.bounds._set_value(col, 'up', +np.inf)   
             
-            elif    frac == 'positive':
+            elif    rule == 'positive':
 
-                self.bounds['down'][col]     =    0
-                self.bounds['up'][col]       =    np.inf
-            
-            elif frac == 'zero':
+                self.bounds._set_value(col, 'down', 0)   
+                self.bounds._set_value(col, 'up', +np.inf) 
 
-                self.bounds['down']         =   -1.5
-                self.bounds['up']           =   1.5
+            elif (type(rule) == list):
                 
+                self.bounds._set_value(col, 'down', rule[0])   
+                self.bounds._set_value(col, 'up', rule[1]) 
+
             else:
                     
-                bound   =   Get_Around(self.p0[col]['Values'], frac)
-                self.bounds['down'][col]     =   bound[0]
-                self.bounds['up'][col]       =   bound[1]
+                bound   =   Get_Around(self.p0[col]['Values'], rule)
+                self.bounds._set_value(col, 'down', bound[0])   
+                self.bounds._set_value(col, 'up', bound[1]) 
+
 
     def Residuals_Markov(self, p, y):
         
         return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/self.y_err
     
-    def Non_Linear_Least_Squares_Markov (self, bound = (-np.inf, np.inf), fig = False, **kwargs):
+    def Non_Linear_Least_Squares_Markov (self, columns, p0 = 'auto',  bound = (-np.inf, np.inf), fig = False, zoom = False, **kwargs):
+
+        if columns == cols_smart:
+            attribute = 'Residuals_Markov_Smart'
+        elif columns == cols_mark:
+            attribute = 'Residuals_Markov'
+        else : raise ValueError('Choose columns for fit')
 
         start            =    time.process_time()
-        self.res_lsq     =    least_squares(self.Residuals_Markov, self.p0.values[0], args= ([self.y]), bounds = bound,  **kwargs)
+        if p0 == 'auto':
+            self.res_lsq     =    least_squares(getattr(self, attribute), self.p0[list(columns)].values[0], args= ([self.y]), bounds = bound,  **kwargs)    
+        else:
+            self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y]), bounds = bound,  **kwargs)    
+
         print("s impiegati a fare il fit ", time.process_time()-start, '\n')
         Parameters       =    self.res_lsq.x
         
@@ -943,7 +1041,7 @@ class Spectrum  :
 
             if 'Singular matrix' in str(err):
                 print('Ho trovato matrice singolare')
-                Delta_Parameters        =   np.empty(len(self.p0.values[0]))
+                Delta_Parameters        =   np.empty(len(self.p0[list(columns)].values[0]))
                 Delta_Parameters[:]     =   np.nan
             else :
                 raise
@@ -956,9 +1054,17 @@ class Spectrum  :
             plt.title('Fit for '+self.__str__())
             plot(self.x_freq, self.y, '+', label='Data')
             plot(self.x_freq, self.y_markov_fit, label= 'Fit')
+            if zoom:
+        
+                if self.alignment == 'dx':
+                    plt.xlim(3, 27)
+                else:
+                    plt.xlim(-27, -3)
+                plt.ylim(-10, 250)
+
             plt.legend()
            
-        self.Markov_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0.values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = cols_mark)
+        self.Markov_Fit_Params = pd.DataFrame((Parameters, Delta_Parameters, self.p0[list(columns)].values[0]), index = ('Values', 'StdErrs', 'Initials'), columns = columns)
         
         if (self.res_lsq['success'] == False):
             return 2
@@ -993,7 +1099,10 @@ class Spectrum  :
 
     def Get_p0(self,p0, columns):
 
-        self.p0      =   pd.DataFrame({idx : value for (idx, value) in zip(columns, p0)}, index = ['Values'])
+
+        self.p0.T.Values[list(columns)] = [value for value in p0]
+
+        #self.p0      =   pd.DataFrame({idx : value for (idx, value) in zip(columns, p0)}, index = ['Values'])
 
     def Get_p_gauss(self, p_gauss):
 
@@ -1004,7 +1113,17 @@ class Spectrum  :
 
     def Recover_cost_tot(self, cost):
         self.cost_tot = cost
-    
+
+    def Get_Best_p0(self, p0s, columns):
+
+        costs = np.zeros(len(p0s))
+
+        for (p0, kk) in zip(p0s, range(costs.size)):
+            self.Get_cost_markov(p0, columns)
+            costs[kk] = self.cost_markov
+
+        self.Get_p0(p0s[np.argmin(costs)], columns)
+
 def Initialize_Matrix(ii_0, jj_0, ii_stop, jj_stop):
 
     matrix = ()
@@ -1015,7 +1134,7 @@ def Initialize_Matrix(ii_0, jj_0, ii_stop, jj_stop):
     for ii in rows:
         riga = ()
         for jj in cols:
-            riga  = riga + (Spectrum('Element ('+str(ii)+str(jj)+')'),)
+            riga  = riga + (Spectrum('Element ('+str(ii)+','+str(jj)+')'),)
         matrix = matrix + (riga,)
 
     print('Ho inizializzato una matrice %dx%d, per un totale di %d spettri'%(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])  ))
@@ -1362,7 +1481,7 @@ def Save_y_markov_fit(matrix, boni, out_filename = 'y_markov_fit.txt', path = '.
 
     with open(path+out_filename, 'w') as f_out:
         for (ii,jj) in boni:
-            f_out.write(np.array2string(matrix[ii][jj].y_markov_fit, max_line_width = 10000)+'\n')
+            f_out.write(np.array2string(matrix[ii][jj].y_markov_fit, max_line_width = 100000)+'\n')
 
 
 def Save_y_fit(matrix, boni, out_filename = 'y_tot_fit.txt', path = './'):
@@ -1406,7 +1525,7 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
 
             elif fit == 'tot':
                 plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_fit, label = 'tot fit')
-                print(matrix[ii][jj].Markov_Fit_Params)
+                print(matrix[ii][jj].Tot_Fit_Params)
 
 
         if peaks:
@@ -1486,3 +1605,75 @@ def Check_Peaks_Number(matrix, iterable_elements, n, v = False, fig = False):
                 plt.close()
     print('Ho trovato {} spettri con {} picchi\n'.format(len(n_peaks), n))
     return n_peaks
+
+def Get_Bad_Elements(matrix, iterable, treshold ):
+    too_bad = ()
+    for (ii,jj) in iterable:
+        if matrix[ii][jj].cost_markov > treshold:
+            too_bad += ((ii,jj),)
+    print('I found {} bad elements \n'.format(len(too_bad)))
+    return too_bad
+def Get_Good_Elements(matrix, iterable, treshold ):
+    too_good = ()
+    for (ii,jj) in iterable:
+        if matrix[ii][jj].cost_markov < treshold:
+            too_good += ((ii,jj),)
+    print('I found {} good elements \n'.format(len(too_good)))
+    return too_good
+def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), pix = False, peaks = False, fit = False):
+
+    if pix:
+
+        x = 'x'
+        
+    else:
+        x = 'x_freq'
+
+    if fit == 'markov':
+        attr = 'y_markov_fit'
+    elif fit == 'tot':
+        attr = 'y_fit'
+
+    for(ii,jj) in elements_iterable:
+        plt.figure()
+        plt.title(str((ii,jj)))
+        plt.plot(getattr(matrix[ii][jj], x), matrix[ii][jj].y, '+', label = 'data')
+        if peaks:
+            plt.plot(getattr(matrix[ii][jj], x)[matrix[ii][jj].peaks['idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['idx']], '*', label = 'peaks', markersize = 10)
+
+        if fit:
+            plt.plot(getattr(matrix[ii][jj], x), getattr(matrix[ii][jj], attr), label = fit+' fit')
+        plt.xlim(x_range[0], x_range[1])
+        plt.ylim(y_range[0], y_range[1])
+        plt.legend()
+        plt.show()
+
+    
+def Get_p0_by_Neighbours(matrix, ii_0, jj_0, n_rows, n_cols):
+
+    p0s = []
+    neigh = Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols)
+    for (ii,jj) in neigh:
+        if hasattr(matrix[ii][jj], 'Markov_Fit_Params'):
+            p0s.append(matrix[ii][jj].Markov_Fit_Params.values[0])
+    return p0s
+
+def serpentine_range(n_rows, n_cols, start):
+
+    new_boni = []
+    
+    for ii in range(n_rows):
+        if start == 'right':
+            for jj in np.arange(n_cols-1, -1, -1):
+                new_boni.append((ii,jj))
+            start = 'left'
+            continue
+            
+        elif start == 'left':
+            for jj in np.arange(0, n_cols, 1):
+                new_boni.append((ii,jj))
+            start = 'right'
+            continue
+            
+            
+    return new_boni
