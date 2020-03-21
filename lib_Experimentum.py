@@ -1481,7 +1481,7 @@ def Save_y_markov_fit(matrix, boni, out_filename = 'y_markov_fit.txt', path = '.
 
     with open(path+out_filename, 'w') as f_out:
         for (ii,jj) in boni:
-            f_out.write(np.array2string(matrix[ii][jj].y_markov_fit, max_line_width = 10000)+'\n')
+            f_out.write(np.array2string(matrix[ii][jj].y_markov_fit, max_line_width = 100000)+'\n')
 
 
 def Save_y_fit(matrix, boni, out_filename = 'y_tot_fit.txt', path = './'):

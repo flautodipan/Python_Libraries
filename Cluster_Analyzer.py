@@ -6,13 +6,13 @@ from matplotlib.pyplot import plot
 
 
 
-#RNA6
-now_name    =    'RNA6'
-now_temp    =   '500K'
-color = 'firebrick'
-darkcolor = 'darkred'
-brightcolor = 'limegreen'
-contrastcolor='gold'
+#RNA2
+now_name    =    'RNA2'
+now_temp    =   '350 K'
+color       =   'forestgreen'
+darkcolor   =   'darkgreen'
+brightcolor = 'goldenrod'
+contrastcolor = 'crimson'
 
 n_frames = 10001
 time_range = [0, 1000000]
@@ -31,9 +31,9 @@ contrastcolor='orange'
 #RNA2
 now_name    =    'RNA2'
 now_temp    =   '350 K'
-color       =   'lightseagreen'
-darkcolor   =   'darkslategray'
-brightcolor = 'mediumslateblue'
+color       =   'forestgreen'
+darkcolor   =   'darkgreen'
+brightcolor = 'firebrick'
 contrastcolor = 'crimson'
 
 #RNA3
@@ -62,6 +62,14 @@ darkcolor = 'indigo'
 brightcolor = 'crimson'
 contrastcolor = 'chartreuse'
 
+
+#RNA6
+now_name    =    'RNA6'
+now_temp    =   '500K'
+color = 'firebrick'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
 
 
 """
