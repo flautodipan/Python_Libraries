@@ -59,7 +59,7 @@ p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.9751
         5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
         1.59365161e+01,  2.77695117e-01,  6.43211621e+00])
 
-recover_markov = False
+recover_markov = True
 rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', 'inf')
 #tot fit
 skip_tot = False
@@ -352,18 +352,21 @@ if not skip_tot:
     fit_tot = ()
     print("\n\nI'm beginning total fit\n\n")
     start = time.process_time()
-    for (ii,jj) in boni:
 
-        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
-        p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
-        matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params, cols_mark)
-        matrix[ii][jj].Get_Fit_Bounds(rules_tot_bounds, columns = cols_real)
-        matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss)
-        print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
-        fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
-        matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss)
-        print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot))
-        #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
+    for (ii,jj) in serpentine_range(len(rows), len(cols), 'right'):
+
+        if (ii,jj) in boni:
+
+            print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+            p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
+            matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params, cols_mark)
+            matrix[ii][jj].Get_Fit_Bounds(rules_tot_bounds, columns = cols_real)
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss)
+            print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
+            fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss)
+            print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot))
+            #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
 
 
 
