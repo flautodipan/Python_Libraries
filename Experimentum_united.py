@@ -311,8 +311,6 @@ if recover_markov == False:
     print('\nHo salvato informazioni fit markoviano su {}\n'.format(analysis_path))
 
 
-
-
 else:
 
     print('\n\n You chose to SKIP the markovian fit and recover info from {}\n\n'.format(now_path+analysis_dir))

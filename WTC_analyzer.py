@@ -15,23 +15,24 @@ warnings.filterwarnings("ignore")
 
 
 
-#WTC1
-now_path    =   '../GROMACS/WTC1/'
-now_name    =    'wtc1'
-n_frames = 9700
-time_range  =   [30060, 999960]
-time_range_eq = [400060, 999960]
-color = 'royalblue'
-darkcolor = 'navy'
-brightcolor = 'magenta'
-contrastcolor='orange'
-darkcontrastcolor='orangered'
-ylim = (0,1)
-gyrad_ylim = (1.4, 2.2)
-
 
 now_temp = '300 K'
 scale='ns'
+
+#WTC2
+now_path    =   '../GROMACS/WTC2/'
+now_name    =    'wtc2'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [400000, 1000000]
+color       =   'forestgreen'
+darkcolor   =   'darkgreen'
+brightcolor = 'goldenrod'
+contrastcolor = 'crimson'
+darkcontrastcolor = 'darkred'
+ylim = (0,1)
+gyrad_ylim = (1.3, 1.9)
+
 
 
 """
@@ -327,7 +328,7 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 #%%
 # MATRICE COVARIANZA ATOMICA
-skip_cov = False
+skip_cov = True
 if not skip_cov:
     N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
     cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
@@ -349,8 +350,9 @@ BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, pat
 
 
 
-"""
+
 # %%
+"""
 #NO FIGURE
 
 
@@ -398,6 +400,7 @@ WTC_traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA.xvg', now_path, skip_lines= 
 """
 
 # %%
+print("caratteristiche per {}".format(now_name))
 print("Tempo totale = {} ns".format(np.array(time_range)/1000))
 print("Range equilibrio = {} ns".format(np.array(time_range_eq)/1000))
 print("RMSD totale medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.mean(WTC_traj.RMSD_eq), np.std(WTC_traj.RMSD_eq)))
@@ -406,6 +409,21 @@ print("RMSD BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.m
 print("RMSF totale medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.mean(RMSF_res), np.std(RMSF_res)))
 print("RMSF RNA medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.mean(RMSF_res[idx_RNA_start:]), np.std(RMSF_res[idx_RNA_start:])))
 print("RMSF BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.mean(RMSF_res[idx_BS]), np.std(RMSF_res[idx_BS])))
+print("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq:]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq:])))
+
+with open(now_path+now_name+'_finals.txt', 'w') as f:
+
+    f.write(("caratteristiche per {}\n\n".format(now_name)))
+    f.write("Tempo totale = {} ns\n0.80(0.02)".format(np.array(time_range)/1000))
+    f.write("Range equilibrio = {} ns\n".format(np.array(time_range_eq)/1000))
+    f.write("RMSD totale medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(WTC_traj.RMSD_eq), np.std(WTC_traj.RMSD_eq)))
+    f.write("RMSD RNA medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(WTC_traj.RMSD_eq_RNA), np.std(WTC_traj.RMSD_eq_RNA)))
+    f.write("RMSD BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(WTC_traj.RMSD_eq_BS), np.std(WTC_traj.RMSD_eq_BS)))
+    f.write("RMSF totale medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res), np.std(RMSF_res)))
+    f.write("RMSF RNA medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res[idx_RNA_start:]), np.std(RMSF_res[idx_RNA_start:])))
+    f.write("RMSF BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res[idx_BS]), np.std(RMSF_res[idx_BS])))
+    f.write("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}\n".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq:]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq:])))
+200    # %%
 
 
 # %%
