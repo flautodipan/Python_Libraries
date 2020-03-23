@@ -27,7 +27,7 @@ now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
 spectra_filename    =   'NO_ARS_12_02'
 VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir        =   'dabuttare/'
+analysis_dir        =   'analysis/'
 
 #operatives
 
@@ -95,8 +95,8 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-matrix, rows, cols = Initialize_Matrix(0,0,3,3)
-#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+#matrix, rows, cols = Initialize_Matrix(0,0,3,3)
+matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
 
