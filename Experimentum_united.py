@@ -27,7 +27,7 @@ now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
 spectra_filename    =   'NO_ARS_12_02'
 VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir        =   'analysis/'
+analysis_dir        =   'dabuttare/'
 
 #operatives
 
@@ -59,7 +59,7 @@ p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.9751
         5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
         1.59365161e+01,  2.77695117e-01,  6.43211621e+00])
 
-recover_markov = True
+recover_markov = False
 rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', 'inf')
 #tot fit
 skip_tot = False
@@ -95,8 +95,8 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(66,32, 68, 34)
-matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+matrix, rows, cols = Initialize_Matrix(0,0,3,3)
+#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
 
@@ -306,8 +306,8 @@ if recover_markov == False:
     #too_markov         =   Whose_Param_Too_High('Gamma', 2., matrix, fitted)
     Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
     Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
-    Save_y_markov_fit(matrix, boni, path = analysis_path)
-    Save_cost_markov(matrix, boni, path = analysis_path)
+    Save_y_markov_fit(matrix, fitted, path = analysis_path)
+    Save_cost_markov(matrix, fitted, path = analysis_path)
     print('\nHo salvato informazioni fit markoviano su {}\n'.format(analysis_path))
 
 
@@ -378,8 +378,8 @@ if not skip_tot:
 
     Save_Fit_Info(fit_tot, filename = 'tot_fit.txt', path=analysis_path)
     Save_Tot_Fit_Parameters(matrix, fitted_tot, out_filename = 'tot_fit_params.txt', path = analysis_path)
-    Save_y_fit(matrix, boni, path = analysis_path)
-    Save_cost_tot(matrix, boni, path = analysis_path)
+    Save_y_fit(matrix, fitted_tot, path = analysis_path)
+    Save_cost_tot(matrix, fitted_tot, path = analysis_path)
 
     with open(analysis_path+log_file, 'a') as f_log:
         f_log.write("\n\n################## TOTAL FIT ####################\n\n")

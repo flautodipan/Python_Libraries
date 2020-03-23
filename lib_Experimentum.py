@@ -1472,34 +1472,33 @@ def Save_XY_position(matrix, n_rows, n_cols, out_filename = 'xy.txt' , path = '.
 
     with open(path+out_filename, 'w') as f_out:
         f_out.write('# x,y of each spectra in couples of lines\n')
-        for ii in range(n_rows):
-            for jj in range(n_cols):
+        for (ii,jj) in serpentine_range(n_rows, n_cols, 'right'):
                 f_out.write(np.array2string(matrix[ii][jj].x_freq, max_line_width = 10000)+'\n')
                 f_out.write(np.array2string(matrix[ii][jj].y, max_line_width = 10000)+'\n')
 
-def Save_y_markov_fit(matrix, boni, out_filename = 'y_markov_fit.txt', path = './'):
+def Save_y_markov_fit(matrix,fitted, out_filename = 'y_markov_fit.txt', path = './'):
 
     with open(path+out_filename, 'w') as f_out:
-        for (ii,jj) in boni:
+        for (ii,jj) in fitted:
             f_out.write(np.array2string(matrix[ii][jj].y_markov_fit, max_line_width = 100000)+'\n')
 
 
-def Save_y_fit(matrix, boni, out_filename = 'y_tot_fit.txt', path = './'):
+def Save_y_fit(matrix, fitted, out_filename = 'y_tot_fit.txt', path = './'):
 
     with open(path+out_filename, 'w') as f_out:
-        for (ii,jj) in boni:
+        for (ii,jj) in fitted:
             f_out.write(np.array2string(matrix[ii][jj].y_fit, max_line_width = 10000)+'\n')
 
-def Save_cost_markov(matrix, boni, out_filename = 'cost_markov.txt', path = './'):
+def Save_cost_markov(matrix, fitted, out_filename = 'cost_markov.txt', path = './'):
 
     with open(path+out_filename, 'w') as f_out:
-        for (ii,jj) in boni:
+        for (ii,jj) in fitted:
             f_out.write(np.array2string(matrix[ii][jj].cost_markov, max_line_width = 10000)+'\n')
 
-def Save_cost_tot(matrix, boni, out_filename = 'cost_tot.txt', path = './'):
+def Save_cost_tot(matrix, fitted, out_filename = 'cost_tot.txt', path = './'):
 
     with open(path+out_filename, 'w') as f_out:
-        for (ii,jj) in boni:
+        for (ii,jj) in fitted:
             f_out.write(np.array2string(matrix[ii][jj].cost_tot, max_line_width = 10000)+'\n')
 
 def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, peaks = False):
