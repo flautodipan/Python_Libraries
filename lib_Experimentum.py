@@ -1514,7 +1514,7 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
         
         print(str((ii,jj)))
         plt.figure()
-        plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, label = 'data')
+        plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, '.', label = 'data')
 
         if fit:
                 
@@ -1605,20 +1605,39 @@ def Check_Peaks_Number(matrix, iterable_elements, n, v = False, fig = False):
     print('Ho trovato {} spettri con {} picchi\n'.format(len(n_peaks), n))
     return n_peaks
 
-def Get_Bad_Elements(matrix, iterable, treshold ):
+def Get_Bad_Elements(matrix, iterable, treshold, fit):
+
+    if fit == 'markov':
+        cost = 'cost_markov'
+    elif fit == 'tot':
+        cost = 'cost_tot'
+
     too_bad = ()
+    
     for (ii,jj) in iterable:
-        if matrix[ii][jj].cost_markov > treshold:
+        if getattr(matrix[ii][jj],cost) > treshold:
+
             too_bad += ((ii,jj),)
-    print('I found {} bad elements \n'.format(len(too_bad)))
+
+    print('I found {} bad elements out of {}\n'.format(len(too_bad), len(iterable)))
     return too_bad
-def Get_Good_Elements(matrix, iterable, treshold ):
+
+def Get_Good_Elements(matrix, iterable, treshold, fit ):
+
+    if fit == 'markov':
+        cost = 'cost_markov'
+    elif fit == 'tot':
+        cost = 'cost_tot'
+
     too_good = ()
     for (ii,jj) in iterable:
-        if matrix[ii][jj].cost_markov < treshold:
+        if getattr(matrix[ii][jj],cost) < treshold:
+
             too_good += ((ii,jj),)
-    print('I found {} good elements \n'.format(len(too_good)))
+
+    print('I found {} good elements out of {}\n'.format(len(too_good), len(iterable)))
     return too_good
+
 def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), pix = False, peaks = False, fit = False):
 
     if pix:
