@@ -27,7 +27,7 @@ now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
 spectra_filename    =   'NO_ARS_12_02'
 VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir        =   'analysis/'
+analysis_dir        =   'analysis_again/'
 
 #operatives
 
@@ -60,10 +60,10 @@ p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.9751
         1.59365161e+01,  2.77695117e-01,  6.43211621e+00])
 
 recover_markov = False
-rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', 'inf')
+rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', [-2,2])
 #tot fit
 skip_tot = False
-rules_tot_bounds                   =   (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 'inf')
+rules_tot_bounds                   =   (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)
 ############
 
 #variables
@@ -260,6 +260,7 @@ if recover_markov == False:
 
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
 
+            matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
             p0s = Get_p0_by_Neighbours(matrix, ii, jj, len(rows), len(cols))
         
             if (ii,jj) in almost_height:
@@ -358,14 +359,18 @@ if not skip_tot:
         if (ii,jj) in boni:
 
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+
             p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
+            kernel   = matrix[ii][jj].VIPA_w_j/(p_gauss[0]*(np.exp(-((matrix[ii][jj].w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
+
             matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params, cols_mark)
             matrix[ii][jj].Get_Fit_Bounds(rules_tot_bounds, columns = cols_real)
-            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss)
+
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss, kernel)
             print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
             fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
-            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss)
-            print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot))
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss, kernel)
+            print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot, kernel))
             #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
 
 

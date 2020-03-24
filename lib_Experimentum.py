@@ -525,10 +525,11 @@ class Spectrum  :
 
         self.cost_markov        =   0.5*np.sum(getattr(self, attribute)(p0, self.y)**2)
 
-    def Get_cost_tot(self, p0, p_gauss):
+    def Get_cost_tot(self, p0, p_gauss, kernel):
         # senza le gauss
 
-        self.cost_tot           =   0.5*np.sum(self.Residuals_NoGauss(p0, self.y, p_gauss)**2)
+        self.cost_tot           =   0.5*np.sum(self.Residuals_NoGauss(p0, self.y, p_gauss, kernel
+        )**2)
 
     def Get_p0_by_Markov(self, p0, treshold, **kwargs):
 
@@ -590,7 +591,7 @@ class Spectrum  :
         plt.legend()
         plt.show()
 
-    def Gauss_Convolve_Theoretical_Response (self, p, fantoccio = False, fig = False):
+    def Convolve_Theoretical_Response (self, p, p_gauss, kernel, fantoccio = False, fig = False, compare = False):
 
         #       Funzione che convolve la mia funzione teorica con la funzione di risposta
         #       del VIPA --> è la funzione su cui dovrò fare il fit
@@ -611,17 +612,10 @@ class Spectrum  :
         #                       p[5] = delta position
         #   param delta         p[6] = delta amplitude
         #                       p[7] = delta factor
-        #
-        #   param gauss         p[8] = A
-        #                       p[9] = mu 
-        #                       p[10] = sigma 
-        #
- 
-        #   questi ultimi       p[11] = shift
-        #   per forza           p[12] = offset       
 
-        if (p.size != 13):
-            raise ValueError("Calcola stai a usa modello Real = Markov + Exp\n p deve avere 13 elementi! Ne ha {}".format(p.size))
+        #   questi ultimi       p[8] = shift
+        #   per forza           p[9] = offset       
+        
 
         if fantoccio :
 
@@ -632,35 +626,24 @@ class Spectrum  :
             conv_range = self.x_freq
 
         self.y_convolution      =       np.zeros(conv_range.size)
-        w_j_VIPA                =       np.linspace(-35,35, self.x_VIPA_freq.size)
-        kernel                  =       self.Interpolate_VIPA(w_j_VIPA)
-        kernel                  =       kernel/(p[8]*(np.exp(-((w_j_VIPA-p[9])**2)/(2*(p[10]**2)))))
-        
+
         for  ii in range(len(conv_range)):
 
-            delta_w                 =   conv_range[ii] -   w_j_VIPA
-            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[11], *p[0:8])
+            delta_w                 =   conv_range[ii] -  self.w_j_VIPA
+            theor                   =   lorentian(delta_w, *p[5:8]) + S_Dynamical_Form_Factor_2_nodelta(delta_w-p[8], *p[0:5])
             self.y_convolution[ii]  =   np.sum(theor*kernel)
 
-        if fig:
-
-                plt.figure()
-                plt.plot(conv_range, self.y_convolution)
-                plt.xlabel('GHz')
-                plt.title('convoluzione dati VIPA con funz S2 for '+self.__str__())
-                plt.show
-        
- 
-
-        self.y_Gauss_convolution   =   p[12] + self.y_convolution*p[8]*np.exp(-((conv_range - p[9])**2)/(2*(p[10]**2)))
+        self.y_Gauss_convolution   =   p[9] + self.y_convolution*p_gauss[0]*np.exp(-((conv_range - p_gauss[1])**2)/(2*(p_gauss[2]**2)))
 
         if fig:
 
             plt.figure()
-            plt.plot(conv_range, self.y_Gauss_convolution)
+            plt.plot(conv_range, self.y_Gauss_convolution, label = 'tot_convolution')
             plt.title('convoluzione dati VIPA con funz S2 più moltiplicazione Gauss')
+            if compare:
+                plt.plot(self.x_freq, self.y, '.', label = 'data' )
 
-    def Convolve_Theoretical_Response_Fast (self, p, p_gauss):
+    def Convolve_Theoretical_Response_Fast (self, p, p_gauss, kernel):
 
         """
         Versione per non fittare parametri della gaussiana nel fit totale
@@ -669,18 +652,11 @@ class Spectrum  :
         """
 
         self.y_convolution      =       np.zeros(self.x_freq.size)
-        _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
-        _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
-        w_j_VIPA                =       self.x_VIPA_freq[idx_min:idx_max]#-1 per azzeccare dim coi bins
-        VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
-        Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
-        w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
-        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/(p_gauss[0]*(np.exp(-((w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
         
         for  ii in range(len(self.x_freq)):
 
-            delta_w                 =   self.x_freq[ii] -   w_j_VIPA
-            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[8], *p[0:8])
+            delta_w                 =   self.x_freq[ii] -   self.w_j_VIPA
+            theor                   =   lorentian(delta_w, *p[5:8]) + S_Dynamical_Form_Factor_2_nodelta(delta_w-p[8], *p[0:5])
             self.y_convolution[ii]  =   np.sum(theor*kernel)
 
         self.y_Gauss_convolution   =   p[9] + self.y_convolution*p_gauss[0]*np.exp(-((self.x_freq - p_gauss[1])**2)/(2*(p_gauss[2]**2)))
@@ -739,14 +715,12 @@ class Spectrum  :
             conv_range = self.x_freq
 
         self.y_markov_convolution      =       np.zeros(conv_range.size)
-        w_j_VIPA                       =       np.linspace(-35,35, 3000)
-        VIPA_w_j                        =       self.Interpolate_VIPA(w_j_VIPA)
-        kernel                         =       VIPA_w_j/(p[6]*(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
+        kernel                         =       self.VIPA_w_j/(p[6]*(np.exp(-((self.w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
         
         for  ii in range(len(conv_range)):
 
-            delta_w                         =   conv_range[ii] -   w_j_VIPA
-            theor                           =   delta_function(delta_w, *p[3:6]) + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[8], *p[0:3])
+            delta_w                         =   conv_range[ii] -   self.w_j_VIPA
+            theor                           =   lorentian(delta_w, *p[3:6]) + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[9], *p[0:3])
             self.y_markov_convolution[ii]   =   np.sum(theor*kernel)
 
         self.y_Gauss_markov_convolution   =   p[10] + self.y_markov_convolution*p[6]*np.exp(-((conv_range - p[7])**2)/(2*(p[8]**2)))
@@ -802,6 +776,24 @@ class Spectrum  :
 
         return              interpolate
 
+    def Get_VIPA_for_fit(self, mode, **kwargs):
+
+        if mode == 'natural':
+                
+            _ , idx_min                 =       Find_Nearest(self.x_VIPA_freq, -35.)
+            _ , idx_max                 =       Find_Nearest(self.x_VIPA_freq, 35.)
+            self.w_j_VIPA                    =       self.x_VIPA_freq[idx_min:idx_max]
+            self.VIPA_w_j                    =       self.y_VIPA[idx_min:idx_max-1]
+            self.Delta_w_j_VIPA         =       Get_Delta_Between_Array_Elements(self.w_j_VIPA)
+            self.w_j_VIPA               =       self.w_j_VIPA[:-1]#-1 per azzeccare dim coi bins
+
+
+        elif mode == 'interpolate':
+
+            self.w_j_VIPA               =       np.linspace(-35., 35, kwargs['interpolation_density'])
+            self.VIPA_w_j               =       self.Interpolate_VIPA(self.w_j_VIPA)             
+
+
     def Gauss_Convolve_Markovian_Response_Fast (self, p):
 
         """
@@ -810,17 +802,18 @@ class Spectrum  :
 
         """
         self.y_markov_convolution      =       np.zeros(self.x_freq.size)
-        _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
-        _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
-        w_j_VIPA                =       self.x_VIPA_freq[idx_min:idx_max]#-1 per azzeccare dim coi bins
-        VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
-        Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
-        w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
-        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/(p[6]*(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
-        
+        if hasattr(self, 'Delta_w_j_VIPA'):
+
+            kernel                  =       self.VIPA_w_j*self.Delta_w_j_VIPA/(p[6]*(np.exp(-((self.w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
+
+        else:
+
+            kernel                  =       self.VIPA_w_j/(p[6]*(np.exp(-((self.w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
+
+
         for  ii in range(len(self.x_freq)):
 
-            delta_w                 =   self.x_freq[ii] -   w_j_VIPA
+            delta_w                 =   self.x_freq[ii] -   self.w_j_VIPA
             theor                   =   delta_function(delta_w, *p[3:6]) + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[9], *p[0:3])
 
             self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
@@ -911,9 +904,9 @@ class Spectrum  :
 
         return (self.Gauss_Convolve_Markovian_Response_Smart_Fast(p) - y)/self.y_err
 
-    def Residuals_NoGauss(self, p, y, p_gauss):
+    def Residuals_NoGauss(self, p, y, p_gauss, kernel):
         
-        return (self.Convolve_Theoretical_Response_Fast(p, p_gauss) - y)/self.y_err
+        return (self.Convolve_Theoretical_Response_Fast(p, p_gauss, kernel) - y)/self.y_err
     
     def Non_Linear_Least_Squares (self, p_gauss, columns, p0 = 'auto', bound = (-np.inf, np.inf), fig = False, **kwargs):
 
@@ -922,13 +915,15 @@ class Spectrum  :
         OSS le kwargs sono quelle di least_squares() di scipy.optimize
 
         """       
-        start            =    time.process_time()
+        start                   =    time.process_time()
+        kernel                  =       self.VIPA_w_j/(p_gauss[0]*(np.exp(-((self.w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
+
 
         if p0 == 'auto':
 
-            self.res_lsq     =    least_squares(self.Residuals_NoGauss, self.p0[list(columns)].values[0], args= ([self.y, p_gauss]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(self.Residuals_NoGauss, self.p0[list(columns)].values[0], args= ([self.y, p_gauss, kernel]), bounds = bound,  **kwargs)    
         else:
-            self.res_lsq     =    least_squares(self.Residuals_NoGauss, p0, args= ([self.y]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(self.Residuals_NoGauss, p0, args= ([self.y, p_gauss, kernel]), bounds = bound,  **kwargs)    
             
         print("s impiegati a fare il fit totale ", time.process_time()-start, '\n')
 

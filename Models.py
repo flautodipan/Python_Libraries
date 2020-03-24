@@ -113,10 +113,10 @@ def I_1_Generate(Co, Omega, Delta, tau, x_min, x_max, density, fig = False):
 
     return (x,y)
 
-def S_2_Generate(Co, Omega, Gamma, Delta, tau, delta_width, delta_amplitude, x_min, x_max, density, fig = False):
+def S_2_Generate(Co, Omega, Gamma, Delta, tau, delta_position, delta_width, delta_amplitude, x_min, x_max, density, fig = False):
 
     x   =   np.linspace(x_min,x_max,  density)
-    y   =    S_Dynamical_Form_Factor_2(x, Co, Omega, Gamma, Delta, tau, delta_width, delta_amplitude)
+    y   =   lorentian(x, delta_position, delta_width, delta_amplitude) + S_Dynamical_Form_Factor_2_nodelta(x, Co, Omega, Gamma, Delta, tau)
 
     
     if fig:
