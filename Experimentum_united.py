@@ -21,43 +21,44 @@ import      os
 
 
 ############
-
 #I/O 
-now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
-spectra_filename    =   'NO_ARS_12_02'
-VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
+
+now_path            =   '../BRILLOUIN/TDP43/ARS_13_02/'
+spectra_filename    =   'ARS_13_02'
+VIPA_filename       =   'ARS_13_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir        =   'dabuttare/'
+analysis_dir       =   'analysis_new_delta/'
 
 #operatives
 
 #esclusi a mano
-to_add              =   []
+to_add              =   [(66, 3),]
 
-syg_kwargs          =   {'height': 119, 'distance': 31, 'width': 3.}
+syg_kwargs          =   {'height': 80, 'distance': 31, 'width': 3.}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 23, 'distance': 31, 'width': 3.}
+syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 3.}
 VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
 almost_treshold     =   15000
+
 
 #quanto mi allontano dal VIPA
 pre_cut             =   False
 cut                 =   True
 
 mean_dist_01 = 37
-mean_dist_23 = 34
+mean_dist_23 = 35
+
 #markov_fit
-p0_normal = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
-        1.448930518e-01,  8.34614271,  4.79747192e+03, -1.00904973e+01,
-        1.58007162e+01,  2.11019859e-01, -3.10388495e-01])
-p0_brillouin = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
-        1.48930518e-01,  2.34614271e-01,  4.79747192e+03, -1.00904973e+01,
-        1.58007162e+01,  2.11019859e-01, -3.10388495e-01])
-p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.97510814e+00,
-        5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
-        1.59365161e+01,  2.77695117e-01,  6.43211621e+00])
+p0_normal = np.array([ 4.90571905e-03,  7.38289631e+00,  1.59995285e-01,  1.72700612e-01,
+        7.15385272e-02,  6.20203995e-03,  9.24556935e+03, -1.18841667e+01,
+        1.70731804e+01,  5.30669237e-02,  0.00000000e+00])
+p0_brillouin = np.array([ 5.08204958e-03,  7.58309761e+00,  1.80541614e-01,  9.02622730e+03,
+       -1.18841667e+01,  1.70731804e+01,  1.43763086e-01,  2.00000000e+00])
+p0_almost = np.array([ 4.87191304e-03,  7.46276272e+00,  1.18952190e-01,  9.96324737e-01,
+        7.98499758e-02,  1.14026466e-01,  1.34402097e+04, -1.18841667e+01,
+        1.70731804e+01,  2.27693384e-01,  0.00000000e+00])
 
 recover_markov = False
 rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', [-2,2])
@@ -76,9 +77,9 @@ excluded            =   []
 almost_height       =   []
 normals             =   []
 
-cols_smart  =  ('Co', 'Omega', 'Gamma', 'delta_position',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position','delta_width',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
 # %%
@@ -95,7 +96,7 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(0,0,3,3)
+#matrix, rows, cols = Initialize_Matrix(11,34,13,36)
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
@@ -259,6 +260,17 @@ if recover_markov == False:
         if (ii,jj) in boni:
 
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+                        
+            if ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
+
+                columns = cols_mark_nodelta
+                rules_bounds = rules_markov_bounds[0:3]+rules_markov_bounds[6:]
+
+            else:
+
+                columns = cols_mark
+                rules_bounds = rules_markov_bounds
+
 
             matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
             p0s = Get_p0_by_Neighbours(matrix, ii, jj, len(rows), len(cols))
@@ -270,20 +282,19 @@ if recover_markov == False:
             else:#normals
                 p0s.append(p0_normal)
 
-            matrix[ii][jj].Get_Best_p0(p0s, cols_mark)
-
-            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(cols_mark)].values[0], cols_mark)
+            matrix[ii][jj].Get_Best_p0(p0s, columns)
+            matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
+            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(cols_mark)].values[0], columns)
             print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
-            matrix[ii][jj].Get_Fit_Bounds(rules_markov_bounds, cols_mark)
-            fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
-            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], cols_mark)
+            fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
+            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], columns)
             print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
 
             if (ii,jj) in almost_height:
                 p0_almost = matrix[ii][jj].Markov_Fit_Params.values[0]
             elif ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
                 p0_brillouin =  matrix[ii][jj].Markov_Fit_Params.values[0]
-            else:#normals
+            else:
                 p0_normal =  matrix[ii][jj].Markov_Fit_Params.values[0]
 
 

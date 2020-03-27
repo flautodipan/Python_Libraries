@@ -11,17 +11,23 @@ import      time
 import      os
 
 
+
 #I/O 
-now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
-spectra_filename    =   'NO_ARS_12_02'
-VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
+
+now_path            =   '../BRILLOUIN/TDP43/ARS_13_02/'
+spectra_filename    =   'ARS_13_02'
+VIPA_filename       =   'NO_ARS_13_02_VIPA_quasisat.tif'
+log_file            =   'log_'+spectra_filename
+analysis_dir       =   'analysis_best/'
 
 #operatives
-syg_kwargs_test          =   {'height': 20, 'distance': 31, 'width': 2.}
-syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
 
-#elementi da eliminare a mano
-too_add              =   []
+#esclusi a mano
+to_add              =   [(66, 3),]
+
+syg_kwargs_test          =   {'height': 10, 'distance': 31, 'width': 3.}
+syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
+syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 3.}
 
 
 # %%
