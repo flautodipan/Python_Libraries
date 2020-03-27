@@ -135,3 +135,98 @@ plt.tight_layout()
 f.savefig(path+'Kd_spreading_plot.pdf', format = 'pdf')
 
 # %%
+#AIRY
+
+def FP_airy(delta, R):
+
+    F = 4*R/(1-R)**2
+    finesse = (np.pi*np.sqrt(R))/(1-R)
+    return (1/(1 + F*np.sin(delta)**2), R, finesse)
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+f, ax = plt.subplots()
+
+x = np.linspace(-10,10, 1000)
+ax.set_title('FP etalon intensity profile')
+ax.set_ylabel('Transmission $I/I_0$')
+y = FP_airy(x, 0.6)
+ax.plot(x, y[0], label = 'R = {:3.1f}\nfin = {:1d}'.format(y[1], int(y[2])), color = 'darkgoldenrod')
+y = FP_airy(x, 0.2)
+ax.plot(x, y[0], label = 'R = {:3.1f}\nfin = {:1d}'.format(y[1],int(y[2])), color = 'darkred', ls = '--')
+y = FP_airy(x, 0.9)
+ax.plot(x, y[0], label = 'R = {:3.1f}\nfin = {:1d}'.format(y[1], int(y[2])), color = 'royalblue', ls='dotted')
+
+ax.set_xticks([])
+#ax.xaxis.set_visible(False)
+ax.set_xlabel('Frequency')
+ax.legend(loc = 'lower left')
+plt.xlim(-4.5, 4.5)
+plt.savefig(path+'FP_airy.pdf', format = 'pdf', bbox_to_inches = 'tight')
+
+
+
+# %%
+#FABRY PEROT
+
+def FP_airy(delta, R):
+
+    F = 4*R/(1-R)**2
+    finesse = (np.pi*np.sqrt(R))/(1-R)
+    return (1/(1 + F*np.sin(delta)**2), R, finesse)
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+f, ax = plt.subplots(1, 2)
+
+x = np.linspace(-10,10, 1000)
+y = FP_airy(x, 0.2)
+y_1 = FP_airy(x + 0.5, 0.2)
+ax[0].plot(x, y[0], color = 'lightcoral', ls='dotted', label = r'freq $\nu_1$')
+ax[0].plot(x, y_1[0], color = 'darkred', ls='dashed', label = r'freq $\nu_2$')
+ax[0].plot(x, y[0]+y_1[0] - 0.2, label = 'Total field')
+
+
+ax[0].set_xticks([])
+ax[0].set_yticks([])
+ax[0].set_ylabel('Intensity')
+ax[0].set_xlabel('Frequency')
+
+ax[0].set_title('Finesse = {:1d}'.format(int(y[2])))
+
+
+ax[0].legend()
+ax[0].set_xlim(-4.8, 1.8)
+plt.savefig(path+'FP_bad_resolution.pdf', format = 'pdf', bbox_to_inches = 'tight')
+
+x = np.linspace(-10,10, 1000)
+y = FP_airy(x, 0.9)
+y_1 = FP_airy(x + 0.5, 0.9)
+ax[1].plot(x, y[0], color = 'darkorange', ls='dashed', label = r'freq $\nu_1$')
+ax[1].plot(x, y_1[0], color = 'darkred', ls='dashed', label = r'freq $\nu_2$')
+ax[1].plot(x, y[0]+y_1[0], label = 'Total field', alpha = 0.6)
+
+
+ax[1].set_xticks([])
+ax[1].set_yticks([])
+ax[1].set_ylabel('Intensity')
+ax[1].set_xlabel('Frequency')
+
+ax[1].set_title('Finesse = {:1d}'.format(int(y[2])))
+
+
+ax[1].legend()
+ax[1].set_xlim(-4.8, 1.8)
+
+#plt.tight_layout(rect=(0,0,2,1.25))
+f.savefig(path+'FP_resolution.pdf', format = 'pdf', bbox_to_inches='tight')
+# %%
+from sympy.solvers import solve
+from sympy import Symbol
+R = Symbol('R')
+F = Symbol('F')
+solve(1 = 4*R/(1-R)**2, R)
+
+# %%
