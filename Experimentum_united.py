@@ -276,6 +276,7 @@ if recover_markov == False:
 
 
             matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
+            
             p0s = Get_p0_by_Neighbours(matrix, columns,  ii, jj, len(rows), len(cols))
         
             if (ii,jj) in almost_height:

@@ -1705,7 +1705,8 @@ def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols):
     neigh = Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols)
     for (ii,jj) in neigh:
         if hasattr(matrix[ii][jj], 'Markov_Fit_Params'):
-            p0s.append(matrix[ii][jj].Markov_Fit_Params[list(columns)].values[0])
+            if not (columns == cols_mark) & ('delta_position' not in  getattr(matrix[ii][jj], 'Markov_Fit_Params').keys()):
+                p0s.append(matrix[ii][jj].Markov_Fit_Params[list(columns)].values[0])
     return p0s
 
 def serpentine_range(n_rows, n_cols, start):
