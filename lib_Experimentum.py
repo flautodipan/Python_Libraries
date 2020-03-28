@@ -1703,6 +1703,7 @@ def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols):
 
     p0s = []
     neigh = Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols)
+    
     for (ii,jj) in neigh:
         if hasattr(matrix[ii][jj], 'Markov_Fit_Params'):
             if not (columns == cols_mark) & ('delta_position' not in  getattr(matrix[ii][jj], 'Markov_Fit_Params').keys()):

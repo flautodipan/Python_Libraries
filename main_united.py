@@ -19,9 +19,21 @@ tempo               =   ()
 ### ACQUISISCO INPUT 
 
 inputs = configparser.ConfigParser()
-with open('K27M.ini', 'r') as f:
+with open('../BRILLOUIN/TDP43/ARS_13_02/config.ini', 'r') as f:
     inputs.read_file(f)
 
+
+############
+#I/O 
+
+now_path            =   inputs['I/O']['now_path']
+spectra_filename    =   inputs['I/O']['spectra_filename']
+VIPA_filename       =   inputs['I/O']['VIPA_filename']
+log_file            =   inputs['I/O']['log_file']
+analysis_dir       =   inputs['I/O']['analysis_dir']
+
+
+#%%
 
 ### OPERAZIONI SU CARTELLE
 

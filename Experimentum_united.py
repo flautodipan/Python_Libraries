@@ -18,54 +18,101 @@ from        lib_Experimentum    import  *
 from        Alessandria         import  *
 import      time
 import      os
+import      configparser
+import      sys
 
+inputs = configparser.ConfigParser()
+with open('../BRILLOUIN/TDP43/ARS_13_02/config.ini', 'r') as f:
+    inputs.read_file(f)
 
 ############
 #I/O 
 
-now_path            =   '../BRILLOUIN/TDP43/ARS_13_02/'
-spectra_filename    =   'ARS_13_02'
-VIPA_filename       =   'ARS_13_02_VIPA_quasisat.tif'
+now_path            =   inputs['I/O']['now_path']
+spectra_filename    =   inputs['I/O']['spectra_filename']
+VIPA_filename       =   inputs['I/O']['VIPA_filename']
 log_file            =   'log_'+spectra_filename
-analysis_dir       =   'analysis_new_delta/'
 
 #operatives
-
-#esclusi a mano
-to_add              =   [(66, 3),]
-
-syg_kwargs          =   {'height': 80, 'distance': 31, 'width': 3.}
-syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 3.}
-VIPA_treshold       =   6
-sat_height          =   50000
-sat_width           =   13.5
-almost_treshold     =   15000
-
-
-#quanto mi allontano dal VIPA
-pre_cut             =   False
-cut                 =   True
-
-mean_dist_01 = 37
-mean_dist_23 = 35
-
+to_add              =   eval(inputs['Operatives']['to_add'])
+syg_kwargs          =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs')}
+syg_kwargs_VIPA     =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_VIPA')}
+syg_kwargs_brill    =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_brill')}
+VIPA_treshold       =  inputs.getfloat('Operatives','VIPA_treshold')
+sat_height          =  inputs.getfloat('Operatives','sat_height')
+sat_width           =  inputs.getfloat('Operatives','sat_width')
+almost_treshold     =  inputs.getfloat('Operatives','almost_treshold')
+pre_cut             =  inputs.getboolean('Operatives','pre_cut')
+cut                 =  inputs.getboolean('Operatives','cut')
+mean_dist_01        =  inputs.getfloat('Operatives','mean_dist_01')
+mean_dist_23        =  inputs.getfloat('Operatives','mean_dist_23')
 #markov_fit
-p0_normal = np.array([ 4.90571905e-03,  7.38289631e+00,  1.59995285e-01,  1.72700612e-01,
-        7.15385272e-02,  6.20203995e-03,  9.24556935e+03, -1.18841667e+01,
-        1.70731804e+01,  5.30669237e-02,  0.00000000e+00])
-p0_brillouin = np.array([ 5.08204958e-03,  7.58309761e+00,  1.80541614e-01,  9.02622730e+03,
-       -1.18841667e+01,  1.70731804e+01,  1.43763086e-01,  2.00000000e+00])
-p0_almost = np.array([ 4.87191304e-03,  7.46276272e+00,  1.18952190e-01,  9.96324737e-01,
-        7.98499758e-02,  1.14026466e-01,  1.34402097e+04, -1.18841667e+01,
-        1.70731804e+01,  2.27693384e-01,  0.00000000e+00])
 
-recover_markov = False
-rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', [-2,2])
+recover_markov      = inputs.getboolean('Markov', 'recover_markov')
+p0_normal           = np.array(eval(inputs['Markov']['p0_normal']))
+p0_brillouin        = np.array(eval(inputs['Markov']['p0_brillouin']))
+p0_almost           = np.array(eval(inputs['Markov']['p0_almost']))
+
+rules_markov_bounds =   eval(inputs['Markov']['rules_markov_bounds'])
 #tot fit
-skip_tot = True
-rules_tot_bounds                   =   (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)
+skip_tot            =  inputs.getboolean('Tot', 'skip_tot')
+rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
+
 ############
+#%%
+if sys.argv[1] == 'terminal':
+    print('Sto in modalità terminale\n')
+
+    while True:
+
+        print('Insert analysis directory name.\n Considera che per la presa dati {} ci sono le cartelle:'.format(spectra_filename))
+        os.system('cd '+now_path +' && ls ls -lh -d */' )
+        analysis_name = input()
+
+        if os.path.exists(now_path +analysis_name+'/'):
+
+            print("\nDirectory with such name already exists.\nPress 'o' to overwrite it, or 'n' to generate a new directory for analysis\n")
+            ans = input()
+            if (ans == 'n'):
+
+                print("Insert name of new directory\n")
+                new_name = input()
+                os.system('cd '+now_path +' && mkdir '+new_name)
+                analysis_path = now_path  + new_name +'/'
+                break
+
+            elif (ans == 'o'):
+
+                os.system('cd '+now_path +' && rm -r '+ analysis_name +'_backup/')
+                os.system('cd '+now_path +' && cp -r '+ analysis_name+'_backup/')
+                print('I backed up your directory, for any inconvenience...\n')
+                analysis_path = now_path + analysis_name+ '/'
+
+                break
+            
+            else:
+                print('\nValue inserted not correct\n Try again motherfucker\n')
+        else:
+
+            os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+            analysis_path = now_path + analysis_name+ '/'
+            break
+    
+    print('Inserire partenza del fit (left/right)\n')
+    initial = input()
+
+else: 
+    print('Sto in modalità interattiva')
+    os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+    analysis_path = now_path + 'dabuttare/'
+    initial = 'left'
+
+with open(analysis_path+'config.ini', 'w') as fin:
+    inputs.write(fin)
+
+print('Ho salvato configurazione iniziale in file config.ini in directory {}'.format(analysis_path))
+
+#%%
 
 #variables
 
@@ -100,9 +147,6 @@ n_cols  =   len(dati[0])
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
-
-os.system('cd ' + now_path +' & mkdir ' + now_path+analysis_dir)
-analysis_path            =   now_path +analysis_dir
 
 with open(analysis_path+log_file, 'w') as f_log:
     f_log.write('#This is a log file: you will find info on script run for {}\n'.format(spectra_filename))
@@ -258,7 +302,7 @@ if recover_markov == False:
     _ =  matrix[0][0].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[0][0].bounds['down'].values, matrix[0][0].bounds['up'].values),  max_nfev = 100)
     Plot_Elements_Spectrum(matrix, [(0,0)], fit = 'markov')
     """
-    for (ii,jj) in serpentine_range(len(rows), len(cols), 'right'):
+    for (ii,jj) in serpentine_range(len(rows), len(cols), initial):
 
         if (ii,jj) in boni:
 
@@ -276,7 +320,7 @@ if recover_markov == False:
 
 
             matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
-            
+
             p0s = Get_p0_by_Neighbours(matrix, columns,  ii, jj, len(rows), len(cols))
         
             if (ii,jj) in almost_height:
@@ -369,7 +413,7 @@ if not skip_tot:
     print("\n\nI'm beginning total fit\n\n")
     start = time.process_time()
 
-    for (ii,jj) in serpentine_range(len(rows), len(cols), 'right'):
+    for (ii,jj) in serpentine_range(len(rows), len(cols), initial):
 
         if (ii,jj) in boni:
 

@@ -72,7 +72,7 @@ not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols))
 
 #varie aggiunte a mano
 excluded = saturated.copy()
-excluded = Escludi_a_Mano(too_add, excluded)
+excluded = Escludi_a_Mano(to_add, excluded)
 
 print("Lunghezza di spettri con 4 picchi: {}".format(len(four)))
 print('Lunghezza di spettri con più di 4 picchi: {}'.format(len(more_than_four)))
@@ -244,7 +244,32 @@ print('Ti suggerisco di usare come width di syg_kwargs, quella minore tra i due 
 print('Ti suggerisco di usare come medie distanze da elastici per taglio sulle x_freq:\n {:3.2} per 01\n{:3.2} per 23\n'.format(np.mean(dist_01), np.mean(dist_23)))
 
 
+#%%
+#GENERO FILE di CONFIG
 
+import configparser
+from Alessandria import Get_Around
+
+config = configparser.ConfigParser()
+
+config['I/O'] = {'now_path' : now_path, 'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_filename, 'log_file' : 'log_'+spectra_filename, 'analysis_dir' : analysis_dir}
+
+config['syg_kwargs'] = {'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
+config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
+config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
+
+config['Operatives'] = {'to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
+config['Markov'] = {'recover_markov': False, 'p0_normal' : [ 4.90571905e-03,  7.38289631e+00,  1.59995285e-01,  1.72700612e-01,
+        7.15385272e-02,  6.20203995e-03,  9.24556935e+03, -1.18841667e+01,
+        1.70731804e+01,  5.30669237e-02,  0.00000000e+00], 'p0_brillouin' : [ 5.08204958e-03,  7.58309761e+00,  1.80541614e-01,  9.02622730e+03,
+       -1.18841667e+01,  1.70731804e+01,  1.43763086e-01,  2.00000000e+00], 'p0_almost' : [ 4.87191304e-03,  7.46276272e+00,  1.18952190e-01,  9.96324737e-01,
+        7.98499758e-02,  1.14026466e-01,  1.34402097e+04, -1.18841667e+01,
+        1.70731804e+01,  2.27693384e-01,  0.00000000e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', [-2,2]) }
+
+config['Tot'] = {'skip_tot' : False, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)}
+
+with open(now_path+'config.ini', 'w') as fin:
+    config.write(fin)
 
 #%%
 
@@ -264,3 +289,8 @@ for (ii,jj) in four:
 
 --> poi passi a exp_single
 """
+
+# %%
+
+
+# %%
