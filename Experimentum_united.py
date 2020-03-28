@@ -63,7 +63,7 @@ p0_almost = np.array([ 4.87191304e-03,  7.46276272e+00,  1.18952190e-01,  9.9632
 recover_markov = False
 rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', [-2,2])
 #tot fit
-skip_tot = False
+skip_tot = True
 rules_tot_bounds                   =   (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)
 ############
 
@@ -117,11 +117,12 @@ start = super_start
 
 matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
-for ii in range(len(rows)):
-    for jj in range(len(cols)):
+for (ii, ii_true) in zip(range(len(rows)), rows):  
+    for (jj, jj_true) in zip(range(len(cols)), cols):
+
         print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
         
-        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = pre_cut, cut_range = (200, 600))
+        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = (200, 600))
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
 
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
@@ -132,10 +133,12 @@ for ii in range(len(rows)):
 not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = sat_height, saturation_width = sat_width)
 excluded        = saturated.copy()
 excluded        = Escludi_a_Mano(to_add, excluded)
-for ii in range(len(rows)):  
-    for jj in range(len(cols)):
+
+for (ii, ii_true) in zip(range(len(rows)), rows):  
+    for (jj, jj_true) in zip(range(len(cols)), cols):
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
-            if (ii,jj) not in excluded:
+
+            if (ii_true,jj_true) not in excluded:
                 #Spettri normali , quattro picchi di cui i picchi più alti sono elastici
                 
                 if matrix[ii][jj].n_peaks >= 4:
@@ -273,7 +276,7 @@ if recover_markov == False:
 
 
             matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
-            p0s = Get_p0_by_Neighbours(matrix, ii, jj, len(rows), len(cols))
+            p0s = Get_p0_by_Neighbours(matrix, columns,  ii, jj, len(rows), len(cols))
         
             if (ii,jj) in almost_height:
                 p0s.append(p0_almost)

@@ -1699,13 +1699,13 @@ def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), pix = False
         plt.show()
 
     
-def Get_p0_by_Neighbours(matrix, ii_0, jj_0, n_rows, n_cols):
+def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols):
 
     p0s = []
     neigh = Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols)
     for (ii,jj) in neigh:
         if hasattr(matrix[ii][jj], 'Markov_Fit_Params'):
-            p0s.append(matrix[ii][jj].Markov_Fit_Params.values[0])
+            p0s.append(matrix[ii][jj].Markov_Fit_Params[list(columns)].values[0])
     return p0s
 
 def serpentine_range(n_rows, n_cols, start):
