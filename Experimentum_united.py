@@ -142,11 +142,30 @@ if sys.argv[1] != '-f':
                 if input(): break
             else:
                 print('Did not understand. Retry')
+    
+    print('p0s lenght is {} for normal, {} for brillouin, {} for almost\n'.format(len(p0_normal), len(p0_brillouin), len(p0_almost)))
+    if exclude_delta:
+        print('Exclude delta from fit is active. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            exclude_delta = False
+            print('You will include delta in all fits')
+            time.sleep(2.)
+    else:
+        print('Fit will all be performed with delta. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            exclude_delta = True
+            print('You will exclude delta in all fits')
+            time.sleep(2.)
 
 else:
 
     recover_markov = recover_markov
     skip_tot = skip_tot
+    exclude_delta = exclude_delta
 
 ##
 
