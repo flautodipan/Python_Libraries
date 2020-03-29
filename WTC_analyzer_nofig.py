@@ -120,18 +120,18 @@ for ii in ['1', '1_h', '2', '3', '4', '5', '6']:
 
     # 2) data framing
 
-    df = pd.DataFrame(res, columns=['Residue number'])
+    df = pd.DataFrame(res, columns=['Residue_number'])
 
-    df['WTC identifier'] = [now_name,]*len(res)
-    df['Is Prot'] = [True if ii < idx_RNA_start else False for ii in range(len(res))]
-    df['Is BS'] = [True if r in BS else False for r in res]
+    df['WTC_identifier'] = [now_name,]*len(res)
+    df['Is_Prot'] = [True if ii < idx_RNA_start else False for ii in range(len(res))]
+    df['Is_BS'] = [True if r in BS else False for r in res]
     df['RMSF'] = RMSF_res
-    df['Covariance Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
-    df['Covariance Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
-    df['RMSD Mean'] = [np.mean(WTC_traj.RMSD_eq), ]* len(res)
-    df['RMSD Std'] = [np.std(WTC_traj.RMSD_eq), ]*len(res)
-    df['Gyradium Mean']  = [np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq:]),]*len(res)
-    df['Gyradium Std']  = [np.std(WTC_traj.Gyradium[WTC_traj.idx_eq:]),]*len(res)
+    df['Covariance_Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+    df['Covariance_Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+    df['RMSD_Mean'] = [np.mean(WTC_traj.RMSD_eq), ]* len(res)
+    df['RMSD_Std'] = [np.std(WTC_traj.RMSD_eq), ]*len(res)
+    df['Gyradium_Mean']  = [np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq:]),]*len(res)
+    df['Gyradium_Std']  = [np.std(WTC_traj.Gyradium[WTC_traj.idx_eq:]),]*len(res)
     df['Kd'] = [Kds[now_name],]*len(res)
 
     #3) salvo
@@ -143,3 +143,4 @@ for ii in ['1', '1_h', '2', '3', '4', '5', '6']:
 
 DF = pd.concat([dfs[key] for key in dfs.keys()], ignore_index=True)
 DF.to_json('../GROMACS/WTC_data_frame.json')
+DF.to_csv('../GROMACS/WTC_data_frame.csv', )

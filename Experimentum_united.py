@@ -10,7 +10,6 @@
 #######    ||    
 #######   ||||
 
-
 #libraries
 import      numpy               as      np
 import      matplotlib.pyplot   as      plt
@@ -21,6 +20,67 @@ import      os
 import      configparser
 import      sys
 
+
+#%%
+if sys.argv[1] != '-f':
+
+    print('Sto in modalità terminale\n')
+    spectra_filename = sys.argv[1]
+    now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
+    print("By default setting, I'm taking data from directory {}, hope it's correct\n".format(now_path))
+
+    while True:
+
+        print('Insert analysis directory name.\n Considera che per la presa dati {} ci sono le cartelle:'.format(spectra_filename))
+        os.system('cd '+now_path +' && ls -lh -lt -d */' )
+        analysis_name = input()
+
+        if os.path.exists(now_path +analysis_name+'/'):
+
+            print("\nDirectory with such name already exists.\nPress 'o' to overwrite it, or 'n' to generate a new directory for analysis\n")
+            ans = input()
+            if (ans == 'n'):
+
+                print("Insert name of new directory\n")
+                new_name = input()
+                os.system('cd '+now_path +' && mkdir '+new_name)
+                analysis_path = now_path  + new_name +'/'
+                break
+
+            elif (ans == 'o'):
+
+                os.system('cd '+now_path +' && rm -r '+ analysis_name +'_backup/')
+                os.system('cd '+now_path +' && cp -r '+ analysis_name+' '+analysis_name+'_backup/')
+                print('I backed up your directory, for any inconvenience...\n')
+                analysis_path = now_path + analysis_name+ '/'
+
+                break
+            
+            else:
+                print('\nValue inserted not correct\n Try again motherfucker\n')
+        else:
+
+            os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+            analysis_path = now_path + analysis_name+ '/'
+            break
+
+
+elif sys.argv[1] == '-f': 
+
+    print('Sto in modalità interattiva')
+    spectra_filename = 'ARS_13_02'
+    now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
+    analysis_name = 'dabuttare'
+    os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+    analysis_path = now_path + analysis_name +'/'
+
+else:
+
+    raise ValueError('argv[1] = {} not recognized by software. Check \n'.format(sys.argv[1]))
+
+
+#%%
+
 inputs = configparser.ConfigParser()
 with open('../BRILLOUIN/TDP43/ARS_13_02/config.ini', 'r') as f:
     inputs.read_file(f)
@@ -28,13 +88,13 @@ with open('../BRILLOUIN/TDP43/ARS_13_02/config.ini', 'r') as f:
 ############
 #I/O 
 
-now_path            =   inputs['I/O']['now_path']
-spectra_filename    =   inputs['I/O']['spectra_filename']
 VIPA_filename       =   inputs['I/O']['VIPA_filename']
 log_file            =   'log_'+spectra_filename
 
 #operatives
+initial             =   inputs['Operatives']['initial']
 to_add              =   eval(inputs['Operatives']['to_add'])
+exclude_delta       =   inputs.getboolean('Operatives', 'exclude_delta')
 syg_kwargs          =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs')}
 syg_kwargs_VIPA     =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_VIPA')}
 syg_kwargs_brill    =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_brill')}
@@ -59,58 +119,41 @@ skip_tot            =  inputs.getboolean('Tot', 'skip_tot')
 rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
 
 ############
-#%%
-if sys.argv[1] == 'terminal':
-    print('Sto in modalità terminale\n')
 
-    while True:
+if sys.argv[1] != '-f':
 
-        print('Insert analysis directory name.\n Considera che per la presa dati {} ci sono le cartelle:'.format(spectra_filename))
-        os.system('cd '+now_path +' && ls ls -lh -d */' )
-        analysis_name = input()
-
-        if os.path.exists(now_path +analysis_name+'/'):
-
-            print("\nDirectory with such name already exists.\nPress 'o' to overwrite it, or 'n' to generate a new directory for analysis\n")
-            ans = input()
-            if (ans == 'n'):
-
-                print("Insert name of new directory\n")
-                new_name = input()
-                os.system('cd '+now_path +' && mkdir '+new_name)
-                analysis_path = now_path  + new_name +'/'
+    if recover_markov:
+        print('You decided to recover markov fit from {} \nIt is correct? Enter "ok" if so, any other key to change this option'.format(analysis_path))  
+    else:
+        print('You will perform markov fit. Enter "ok" to continue, any other key to modify this opt\n')
+    if input() == 'ok':
+        pass  
+    else:
+        while(True):
+            print('Inserire "yes" to perform Markov, "no" to not perfom it')
+            inp = input()
+            if inp == 'yes':
+                print('You will perform markov fit')
+                time.sleep(2.)
                 break
-
-            elif (ans == 'o'):
-
-                os.system('cd '+now_path +' && rm -r '+ analysis_name +'_backup/')
-                os.system('cd '+now_path +' && cp -r '+ analysis_name+'_backup/')
-                print('I backed up your directory, for any inconvenience...\n')
-                analysis_path = now_path + analysis_name+ '/'
-
-                break
-            
+            elif inp == 'no':
+                
+                print('You will NOT perform markov fit and recover it from {}\nPress any key too continue otherwise change you analysis path running again script'.format(analysis_path))
+                if input(): break
             else:
-                print('\nValue inserted not correct\n Try again motherfucker\n')
-        else:
+                print('Did not understand. Retry')
 
-            os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
-            analysis_path = now_path + analysis_name+ '/'
-            break
-    
-    print('Inserire partenza del fit (left/right)\n')
-    initial = input()
+else:
 
-else: 
-    print('Sto in modalità interattiva')
-    os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
-    analysis_path = now_path + 'dabuttare/'
-    initial = 'left'
+    recover_markov = recover_markov
+    skip_tot = skip_tot
+
+##
 
 with open(analysis_path+'config.ini', 'w') as fin:
     inputs.write(fin)
-
 print('Ho salvato configurazione iniziale in file config.ini in directory {}'.format(analysis_path))
+
 
 #%%
 
@@ -308,7 +351,7 @@ if recover_markov == False:
 
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
                         
-            if ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
+            if (exclude_delta) & ((ii,jj) not in almost_height):
 
                 columns = cols_mark_nodelta
                 rules_bounds = rules_markov_bounds[0:3]+rules_markov_bounds[6:]
@@ -332,7 +375,7 @@ if recover_markov == False:
 
             matrix[ii][jj].Get_Best_p0(p0s, columns)
             matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
-            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(cols_mark)].values[0], columns)
+            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(columns)].values[0], columns)
             print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
             fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
             matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], columns)
@@ -463,9 +506,3 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3600))
     for (what,t) in tempo:
         f_log.write('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
-
-
-# %%
-
-
-# %%
