@@ -9,6 +9,7 @@ from    scipy.optimize      import least_squares
 from    scipy.optimize      import curve_fit
 from    scipy.io            import loadmat
 import  json
+import  os
 
 from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate, S_Dynamical_Form_Factor_0, S_0_Generate, S_Dynamical_Form_Factor_0_nodelta, S_Dynamical_Form_Factor_2_nodelta     
 from    Alessandria         import *
@@ -1201,7 +1202,7 @@ def Get_Isolated_Elements(excluded):
     
 def Unpack_Fit(fit):
 
-    non_fitted   =   ()
+
     accomplished =   ()
     exceded      =   ()
     fitted       =   ()
@@ -1211,7 +1212,7 @@ def Unpack_Fit(fit):
 
         if  what == 0:
 
-            non_fitted  =    non_fitted +   ((ii,jj),)
+            excluded      =  excluded + ((ii,jj),)
 
         elif what == 1:
             
@@ -1222,12 +1223,8 @@ def Unpack_Fit(fit):
 
             exceded      =   exceded  +   ((ii,jj),)
             fitted            =   fitted + ((ii,jj),)
-
-        elif what == 3:
-
-            excluded      =  excluded + ((ii,jj),)
     
-    return (non_fitted, accomplished, exceded, fitted)
+    return (excluded, accomplished, exceded, fitted)
 
 def Get_Fit_Map(n_rows, n_cols, non_fitted, exceded, excluded, fig = False, path = ''):
 
@@ -1316,7 +1313,7 @@ def Verify_Fit(matrix, boni, fit, parameter, where, treshold):
             plt.title(str((ii,jj)))
 
 
-def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, cmap, inf, sup, Deltas = False,  fig = False, path = './'):
+def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, cmap, inf, sup, analysis_dir, spectra_filename, Deltas = False,  fig = False, path = './'):
 
 
     if fit == 'markov':
@@ -1348,16 +1345,22 @@ def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, cmap, in
     print('Ho trovato {} elementi saturati'.format(len(nans)))
 
     if fig:
+        f, ax = plt.subplots()
 
         cm = plt.get_cmap(cmap)
         cm.set_bad(color='k')
-        plt.matshow(p_map, cmap = cmap)
-        plt.clim(inf, sup)
-        plt.title(value+' '+parameter+' Map')
-        plt.colorbar()
-        plt.xlabel('Row Index')
-        plt.ylabel('Col Idx')
-        plt.savefig(path + fig+'.pdf', format = 'pdf')
+        mappa = ax.matshow(p_map, cmap = cmap)
+        mappa.set_clim(inf, sup)
+        plt.colorbar(mappa)
+        
+        ax.set_title('{}\n{} {} Map for {}'.format(spectra_filename, parameter, value, analysis_dir), pad = 3.5)
+                #ax.set_xticklabels(plt.xticks()[1])
+        ax.tick_params('x', bottom = True, top = True, labelbottom = True, labeltop = False)
+        ax.tick_params('y', left = True, right = True)
+        ax.set_xlabel('Row Index')
+        ax.set_ylabel('Col Idx')
+        plt.tight_layout()
+        plt.savefig(path + fig+'.pdf', format = 'pdf', bbox_to_inches = 'tight')
         plt.show()
 
     return  (p_map, nans)
@@ -1399,7 +1402,7 @@ def Escludi_a_Mano(to_add, excluded):
     excluded.sort()
     return excluded
 
-def Whose_Param_Too_High(param, treshold, fit,  matrix, fitted):
+def Whose_Param_Too_High(param, treshold, fit,  matrix, fitted, verbose = False):
 
 
     if fit == 'markov':
@@ -1412,11 +1415,13 @@ def Whose_Param_Too_High(param, treshold, fit,  matrix, fitted):
     for (ii,jj) in (fitted):
         if getattr(matrix[ii][jj],attr)[param]['Values'] > treshold:
             too_high    =   too_high    +   ((ii,jj),)
-            print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values']))
+            if verbose:
+
+                print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values']))
 
     return too_high
 
-def Whose_Param_Too_Low(param, treshold, fit, matrix, fitted):
+def Whose_Param_Too_Low(param, treshold, fit, matrix, fitted, verbose = False):
 
     if fit == 'markov':
         attr = 'Markov_Fit_Params'
@@ -1429,7 +1434,8 @@ def Whose_Param_Too_Low(param, treshold, fit, matrix, fitted):
     for (ii,jj) in (fitted):
         if getattr(matrix[ii][jj],attr)[param]['Values'] <= treshold:
             too_low    =   too_low    +   ((ii,jj),)
-            print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values'][param]['Values']))
+            if verbose:
+                print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values'][param]['Values']))
 
     return too_low
 
@@ -1500,13 +1506,14 @@ def Save_XY_VIPA(x,y, out_filename = 'xy_VIPA.txt' , path = './'):
                 f_out.write(np.array2string(y, max_line_width = 100000)+'\n')
 
 
-def Save_XY_position(matrix, n_rows, n_cols, out_filename = 'xy.txt' , path = './'):
+def Save_XY_position(matrix, n_rows, n_cols, initial,  x_out_filename = 'x.npy', y_out_filename = 'y.npy', path = './'):
 
-    with open(path+out_filename, 'w') as f_out:
-        f_out.write('# x,y of each spectra in couples of lines\n')
-        for (ii,jj) in serpentine_range(n_rows, n_cols, 'right'):
-                f_out.write(np.array2string(matrix[ii][jj].x_freq, max_line_width = 10000)+'\n')
-                f_out.write(np.array2string(matrix[ii][jj].y, max_line_width = 10000)+'\n')
+    x   =  np.concatenate([[matrix[ii][jj].x_freq for ii,jj in np.ndindex((n_rows, n_cols)) ],])
+    y   =  np.concatenate([[matrix[ii][jj].y for ii,jj in np.ndindex((n_rows, n_cols)) ],])
+
+    np.save(path+x_out_filename, x)
+    np.save(path+y_out_filename, y)
+
 
 def Save_y_markov_fit(matrix,fitted, out_filename = 'y_markov_fit.txt', path = './'):
 
@@ -1729,3 +1736,105 @@ def serpentine_range(n_rows, n_cols, start):
             
             
     return new_boni
+
+def Get_Analysis_Path_From_Terminal(now_path, spectra_filename):
+
+
+    while True:
+
+        print('Insert analysis directory name.\n Considera che per la presa dati {} ci sono le cartelle:'.format(spectra_filename))
+        os.system('cd '+now_path +' && ls -lh -lt -d */' )
+        analysis_name = input()
+
+        if os.path.exists(now_path +analysis_name+'/'):
+
+            print("\nDirectory with such name already exists.\nPress 'o' to overwrite it, or 'n' to generate a new directory for analysis\n")
+            ans = input()
+            if (ans == 'n'):
+
+                print("Insert name of new directory\n")
+                new_name = input()
+                os.system('cd '+now_path +' && mkdir '+new_name)
+                analysis_path = now_path  + new_name +'/'
+                break
+
+            elif (ans == 'o'):
+
+                os.system('cd '+now_path +' && rm -r '+ analysis_name +'_backup/')
+                os.system('cd '+now_path +' && cp -r '+ analysis_name+' '+analysis_name+'_backup/')
+                print('I backed up your directory, for any inconvenience...\n')
+                analysis_path = now_path + analysis_name+ '/'
+
+                break
+            
+            else:
+                print('\nValue inserted not correct\n Try again motherfucker\n')
+        else:
+
+            os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+            analysis_path = now_path + analysis_name+ '/'
+            break
+    
+    return analysis_path
+    
+def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
+
+    delay = 3. #sec
+
+    if recover_markov:
+        print('You decided to recover markov fit from {} \nIt is correct? Enter "ok" if so, any other key to change this option'.format(analysis_path))  
+    else:
+        print('You will perform markov fit. Enter "ok" to continue, any other key to modify this opt\n')
+    if input() == 'ok':
+        pass  
+    else:
+        while(True):
+            print('Inserire "yes" to perform Markov, "no" to not perfom it')
+            inp = input()
+            if inp == 'yes':
+                print('You will perform markov fit')
+                time.sleep(delay)
+                break
+            elif inp == 'no':
+                
+                print('You will NOT perform markov fit and recover it from {}\nPress any key too continue otherwise change you analysis path running again script'.format(analysis_path))
+                if input(): break
+            else:
+                print('Did not understand. Retry')    
+
+    if skip_tot:
+        print('Skipping fit_tot is active. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            skip_tot = False
+            print('You will perform fit tot')
+            time.sleep(delay)
+    else:
+        print('Fit tot will be performed. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            skiptot = True
+            print('You will exclude delta in all fits')
+            time.sleep(delay)
+
+    
+    if exclude_delta:
+        print('Exclude delta from fit is active. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            exclude_delta = False
+            print('You will include delta in all fits')
+            time.sleep(delay)
+    else:
+        print('Fit will all be performed with delta. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            exclude_delta = True
+            print('You will exclude delta in all fits')
+            time.sleep(delay)
+
+    return recover_markov, skip_tot, exclude_delta

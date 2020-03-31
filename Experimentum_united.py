@@ -21,49 +21,32 @@ import      configparser
 import      sys
 
 
+#variables immutable
+
+invisible           =   []
+brillouin_higher    =   []
+brillouin_highest   =   []
+boni                =   []
+excluded            =   []
+almost_height       =   []
+normals             =   []
+
+cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position','delta_width',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols_gauss  = ( 'A', 'mu', 'sigma')
+
 #%%
+#ANALYSIS PATH 
 if sys.argv[1] != '-f':
 
     print('Sto in modalità terminale\n')
     spectra_filename = sys.argv[1]
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
     print("By default setting, I'm taking data from directory {}, hope it's correct\n".format(now_path))
-
-    while True:
-
-        print('Insert analysis directory name.\n Considera che per la presa dati {} ci sono le cartelle:'.format(spectra_filename))
-        os.system('cd '+now_path +' && ls -lh -lt -d */' )
-        analysis_name = input()
-
-        if os.path.exists(now_path +analysis_name+'/'):
-
-            print("\nDirectory with such name already exists.\nPress 'o' to overwrite it, or 'n' to generate a new directory for analysis\n")
-            ans = input()
-            if (ans == 'n'):
-
-                print("Insert name of new directory\n")
-                new_name = input()
-                os.system('cd '+now_path +' && mkdir '+new_name)
-                analysis_path = now_path  + new_name +'/'
-                break
-
-            elif (ans == 'o'):
-
-                os.system('cd '+now_path +' && rm -r '+ analysis_name +'_backup/')
-                os.system('cd '+now_path +' && cp -r '+ analysis_name+' '+analysis_name+'_backup/')
-                print('I backed up your directory, for any inconvenience...\n')
-                analysis_path = now_path + analysis_name+ '/'
-
-                break
-            
-            else:
-                print('\nValue inserted not correct\n Try again motherfucker\n')
-        else:
-
-            os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
-            analysis_path = now_path + analysis_name+ '/'
-            break
-
+    
+    analysis_path = Get_Analysis_Path_From_Terminal(now_path, spectra_filename)
 
 elif sys.argv[1] == '-f': 
 
@@ -71,7 +54,8 @@ elif sys.argv[1] == '-f':
     spectra_filename = 'ARS_13_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
     analysis_name = 'dabuttare'
-    os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+    if not os.path.exists(now_path +analysis_name+'/'):
+        os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
     analysis_path = now_path + analysis_name +'/'
 
 else:
@@ -90,6 +74,7 @@ with open('../BRILLOUIN/TDP43/ARS_13_02/config.ini', 'r') as f:
 
 VIPA_filename       =   inputs['I/O']['VIPA_filename']
 log_file            =   'log_'+spectra_filename
+
 
 #operatives
 initial             =   inputs['Operatives']['initial']
@@ -121,76 +106,21 @@ rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
 ############
 
 if sys.argv[1] != '-f':
-
-    if recover_markov:
-        print('You decided to recover markov fit from {} \nIt is correct? Enter "ok" if so, any other key to change this option'.format(analysis_path))  
-    else:
-        print('You will perform markov fit. Enter "ok" to continue, any other key to modify this opt\n')
-    if input() == 'ok':
-        pass  
-    else:
-        while(True):
-            print('Inserire "yes" to perform Markov, "no" to not perfom it')
-            inp = input()
-            if inp == 'yes':
-                print('You will perform markov fit')
-                time.sleep(2.)
-                break
-            elif inp == 'no':
-                
-                print('You will NOT perform markov fit and recover it from {}\nPress any key too continue otherwise change you analysis path running again script'.format(analysis_path))
-                if input(): break
-            else:
-                print('Did not understand. Retry')
-    
     print('p0s lenght is {} for normal, {} for brillouin, {} for almost\n'.format(len(p0_normal), len(p0_brillouin), len(p0_almost)))
-    if exclude_delta:
-        print('Exclude delta from fit is active. Press "ok" to confirm, any other to change')
-        if input() == 'ok':
-            pass
-        else:
-            exclude_delta = False
-            print('You will include delta in all fits')
-            time.sleep(2.)
-    else:
-        print('Fit will all be performed with delta. Press "ok" to confirm, any other to change')
-        if input() == 'ok':
-            pass
-        else:
-            exclude_delta = True
-            print('You will exclude delta in all fits')
-            time.sleep(2.)
-
+    recover_markov, skip_tot, exclude_delta = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta)
+    inputs.set('Operatives', 'exclude_delta', str(exclude_delta))
+    inputs.set('Markov', 'recover_markov', str(recover_markov))
+    inputs.set('Tot', 'skip_tot', str(skip_tot) )
 else:
 
     recover_markov = recover_markov
     skip_tot = skip_tot
     exclude_delta = exclude_delta
-
-##
-
-with open(analysis_path+'config.ini', 'w') as fin:
-    inputs.write(fin)
-print('Ho salvato configurazione iniziale in file config.ini in directory {}'.format(analysis_path))
+    initial = initial
+    print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
 
 
-#%%
 
-#variables
-
-invisible           =   []
-brillouin_higher    =   []
-brillouin_highest   =   []
-boni                =   []
-excluded            =   []
-almost_height       =   []
-normals             =   []
-
-cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position','delta_width',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
-cols_gauss  = ( 'A', 'mu', 'sigma')
 # %%
 #2) ######################################################################################################################
 
@@ -205,10 +135,15 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(11,34,13,36)
+#matrix, rows, cols = Initialize_Matrix(86,42,88,44)
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
+inputs.set('I/O','n_rows', str(len(rows)))
+inputs.set('I/O','n_cols', str(len(rows)))
 
+with open(analysis_path+'config.ini', 'w') as fin:
+    inputs.write(fin)
+print('Ho salvato configurazione iniziale in file config.ini in directory {}'.format(analysis_path))
 
 with open(analysis_path+log_file, 'w') as f_log:
     f_log.write('#This is a log file: you will find info on script run for {}\n'.format(spectra_filename))
@@ -280,6 +215,7 @@ acq_time    =   time.process_time()-start
 tempo       =   tempo + (('acquisizione', acq_time),)
 print('\nTempo impiegato per acquisizione spettri: {} s\n'.format(acq_time))
 
+#%%
 with open(analysis_path+log_file, 'a') as f_log:
 
     f_log.write('\n\n###############################INFO ON DATA ACQUISITION#######################################\n\n')
@@ -334,7 +270,7 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\nTempo impiegato per modifica spettri: {} s\nTaglio spettri è {}\n\n'.format(mod_time, cut))
 
 # salvo info spettri e VIPA
-Save_XY_position(matrix, len(rows), len(cols), path = analysis_path)
+Save_XY_position(matrix, len(rows), len(cols), initial, path = analysis_path)
 Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
 
 with open(analysis_path+log_file, 'a') as f_log:
@@ -409,6 +345,10 @@ if recover_markov == False:
 
 
             del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
+
+        else:
+
+            fit += (0, (ii,jj), )
 
         #afterfit
 
@@ -525,3 +465,6 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3600))
     for (what,t) in tempo:
         f_log.write('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
+
+
+# %%

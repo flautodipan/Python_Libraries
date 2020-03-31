@@ -130,7 +130,7 @@ plt.tight_layout(rect= (0,0,2,2))
 
 # %%
 # ISTOGRAMMA
-var = DF.Covariance_Mean[DF.Is_BS == True]
+var = DF.z_RMSF
 
 plt.figure()
 plt.hist(var, bins = 50, rwidth=0.8, color = 'maroon')
@@ -163,3 +163,5 @@ for key in WTC_identifier:
     rmsf_BS_rmsf_correlators.append([np.mean(rmsf_BS_rmsf[key]) for key in WTC_identifier])
     rmsf_BS_rmsf_correlations.append(pearsonr(Kds, rmsf_BS_rmsf_correlators[n_step]))
     """
+
+# %%
