@@ -179,6 +179,7 @@ def FP_airy(delta, R):
 import matplotlib.pyplot as plt
 import numpy as np
 
+#%%
 f, ax = plt.subplots(1, 2)
 
 x = np.linspace(-10,10, 1000)
@@ -222,11 +223,23 @@ ax[1].set_xlim(-4.8, 1.8)
 
 #plt.tight_layout(rect=(0,0,2,1.25))
 f.savefig(path+'FP_resolution.pdf', format = 'pdf', bbox_to_inches='tight')
-# %%
-from sympy.solvers import solve
-from sympy import Symbol
-R = Symbol('R')
-F = Symbol('F')
-solve(1 = 4*R/(1-R)**2, R)
 
+# %%
+from Alessandria import gaussian
+f, ax = plt.subplots(1, 1)
+
+x = np.linspace(-10,10, 1000)
+
+y = FP_airy(x, 0.9)[0]*gaussian(x, 0.991, 0, 3.55)
+ax.plot(x, y, color = 'royalblue', ls='dashed', label = 'Airy function')
+ax.plot(x, gaussian(x, 0.961, 0, 3.55), ls= 'solid', label = 'Gaussian envelop', color = 'darkorange')
+
+plt.legend()
+ax.set_ylabel('Intensity')
+ax.set_xlabel('Frequency')
+
+
+ax.set_xticks([])
+ax.set_yticks([])
+plt.savefig(path+'VIPA_Gauss_envelop.pdf', format = 'pdf', quality = 100)
 # %%
