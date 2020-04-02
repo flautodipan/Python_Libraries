@@ -35,6 +35,7 @@ cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position','delta_width',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols_real_nodelta =  ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
 
 #%%
@@ -53,10 +54,11 @@ elif sys.argv[1] == '-f':
     print('Sto in modalità interattiva')
     spectra_filename = 'ARS_13_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-    analysis_name = 'dabuttare'
+    analysis_name = 'analysis_new_nodelta'
     if not os.path.exists(now_path +analysis_name+'/'):
         os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
     analysis_path = now_path + analysis_name +'/'
+
 
 else:
 
@@ -107,19 +109,20 @@ rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
 
 if sys.argv[1] != '-f':
     print('p0s lenght is {} for normal, {} for brillouin, {} for almost\n'.format(len(p0_normal), len(p0_brillouin), len(p0_almost)))
-    recover_markov, skip_tot, exclude_delta = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta)
+    recover_markov, skip_tot, exclude_delta, method = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta)
     inputs.set('Operatives', 'exclude_delta', str(exclude_delta))
     inputs.set('Markov', 'recover_markov', str(recover_markov))
     inputs.set('Tot', 'skip_tot', str(skip_tot) )
 else:
-
+    log_file            =   'inter_log_'+spectra_filename
     recover_markov = recover_markov
-    skip_tot = skip_tot
-    exclude_delta = exclude_delta
+    skip_tot = False
+    exclude_delta = True
     initial = initial
+    method = 'lm'
     print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
 
-
+inputs.set('Markov', 'method', method)
 
 # %%
 #2) ######################################################################################################################
@@ -139,7 +142,7 @@ n_cols  =   len(dati[0])
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
-inputs.set('I/O','n_cols', str(len(rows)))
+inputs.set('I/O','n_cols', str(len(cols)))
 
 with open(analysis_path+'config.ini', 'w') as fin:
     inputs.write(fin)
@@ -307,12 +310,9 @@ if recover_markov == False:
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
                         
             if (exclude_delta) & ((ii,jj) not in almost_height):
-
                 columns = cols_mark_nodelta
                 rules_bounds = rules_markov_bounds[0:3]+rules_markov_bounds[6:]
-
             else:
-
                 columns = cols_mark
                 rules_bounds = rules_markov_bounds
 
@@ -332,7 +332,12 @@ if recover_markov == False:
             matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
             matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(columns)].values[0], columns)
             print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
-            fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
+
+            if method == 'trf':
+                fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
+            elif method == 'lm':
+                fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns,  max_nfev = 100, method = 'lm'),(ii,jj)),)
+
             matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], columns)
             print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
 
@@ -348,7 +353,7 @@ if recover_markov == False:
 
         else:
 
-            fit += (0, (ii,jj), )
+            fit += ((0, (ii,jj)), )
 
         #afterfit
 
@@ -358,6 +363,7 @@ if recover_markov == False:
     with open(analysis_path+log_file, 'a') as f_log:
 
         f_log.write('\n\n#####################   MARKOVIAN     FIT     ##########################\n\n')
+        f_log.write('\nMetodo utilizzato per fit = {}'.format(method))
         f_log.write('\nTempo impiegato per fit markoviani: {:3.2} s'.format(markov_time))
         f_log.write('\n\Tempo impiegato ore = {:3.2}\n'.format(markov_time/3600))
 
@@ -416,22 +422,37 @@ if not skip_tot:
     start = time.process_time()
 
     for (ii,jj) in serpentine_range(len(rows), len(cols), initial):
-
+        
         if (ii,jj) in boni:
 
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
 
+            if 'delta_position' not in matrix[ii][jj].Markov_Fit_Params.keys():
+                columns = cols_real_nodelta
+                rules_bounds = rules_tot_bounds[0:5]+rules_tot_bounds[8:]
+            else:
+                columns = cols_real
+                rules_bounds = rules_tot_bounds
+
             p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
             kernel   = matrix[ii][jj].VIPA_w_j/(p_gauss[0]*(np.exp(-((matrix[ii][jj].w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
 
-            matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params, cols_mark)
-            matrix[ii][jj].Get_Fit_Bounds(rules_tot_bounds, columns = cols_real)
+            matrix[ii][jj].Initials_Parameters_from_Markov()
+            matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
 
-            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss, kernel)
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0[list(columns)].values[0], p_gauss, kernel, columns)
             print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
-            fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
-            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss, kernel)
+
+            if method == 'trf':
+                fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
+            
+            elif method == 'lm':
+                fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, columns, max_nfev = 50, method = 'lm')), (ii,jj)),)
+
+
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss, kernel, columns)
             print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot, kernel))
+            
             #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
 
 

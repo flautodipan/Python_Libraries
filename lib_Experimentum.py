@@ -20,8 +20,8 @@ free_spectral_range =   29.9702547 #GHz
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
-
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols_real_nodelta =  ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
 
 
@@ -527,11 +527,16 @@ class Spectrum  :
 
         self.cost_markov        =   0.5*np.sum(getattr(self, attribute)(p0, self.y)**2)
 
-    def Get_cost_tot(self, p0, p_gauss, kernel):
+    def Get_cost_tot(self, p0, p_gauss, kernel, columns):
         # senza le gauss
 
-        self.cost_tot           =   0.5*np.sum(self.Residuals_NoGauss(p0, self.y, p_gauss, kernel
-        )**2)
+        if columns == cols_real_nodelta:
+            attribute = 'Residuals_NoGauss_nodelta'
+        elif columns == cols_real:
+            attribute = 'Residuals_NoGauss'
+        else : raise ValueError('Choose columns for fit')
+
+        self.cost_tot           =   0.5*np.sum(getattr(self, attribute)(p0, self.y, p_gauss, kernel)**2)
 
     def Get_p0_by_Markov(self, p0, treshold, **kwargs):
 
@@ -566,10 +571,13 @@ class Spectrum  :
         else:
             return  0
 
-    def Initials_Parameters_from_Markov(self, Markov_Fit_Params, columns):
+    def Initials_Parameters_from_Markov(self):
         
+        if 'delta_position' not in self.Markov_Fit_Params.keys():             columns = cols_mark_nodelta
+        else:   columns = cols_mark
+
         self.p0 =  pd.DataFrame({}, columns = cols, index = ['Values'])
-        self.p0.T.Values[list(columns)] = [value for value in Markov_Fit_Params[list(columns)].values[0]]
+        self.p0.T.Values[list(columns)] = [value for value in self.Markov_Fit_Params[list(columns)].values[0]]
         self.p0['Delta']            =   self.p0['Gamma']
         self.p0['tau']              =   [1.]
 
@@ -662,6 +670,21 @@ class Spectrum  :
             self.y_convolution[ii]  =   np.sum(theor*kernel)
 
         self.y_Gauss_convolution   =   p[9] + self.y_convolution*p_gauss[0]*np.exp(-((self.x_freq - p_gauss[1])**2)/(2*(p_gauss[2]**2)))
+
+        return self.y_Gauss_convolution
+    
+    def Convolve_Theoretical_Response_Fast_nodelta (self, p, p_gauss, kernel):
+
+
+        self.y_convolution      =       np.zeros(self.x_freq.size)
+        
+        for  ii in range(len(self.x_freq)):
+
+            delta_w                 =   self.x_freq[ii] -   self.w_j_VIPA
+            theor                   =   S_Dynamical_Form_Factor_2_nodelta(delta_w-p[5], *p[0:5])
+            self.y_convolution[ii]  =   np.sum(theor*kernel)
+
+        self.y_Gauss_convolution   =   p[6] + self.y_convolution*p_gauss[0]*np.exp(-((self.x_freq - p_gauss[1])**2)/(2*(p_gauss[2]**2)))
 
         return self.y_Gauss_convolution
     
@@ -939,23 +962,35 @@ class Spectrum  :
     def Residuals_NoGauss(self, p, y, p_gauss, kernel):
         
         return (self.Convolve_Theoretical_Response_Fast(p, p_gauss, kernel) - y)/self.y_err
+
+    def Residuals_NoGauss_nodelta(self, p, y, p_gauss, kernel):
+        
+        return (self.Convolve_Theoretical_Response_Fast_nodelta(p, p_gauss, kernel) - y)/self.y_err
     
-    def Non_Linear_Least_Squares (self, p_gauss, columns, p0 = 'auto', bound = (-np.inf, np.inf), fig = False, **kwargs):
+    def Non_Linear_Least_Squares (self, p_gauss, columns, p0 = 'auto', fig = False, **kwargs):
 
         """
 
         OSS le kwargs sono quelle di least_squares() di scipy.optimize
 
         """       
+        if columns == cols_real_nodelta:
+            attribute = 'Residuals_NoGauss_nodelta'
+        elif columns == cols_real:
+            attribute = 'Residuals_NoGauss'
+        else : raise ValueError('Choose columns for fit')
+
+
+
         start                   =    time.process_time()
         kernel                  =       self.VIPA_w_j/(p_gauss[0]*(np.exp(-((self.w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
 
 
         if p0 == 'auto':
 
-            self.res_lsq     =    least_squares(self.Residuals_NoGauss, self.p0[list(columns)].values[0], args= ([self.y, p_gauss, kernel]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(getattr(self, attribute), self.p0[list(columns)].values[0], args= ([self.y, p_gauss, kernel]),  **kwargs)    
         else:
-            self.res_lsq     =    least_squares(self.Residuals_NoGauss, p0, args= ([self.y, p_gauss, kernel]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y, p_gauss, kernel]),  **kwargs)    
             
         print("s impiegati a fare il fit totale ", time.process_time()-start, '\n')
 
@@ -1046,10 +1081,10 @@ class Spectrum  :
         
         return (self.Gauss_Convolve_Markovian_Response_Fast_nodelta(p) - y)/self.y_err
     
-    def Non_Linear_Least_Squares_Markov (self, columns, p0 = 'auto',  bound = (-np.inf, np.inf), fig = False, zoom = False, **kwargs):
+    def Non_Linear_Least_Squares_Markov (self, columns, p0 = 'auto', fig = False, zoom = False, **kwargs):
 
         if columns == cols_mark_nodelta:
-            
+
             attribute = 'Residuals_Markov_nodelta'
         elif columns == cols_mark:
             attribute = 'Residuals_Markov'
@@ -1058,9 +1093,9 @@ class Spectrum  :
 
         start            =    time.process_time()
         if p0 == 'auto':
-            self.res_lsq     =    least_squares(getattr(self, attribute), self.p0[list(columns)].values[0], args= ([self.y]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(getattr(self, attribute), self.p0[list(columns)].values[0], args= ([self.y]),  **kwargs)    
         else:
-            self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y]),  **kwargs)    
 
         print("s impiegati a fare il fit ", time.process_time()-start, '\n')
         Parameters       =    self.res_lsq.x
@@ -1553,7 +1588,7 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
         
         print(str((ii,jj)))
         plt.figure()
-        plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, '.', label = 'data')
+        plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, '.', label = 'data', color = 'royalblue')
 
         if fit:
                 
@@ -1565,6 +1600,11 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
                 plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_fit, label = 'tot fit')
                 print(matrix[ii][jj].Tot_Fit_Params)
 
+            elif fit == 'both':
+                plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_markov_fit, label = 'markov fit', color = 'orange', ls = 'solid', linewidth = 5)
+                plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y_fit, label = 'tot fit', color = 'chartreuse', ls = 'dashed')
+                print('Markov parameters:', matrix[ii][jj].Markov_Fit_Params)
+                print('Tot parameters:',matrix[ii][jj].Tot_Fit_Params)
 
         if peaks:
             #anche se non funziona con x_freq i picchi, o forse sì?
@@ -1836,5 +1876,19 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
             exclude_delta = True
             print('You will exclude delta in all fits')
             time.sleep(delay)
+    
+    print('Insert fit algorithm: lm for Levenberg-Marqadrart, trf per trust region')
 
-    return recover_markov, skip_tot, exclude_delta
+    while True:
+        method = input()
+        if method == 'lm':
+            print('You choose lm')
+            time.sleep(delay)
+            break
+        elif method == 'trf':
+            print('You choose trf')
+            time.sleep(delay)
+            break
+        else: print('Did not understand. Retry.\n')
+
+    return recover_markov, skip_tot, exclude_delta, method
