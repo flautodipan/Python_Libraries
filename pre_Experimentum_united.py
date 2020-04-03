@@ -13,21 +13,19 @@ import      os
 
 
 #I/O 
-
-now_path            =   '../BRILLOUIN/TDP43/ARS_13_02/'
-spectra_filename    =   'ARS_13_02'
+spectra_filename    =   'NO_ARS_13_02'
+now_path            =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
 VIPA_filename       =   'NO_ARS_13_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir       =   'analysis_best/'
 
 #operatives
 
 #esclusi a mano
-to_add              =   [(66, 3),]
+to_add              =   [(57,32),]
 
-syg_kwargs_test          =   {'height': 10, 'distance': 31, 'width': 3.}
+syg_kwargs_test          =   {'height': 10, 'distance': 31, 'width': 2.15}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 3.}
+syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.15}
 
 
 # %%
@@ -246,25 +244,30 @@ print('Ti suggerisco di usare come medie distanze da elastici per taglio sulle x
 
 #%%
 #GENERO FILE di CONFIG
+###
+###         CONTROLLA INITIAL !!!!!!!!!!!!
+####
+####
 
 import configparser
 from Alessandria import Get_Around
 
 config = configparser.ConfigParser()
 
-config['I/O'] = {'now_path' : now_path, 'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_filename, 'log_file' : 'log_'+spectra_filename, 'analysis_dir' : analysis_dir}
+config['I/O'] = {'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_filename, 'log_file' : 'log_'+spectra_filename, 'transpose' : True}
 
-config['syg_kwargs'] = {'initial' : 'left', 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
+config['syg_kwargs'] = { 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 
-config['Operatives'] = {'to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
-config['Markov'] = {'recover_markov': False, 'exclude_delta' : True, 'p0_normal' : [ 4.90571905e-03,  7.38289631e+00,  1.59995285e-01,  1.72700612e-01,
-        7.15385272e-02,  6.20203995e-03,  9.24556935e+03, -1.18841667e+01,
-        1.70731804e+01,  5.30669237e-02,  0.00000000e+00], 'p0_brillouin' : [ 5.08204958e-03,  7.58309761e+00,  1.80541614e-01,  9.02622730e+03,
-       -1.18841667e+01,  1.70731804e+01,  1.43763086e-01,  2.00000000e+00], 'p0_almost' : [ 4.87191304e-03,  7.46276272e+00,  1.18952190e-01,  9.96324737e-01,
-        7.98499758e-02,  1.14026466e-01,  1.34402097e+04, -1.18841667e+01,
-        1.70731804e+01,  2.27693384e-01,  0.00000000e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', [-2,2]) }
+config['Operatives'] = {'exclude_delta' : True,'initial' : 'left','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
+config['Markov'] = {'recover_markov': False, 'p0_normal' : [1.26105321e-02, 7.33717349e+00, 1.30492174e-01, 7.22022807e-01,
+       6.41720416e-02, 3.52211669e-02, 4.59179832e+05, 1.40329172e+01,
+       1.45503825e+01, 1.36154857e-01, 6.15295619e+00], 'p0_brillouin' : [ 1.62922985e-02,  7.33142774e+00,  1.36459998e-01, -1.58809315e+00,
+        1.38781654e+01, -1.92343306e-02,  4.59229302e+05, -5.45533093e+00,
+       -5.81412246e+01,  5.87007974e-02,  1.34911991e+01], 'p0_almost' : [ 1.09177261e-02,  7.42162818e+00,  1.46287811e-01,  4.69574445e-01,
+        2.93201059e-01,  1.53148405e-01,  4.55252984e+03,  1.39664010e+01,
+        1.15891733e+01,  6.63924850e-02, -3.66521316e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', [-2,2]) }
 
 config['Tot'] = {'skip_tot' : False, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)}
 

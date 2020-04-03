@@ -52,9 +52,9 @@ if sys.argv[1] != '-f':
 elif sys.argv[1] == '-f': 
 
     print('Sto in modalità interattiva')
-    spectra_filename = 'ARS_13_02'
+    spectra_filename = 'NO_ARS_13_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-    analysis_name = 'analysis_new_nodelta'
+    analysis_name = 'dabuttare'
     if not os.path.exists(now_path +analysis_name+'/'):
         os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
     analysis_path = now_path + analysis_name +'/'
@@ -68,7 +68,7 @@ else:
 #%%
 
 inputs = configparser.ConfigParser()
-with open('../BRILLOUIN/TDP43/ARS_13_02/config.ini', 'r') as f:
+with open(now_path+'config.ini', 'r') as f:
     inputs.read_file(f)
 
 ############
@@ -76,6 +76,10 @@ with open('../BRILLOUIN/TDP43/ARS_13_02/config.ini', 'r') as f:
 
 VIPA_filename       =   inputs['I/O']['VIPA_filename']
 log_file            =   'log_'+spectra_filename
+transpose           =   inputs.getboolean('I/O', 'transpose')
+
+inputs.set('I/O', 'analysis_path', analysis_path)
+inputs.set('I/O', 'now_path', now_path)
 
 
 #operatives
@@ -113,11 +117,12 @@ if sys.argv[1] != '-f':
     inputs.set('Operatives', 'exclude_delta', str(exclude_delta))
     inputs.set('Markov', 'recover_markov', str(recover_markov))
     inputs.set('Tot', 'skip_tot', str(skip_tot) )
+   
 else:
     log_file            =   'inter_log_'+spectra_filename
-    recover_markov = recover_markov
+    recover_markov = False
     skip_tot = False
-    exclude_delta = True
+    exclude_delta = False
     initial = initial
     method = 'lm'
     print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
@@ -135,17 +140,18 @@ inputs.set('Markov', 'method', method)
 
 
 #import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
+dati    =   Import_from_Matlab(spectra_filename, now_path, transpose = transpose, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(86,42,88,44)
-matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+matrix, rows, cols = Initialize_Matrix(0,9,2,11)
+#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
 inputs.set('I/O','n_cols', str(len(cols)))
 
 with open(analysis_path+'config.ini', 'w') as fin:
     inputs.write(fin)
+del inputs
 print('Ho salvato configurazione iniziale in file config.ini in directory {}'.format(analysis_path))
 
 with open(analysis_path+log_file, 'w') as f_log:

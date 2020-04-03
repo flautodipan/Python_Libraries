@@ -168,7 +168,7 @@ def Find_Nearest_Array(array, value):
 
     return (array[idx], idx)
 
-def Import_from_Matlab (mat_filename, path, **kwargs):
+def Import_from_Matlab (mat_filename, path, transpose = True, **kwargs):
 
     """
     Funzione che importa da matlab, file 'path+matfilename'
@@ -185,7 +185,8 @@ def Import_from_Matlab (mat_filename, path, **kwargs):
 
         dati    =   dati[kwargs['var_name']]
     
-    return dati
+    if transpose: return dati.T
+    else:     return dati
 
 
 def Import_TIF(filename, path = './'):

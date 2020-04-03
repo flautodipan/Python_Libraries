@@ -479,10 +479,15 @@ class Spectrum  :
         #      
 
         """
+        if self.n_peaks == 2:
+            #per chi non ha elastici
+            idx_min               =   self.peaks['idx'][0] - int(mean_dist01/2)
+            idx_max               =   self.peaks['idx'][1] + int(mean_dist23/2)
 
-        idx_min               =   self.peaks['idx'][1] - int(mean_dist01/2)
-        idx_max               =   self.peaks['idx'][2] + int(mean_dist23/2)
-    
+        else:
+            idx_min               =   self.peaks['idx'][1] - int(mean_dist01/2)
+            idx_max               =   self.peaks['idx'][2] + int(mean_dist23/2)
+        
         # STIMA PARAMETRI INIZIALI della funzione teorica
         # (quelli che posso, e devo farlo  prima di tagliare)
         
@@ -1588,7 +1593,7 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
         
         print(str((ii,jj)))
         plt.figure()
-        plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, '.', label = 'data', color = 'royalblue')
+        plt.plot(getattr(matrix[ii][jj], attribute), matrix[ii][jj].y, ls = 'dotted', label = 'data',)
 
         if fit:
                 
@@ -1608,7 +1613,7 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
 
         if peaks:
             #anche se non funziona con x_freq i picchi, o forse sì?
-            plt.plot(getattr(matrix[ii][jj], attribute)[matrix[ii][jj].peaks['idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['idx']], '+', label = 'peaks')
+            plt.plot(getattr(matrix[ii][jj], attribute)[matrix[ii][jj].peaks['idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['idx']], '*', label = 'peaks')
         
         plt.title(str((ii,jj)))
         plt.legend()
