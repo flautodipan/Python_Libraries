@@ -122,7 +122,7 @@ else:
     log_file            =   'inter_log_'+spectra_filename
     recover_markov = False
     skip_tot = False
-    exclude_delta = True
+    exclude_delta = False
     initial = initial
     method = 'trf'
     print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
@@ -143,8 +143,8 @@ inputs.set('Markov', 'method', method)
 dati    =   Import_from_Matlab(spectra_filename, now_path, transpose = transpose, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(0,9,2,11)
-matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+matrix, rows, cols = Initialize_Matrix(60, 0, 62 ,2)
+#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
 inputs.set('I/O','n_cols', str(len(cols)))

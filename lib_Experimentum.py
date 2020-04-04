@@ -1189,15 +1189,16 @@ class Spectrum  :
     def Recover_cost_tot(self, cost):
         self.cost_tot = cost
 
-    def Get_Best_p0(self, p0s, columns):
+	def Get_Best_p0(self, p0s, columns):
 
-        costs = np.zeros(len(p0s))
-
-        for (p0, kk) in zip(p0s, range(costs.size)):
-            self.Get_cost_markov(p0, columns)
-            costs[kk] = self.cost_markov
-
-        self.Get_p0(p0s[np.argmin(costs)], columns)
+		print('Ho {} p0:\n{}'.format(len(p0s), str(p0s)))
+		costs = np.zeros(len(p0s))
+		for (p0, kk) in zip(p0s, range(costs.size)):
+			self.Get_cost_markov(p0, columns)
+			costs[kk] = self.cost_markov
+		print('Costano {}'.format(costs))
+		self.Get_p0(p0s[np.argmin(costs)], columns)
+		print('Ho scelto {}'.format(self.p0[list(columns)]))
 
 def Initialize_Matrix(ii_0, jj_0, ii_stop, jj_stop):
 
@@ -1758,14 +1759,20 @@ def Verify_Bounds(matrix, ii, jj, columns):
     
 def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols):
 
-    p0s = []
-    neigh = Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols)
-    
-    for (ii,jj) in neigh:
-        if hasattr(matrix[ii][jj], 'Markov_Fit_Params'):
-            if not (columns == cols_mark) & ('delta_position' not in  getattr(matrix[ii][jj], 'Markov_Fit_Params').keys()):
-                p0s.append(matrix[ii][jj].Markov_Fit_Params[list(columns)].values[0])
-    return p0s
+	p0s = []
+	neigh = Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols)
+
+	for (ii,jj) in neigh:
+		if (hasattr(matrix[ii][jj], 'Markov_Fit_Params')):
+			print(np.isnan(matrix[ii][jj].Markov_Fit_Params.T['StdErrs'].values))
+			if True not in np.isnan(matrix[ii][jj].Markov_Fit_Params.T['StdErrs'].values):
+				condition_delta = ('delta_position' in getattr(matrix[ii][jj], 'Markov_Fit_Params').keys())
+				if (columns == cols_mark_nodelta) | ((columns == cols_mark) & condition_delta) :
+					p0s.append(matrix[ii][jj].Markov_Fit_Params[list(columns)].values[0])
+				else: continue
+			else: pass
+
+	return p0s
 
 def serpentine_range(n_rows, n_cols, start):
 
