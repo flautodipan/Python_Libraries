@@ -261,11 +261,9 @@ config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.0
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 
 config['Operatives'] = {'exclude_delta' : True,'initial' : 'right','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
-config['Markov'] = {'recover_markov': False, 'p0_normal' : [ 1.17459916e-02,  7.38449158e+00,  1.21011836e-01, -1.25547485e+00,
+config['Markov'] = {'recover_markov': False, 'first_normal' :str((0, 75)), 'p0_normal' : [ 1.17459916e-02,  7.38449158e+00,  1.21011836e-01, -1.25547485e+00,
         9.15336899e+00,  9.16811390e-03,  3.63702575e+03,  1.18426495e+01,
-        1.67740108e+01,  2.06052420e-01,  2.00000000e+00], 'p0_brillouin' : [1.26819804e-02, 7.37691957e+00, 1.57798545e-01, 1.01524727e-01,
-       3.60701391e-02, 1.17207865e-02, 3.63702575e+03, 1.18426495e+01,
-       1.67740108e+01, 1.81098222e-01, 2.00000000e+00], 'p0_almost' : [1.27907825e-02, 7.37284107e+00, 1.50050025e-01, 2.09978276e-01,
+        1.67740108e+01,  2.06052420e-01,  2.00000000e+00], 'first_almost': str((1, 10)), 'p0_almost' : [1.27907825e-02, 7.37284107e+00, 1.50050025e-01, 2.09978276e-01,
        7.81550013e-02, 7.88650285e-02, 3.90053727e+03, 1.18426495e+01,
        1.67740108e+01, 3.38293612e-04, 2.00000000e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', [-2,2]) }
 

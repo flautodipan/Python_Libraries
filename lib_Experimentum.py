@@ -522,7 +522,7 @@ class Spectrum  :
             self.y_err          =   self.y_err[idx_min:idx_max]
 
 
-    def Get_cost_markov(self, p0, columns):
+    def Get_cost_markov(self, p0, columns, ret = False):
         
         if columns == cols_mark_nodelta:
             attribute = 'Residuals_Markov_nodelta'
@@ -530,8 +530,9 @@ class Spectrum  :
             attribute = 'Residuals_Markov'
         else : raise ValueError('Choose columns for cost')
 
-        self.cost_markov        =   0.5*np.sum(getattr(self, attribute)(p0, self.y)**2)
-
+        if ret: return 0.5*np.sum(getattr(self, attribute)(p0, self.y)**2)
+        else:  self.cost_markov        =   0.5*np.sum(getattr(self, attribute)(p0, self.y)**2)
+                
     def Get_cost_tot(self, p0, p_gauss, kernel, columns):
         # senza le gauss
 
@@ -1189,15 +1190,17 @@ class Spectrum  :
     def Recover_cost_tot(self, cost):
         self.cost_tot = cost
 
-    def Get_Best_p0(self, p0s, columns):
-        print('Ho {} p0:\n{}'.format(len(p0s), str(p0s)))
-        costs = np.zeros(len(p0s))
-        for (p0, kk) in zip(p0s, range(costs.size)):
-            self.Get_cost_markov(p0, columns)
-            costs[kk] = self.cost_markov
-        print('Costano {}'.format(costs))
-        self.Get_p0(p0s[np.argmin(costs)], columns)
-        print('Ho scelto {}'.format(self.p0[list(columns)]))
+    def Get_Best_p0(self, p0s, p_gauss, columns):
+        
+        costs = 0
+        for p in p0s.items():
+            p[1][['mu', 'sigma']]  = p_gauss
+            cost = np.inf
+            if  self.Get_cost_markov(p[1].values, columns, ret = True) < cost:
+                key = p[0]
+                cost = self.Get_cost_markov(p[1].values, columns)
+
+        self.Get_p0(p0s[key].values, columns)
 
 def Initialize_Matrix(ii_0, jj_0, ii_stop, jj_stop):
 
@@ -1756,9 +1759,9 @@ def Verify_Bounds(matrix, ii, jj, columns):
     
     print(pd.concat((matrix[ii][jj].bounds['down'], matrix[ii][jj].p0[list(columns)].T, matrix[ii][jj].bounds['up']), axis = 1))
     
-def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols):
+def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols, p_gauss):
 
-	p0s = []
+	p0s = {}
 	neigh = Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols)
 
 	for (ii,jj) in neigh:
@@ -1767,9 +1770,9 @@ def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols):
 			if True not in np.isnan(matrix[ii][jj].Markov_Fit_Params.T['StdErrs'].values):
 				condition_delta = ('delta_position' in getattr(matrix[ii][jj], 'Markov_Fit_Params').keys())
 				if (columns == cols_mark_nodelta) | ((columns == cols_mark) & condition_delta) :
-					p0s.append(matrix[ii][jj].Markov_Fit_Params[list(columns)].values[0])
+					p0s[str((ii,jj))] = matrix[ii][jj].Markov_Fit_Params.T['Values'][list(columns)]
 				else: continue
-			else: pass
+			else: continue
 
 	return p0s
 

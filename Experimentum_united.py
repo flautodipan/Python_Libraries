@@ -68,6 +68,7 @@ else:
 #%%
 
 inputs = configparser.ConfigParser()
+
 with open(now_path+'config.ini', 'r') as f:
     inputs.read_file(f)
 
@@ -100,9 +101,10 @@ mean_dist_23        =  inputs.getfloat('Operatives','mean_dist_23')
 #markov_fit
 
 recover_markov      = inputs.getboolean('Markov', 'recover_markov')
-p0_normal           = np.array(eval(inputs['Markov']['p0_normal']))
-p0_brillouin        = np.array(eval(inputs['Markov']['p0_brillouin']))
-p0_almost           = np.array(eval(inputs['Markov']['p0_almost']))
+first_normal        = inputs.get('Markov', 'first_normal')
+first_almost         = inputs.get('Markov', 'first_almost')
+p0_normal           = {first_normal : pd.Series(np.array(eval(inputs['Markov']['p0_normal'])), list(cols_mark_nodelta) if exclude_delta else list(cols_mark))}
+p0_almost           = {first_almost : pd.Series(np.array(eval(inputs['Markov']['p0_almost'])), list(cols_mark_nodelta) if exclude_delta else list(cols_mark))}
 
 rules_markov_bounds =   eval(inputs['Markov']['rules_markov_bounds'])
 #tot fit
@@ -112,7 +114,7 @@ rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
 ############
 
 if sys.argv[1] != '-f':
-    print('p0s lenght is {} for normal, {} for brillouin, {} for almost\n'.format(len(p0_normal), len(p0_brillouin), len(p0_almost)))
+    print('p0s lenght is {} for normal, {} for almost\n'.format(len(p0_normal), len(p0_almost)))
     recover_markov, skip_tot, exclude_delta, method = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta)
     inputs.set('Operatives', 'exclude_delta', str(exclude_delta))
     inputs.set('Markov', 'recover_markov', str(recover_markov))
@@ -143,8 +145,8 @@ inputs.set('Markov', 'method', method)
 dati    =   Import_from_Matlab(spectra_filename, now_path, transpose = transpose, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-matrix, rows, cols = Initialize_Matrix(60, 0, 62 ,2)
-#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+#matrix, rows, cols = Initialize_Matrix(0,9,2,11)
+matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
 inputs.set('I/O','n_cols', str(len(cols)))
@@ -152,6 +154,7 @@ inputs.set('I/O','n_cols', str(len(cols)))
 with open(analysis_path+'config.ini', 'w') as fin:
     inputs.write(fin)
 del inputs
+
 print('Ho salvato configurazione iniziale in file config.ini in directory {}'.format(analysis_path))
 
 with open(analysis_path+log_file, 'w') as f_log:
@@ -302,7 +305,7 @@ if recover_markov == False:
     fit                 =   ()
     start = time.process_time()
     isolated = Get_Isolated_Elements(excluded)
-    
+    p_gauss = p0_normal[first_normal][['mu', 'sigma']].values
  
     for (ii,jj) in serpentine_range(len(rows), len(cols), initial):
 
@@ -320,16 +323,15 @@ if recover_markov == False:
 
             matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
 
-            p0s = Get_p0_by_Neighbours(matrix, columns,  ii, jj, len(rows), len(cols))
+            p0s = Get_p0_by_Neighbours(matrix, columns,  ii, jj, len(rows), len(cols), p_gauss)
         
             if (ii,jj) in almost_height:
-                p0s.append(p0_almost)
-            elif ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
-                p0s.append(p0_brillouin)
-            else:#normals
-                p0s.append(p0_normal)
+                p0s.update(p0_almost)
+            else:
+                p0s.update(p0_normal)
 
-            matrix[ii][jj].Get_Best_p0(p0s, columns)
+
+            matrix[ii][jj].Get_Best_p0(p0s, p_gauss, columns)
             matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
             matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(columns)].values[0], columns)
             print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
@@ -343,12 +345,11 @@ if recover_markov == False:
             print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
 
             if (ii,jj) in almost_height:
-                p0_almost = matrix[ii][jj].Markov_Fit_Params.values[0]
-            elif ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
-                p0_brillouin =  matrix[ii][jj].Markov_Fit_Params.values[0]
+                p0_almost = {str((ii,jj)) : matrix[ii][jj].Markov_Fit_Params.T['Values'][list(columns)]}
             else:
-                p0_normal =  matrix[ii][jj].Markov_Fit_Params.values[0]
+                p0_normal = {str((ii,jj)) : matrix[ii][jj].Markov_Fit_Params.T['Values'][list(columns)]}
 
+            p_gauss = matrix[ii][jj].Markov_Fit_Params.T['Values'][['mu', 'sigma']]
 
             del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
 
@@ -420,6 +421,7 @@ if not skip_tot:
         
     fit_tot = ()
     print("\n\nI'm beginning total fit\n\n")
+
     start = time.process_time()
 
     for (ii,jj) in serpentine_range(len(rows), len(cols), initial):
@@ -487,6 +489,9 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3600))
     for (what,t) in tempo:
         f_log.write('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
+
+
+# %%
 
 
 # %%
