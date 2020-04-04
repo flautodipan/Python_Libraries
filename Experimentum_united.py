@@ -122,9 +122,9 @@ else:
     log_file            =   'inter_log_'+spectra_filename
     recover_markov = False
     skip_tot = False
-    exclude_delta = False
+    exclude_delta = True
     initial = initial
-    method = 'lm'
+    method = 'trf'
     print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
 
 inputs.set('Markov', 'method', method)
@@ -143,8 +143,8 @@ inputs.set('Markov', 'method', method)
 dati    =   Import_from_Matlab(spectra_filename, now_path, transpose = transpose, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-matrix, rows, cols = Initialize_Matrix(0,9,2,11)
-#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+#matrix, rows, cols = Initialize_Matrix(0,9,2,11)
+matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
 inputs.set('I/O','n_cols', str(len(cols)))
@@ -303,12 +303,7 @@ if recover_markov == False:
     start = time.process_time()
     isolated = Get_Isolated_Elements(excluded)
     
-    # je faccio fa un primo giro perchè no, così lo controllo e miglioro la mia stima di p0
-    """
-    matrix[0][0].Get_Fit_Bounds(percents_markov, cols_mark)
-    _ =  matrix[0][0].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[0][0].bounds['down'].values, matrix[0][0].bounds['up'].values),  max_nfev = 100)
-    Plot_Elements_Spectrum(matrix, [(0,0)], fit = 'markov')
-    """
+ 
     for (ii,jj) in serpentine_range(len(rows), len(cols), initial):
 
         if (ii,jj) in boni:

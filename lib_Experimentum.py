@@ -1106,12 +1106,14 @@ class Spectrum  :
         Parameters       =    self.res_lsq.x
         
         try:
+
             J                =    self.res_lsq.jac
             cov              =    np.linalg.inv(J.T.dot(J))
             Delta_Parameters =    np.sqrt(np.diagonal(cov))
 
         except  np.linalg.LinAlgError as err:
 
+            
             if 'Singular matrix' in str(err):
                 print('Ho trovato matrice singolare')
                 Delta_Parameters        =   np.empty(len(self.p0[list(columns)].values[0]))
@@ -1750,6 +1752,9 @@ def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), pix = False
         plt.legend()
         plt.show()
 
+def Verify_Bounds(matrix, ii, jj, columns):
+    
+    print(pd.concat((matrix[ii][jj].bounds['down'], matrix[ii][jj].p0[list(columns)].T, matrix[ii][jj].bounds['up']), axis = 1))
     
 def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols):
 
