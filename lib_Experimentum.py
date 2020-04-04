@@ -1189,15 +1189,15 @@ class Spectrum  :
     def Recover_cost_tot(self, cost):
         self.cost_tot = cost
 
-def Get_Best_p0(self, p0s, columns):
-    print('Ho {} p0:\n{}'.format(len(p0s), str(p0s)))
-    costs = np.zeros(len(p0s))
-    for (p0, kk) in zip(p0s, range(costs.size)):
-        self.Get_cost_markov(p0, columns)
-        costs[kk] = self.cost_markov
-    print('Costano {}'.format(costs))
-    self.Get_p0(p0s[np.argmin(costs)], columns)
-    print('Ho scelto {}'.format(self.p0[list(columns)]))
+    def Get_Best_p0(self, p0s, columns):
+        print('Ho {} p0:\n{}'.format(len(p0s), str(p0s)))
+        costs = np.zeros(len(p0s))
+        for (p0, kk) in zip(p0s, range(costs.size)):
+            self.Get_cost_markov(p0, columns)
+            costs[kk] = self.cost_markov
+        print('Costano {}'.format(costs))
+        self.Get_p0(p0s[np.argmin(costs)], columns)
+        print('Ho scelto {}'.format(self.p0[list(columns)]))
 
 def Initialize_Matrix(ii_0, jj_0, ii_stop, jj_stop):
 
