@@ -1520,12 +1520,22 @@ def Verify_Initial_Conditions(matrix, ver = (), init = ()):
 
     print("Il parametro è :", matrix[init[0]][init[1]].p0.values[0])
 
+<<<<<<< HEAD
 def Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.hdf' , path = './'):
 
     for ii,jj in fitted:
 
         matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
 
+=======
+
+def Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.hdf' , path = './'):
+
+    for ii,jj in fitted:
+
+        matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
+
+>>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
     print('Salvato parametri markov fit su file '+path+out_filename)
 
 def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.hdf' , path = './'):
@@ -1535,7 +1545,10 @@ def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.hdf' 
         matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
 
     print('Salvato parametri markov fit su file '+path+out_filename)
+<<<<<<< HEAD
 
+=======
+>>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
 
 def Save_XY_VIPA(x,y, out_filename = 'xy_VIPA.txt' , path = './'):
 
@@ -1789,6 +1802,7 @@ def serpentine_range(n_rows, n_cols, start):
             
     return new_boni
 
+<<<<<<< HEAD
 def Get_Analysis_Path_From_Terminal(now_path, spectra_filename):
 
 
@@ -1905,6 +1919,8 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
 
     return recover_markov, skip_tot, exclude_delta, method
 
+=======
+>>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
 
 def Save_Spectra_Info(matrix, n_rows, n_cols, out_filename = 'spectra.hdf', path = '/.'):
 
@@ -1920,5 +1936,8 @@ def Save_Spectra_Info(matrix, n_rows, n_cols, out_filename = 'spectra.hdf', path
         if hasattr(d, 'y_fit') : df['y_tot_fit'] = d.y_fit
         
         df.to_hdf(path+out_filename, key=d.name)
+<<<<<<< HEAD
 
     
+=======
+>>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
