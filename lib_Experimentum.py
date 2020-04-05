@@ -1431,34 +1431,22 @@ def Verify_Initial_Conditions(matrix, ver = (), init = ()):
 
     print("Il parametro è :", matrix[init[0]][init[1]].p0.values[0])
 
-def Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt' , path = './'):
 
-    """
-    Salvo nella cartella di analisi un file di nome 'markov_fit_params.txt' nella cartella di analisi associata alla presa dati
-    la struttura è 
-    ogni riga contiene un dizionario già strutturato per file .json che DataFrame è in grado di acquisire
+def Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.hdf' , path = './'):
 
-    FONDAMENTALE è l'ordine delle righe che corrisponde a quello di fitted()
+    for ii,jj in fitted:
 
-    """
+        matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
 
-    with open(path+out_filename, 'w') as f_out:
+    print('Salvato parametri markov fit su file '+path+out_filename)
 
-        for (ii,jj) in fitted:
-   
-            f_out.write(json.dumps(matrix[ii][jj].Markov_Fit_Params.to_dict())+'\n')
+def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.hdf' , path = './'):
+    
+    for ii,jj in fitted:
 
-    print('Stampato parametri fit su file '+path+out_filename)
+        matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
 
-def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.txt' , path = './'):
-
-    with open(path+out_filename, 'w') as f_out:
-
-        for (ii,jj) in fitted:
-   
-            f_out.write(json.dumps(matrix[ii][jj].Tot_Fit_Params.to_dict())+'\n')
-
-    print('Stampato parametri fit su file '+path+out_filename)
+    print('Salvato parametri markov fit su file '+path+out_filename)
 
 def Save_XY_VIPA(x,y, out_filename = 'xy_VIPA.txt' , path = './'):
 
@@ -1676,3 +1664,19 @@ def serpentine_range(n_rows, n_cols, start):
             
             
     return new_boni
+
+
+def Save_Spectra_Info(matrix, n_rows, n_cols, out_filename = 'spectra.hdf', path = '/.'):
+
+    for ii,jj in np.ndindex(n_rows, n_cols):
+
+        d = matrix[ii][jj]
+        df = pd.DataFrame()
+
+        df['x_freq'] = d.x_freq
+        df['y'] = d.y
+
+        if hasattr(d, 'y_markov_fit') : df['y_markov_fit'] = d.y_markov_fit
+        if hasattr(d, 'y_fit') : df['y_tot_fit'] = d.y_fit
+        
+        df.to_hdf(path+out_filename, key=d.name)
