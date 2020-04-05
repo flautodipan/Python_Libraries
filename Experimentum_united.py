@@ -23,20 +23,20 @@ import      os
 ############
 
 #I/O 
-now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
-spectra_filename    =   'NO_ARS_12_02'
-VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
+now_path        =   '../BRILLOUIN/TDP43/NO_ARS_13_02/'
+spectra_filename    =   'NO_ARS_13_02'
+VIPA_filename       =   'NO_ARS_13_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
 analysis_dir        =   'analysis/'
 
 #operatives
 
 #esclusi a mano
-to_add              =   []
+to_add              =   [(0,58), (57, 32)]
 
-syg_kwargs          =   {'height': 119, 'distance': 31, 'width': 3.}
+syg_kwargs          =   {'height': 82.17, 'distance': 30.69, 'width': 2.158}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 23, 'distance': 31, 'width': 3.}
+syg_kwargs_brill    =  {'height': 13.86, 'distance': 30.69, 'width': 2.158}
 VIPA_treshold       =   6
 sat_height          =   50000
 sat_width           =   13.5
@@ -46,18 +46,13 @@ almost_treshold     =   15000
 pre_cut             =   False
 cut                 =   True
 
-mean_dist_01 = 37
-mean_dist_23 = 34
+mean_dist_01 = 36.22
+mean_dist_23 = 33.87
+
 #markov_fit
-p0_normal = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
-        1.448930518e-01,  8.34614271,  4.79747192e+03, -1.00904973e+01,
-        1.58007162e+01,  2.11019859e-01, -3.10388495e-01])
-p0_brillouin = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
-        1.48930518e-01,  2.34614271e-01,  4.79747192e+03, -1.00904973e+01,
-        1.58007162e+01,  2.11019859e-01, -3.10388495e-01])
-p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.97510814e+00,
-        5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
-        1.59365161e+01,  2.77695117e-01,  6.43211621e+00])
+p0_normal = np.array([0.0117459916, 7.38449158, 0.121011836, -1.25547485, 9.15336899, 0.0091681139, 3637.02575, 11.8426495, 16.7740108, 0.20605242, 2.0])
+p0_brillouin = np.array([0.0126819804, 7.37691957, 0.157798545, 0.101524727, 0.0360701391, 0.0117207865, 3637.02575, 11.8426495, 16.7740108, 0.181098222, 2.0])
+p0_almost = np.array([0.0127907825, 7.37284107, 0.150050025, 0.209978276, 0.0781550013, 0.0788650285, 3900.53727, 11.8426495, 16.7740108, 0.000338293612, 2.0])
 
 recover_markov = False
 rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', 'inf')
