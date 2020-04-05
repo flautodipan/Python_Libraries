@@ -104,7 +104,7 @@ recover_markov      = inputs.getboolean('Markov', 'recover_markov')
 first_normal        = inputs.get('Markov', 'first_normal')
 first_almost         = inputs.get('Markov', 'first_almost')
 p0_normal           = {first_normal : pd.Series(np.array(eval(inputs['Markov']['p0_normal'])), list(cols_mark_nodelta) if exclude_delta else list(cols_mark))}
-p0_almost           = {first_almost : pd.Series(np.array(eval(inputs['Markov']['p0_almost'])), list(cols_mark_nodelta) if exclude_delta else list(cols_mark))}
+p0_almost           = {first_almost : pd.Series(np.array(eval(inputs['Markov']['p0_almost'])), list(cols_mark))}
 
 rules_markov_bounds =   eval(inputs['Markov']['rules_markov_bounds'])
 #tot fit

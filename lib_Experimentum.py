@@ -1151,14 +1151,14 @@ class Spectrum  :
             return 2
         else: return 1
     
-    def Recover_Markov_Fit_Params(self, dictio_string):
+    def Recover_Markov_Fit_Params(self, markov):
 
         """
         Funzione che tramite libreria json ricostruisce DataFrame Markov_Fit_Params per l'oggetto
         dictio_string contiene sotto forma di stringa le info in formato json (che sono un dizionario)
 
         """
-        self.Markov_Fit_Params =   pd.DataFrame(json.loads(dictio_string))
+        self.Markov_Fit_Params =   markov
 
     def Recover_y_markov_fit(self, y_markov_fit):
 

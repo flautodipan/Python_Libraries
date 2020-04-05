@@ -13,7 +13,7 @@ import      os
 
 
 #I/O 
-spectra_filename    =   'NO_ARS_13_02'
+spectra_filename    =   'ARS_13_02'
 now_path            =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
 VIPA_filename       =   'NO_ARS_13_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
@@ -21,7 +21,7 @@ log_file            =   'log_'+spectra_filename
 #operatives
 
 #esclusi a mano
-to_add              =   [(57, 32),]
+to_add              =   []
 syg_kwargs_test          =   {'height': 10, 'distance': 31, 'width': 2.1}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
 syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
@@ -138,7 +138,7 @@ if len(four) != (dim -len(excluded)):
     print('\nHo trovato {} spettri di cui non sono riuscito a trovare 4 picchi\n'.format(len(bizarre)))
     print(bizarre)
     
-
+to_add += bizarre
 #%%
 # STATSTICHE:     costruisco variabili che mi permettono di studiare le posizioni relative
 #                 e le altezze dei vari picchi -> individuo gli anomali e i parametri operativi
@@ -278,12 +278,12 @@ config['syg_kwargs'] = { 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'wid
 config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 
-config['Operatives'] = {'exclude_delta' : False,'initial' : 'right','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
+config['Operatives'] = {'exclude_delta' : True,'initial' : 'right','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
 config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
         1.448930518e-01,  8.34614271,  4.79747192e+03, -1.00904973e+01,
         1.58007162e+01,  2.11019859e-01, -3.10388495e-01], 'first_almost': first_almost, 'p0_almost' : [ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.97510814e+00,
         5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
-        1.59365161e+01,  2.77695117e-01,  6.43211621e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-15,15] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', [-2,2]) }
+        1.59365161e+01,  2.77695117e-01,  6.43211621e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
 
 config['Tot'] = {'skip_tot' : False, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)}
 
