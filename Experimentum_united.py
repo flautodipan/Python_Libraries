@@ -54,7 +54,7 @@ elif sys.argv[1] == '-f':
     print('Sto in modalità interattiva')
     spectra_filename = 'NO_ARS_13_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-    analysis_name = 'dabuttare'
+    analysis_name = 'prova'
     if not os.path.exists(now_path +analysis_name+'/'):
         os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
     analysis_path = now_path + analysis_name +'/'
@@ -145,8 +145,8 @@ inputs.set('Markov', 'method', method)
 dati    =   Import_from_Matlab(spectra_filename, now_path, transpose = transpose, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(0,9,2,11)
-matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+matrix, rows, cols = Initialize_Matrix(0,9,2,11)
+#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
 inputs.set('I/O','n_cols', str(len(cols)))
@@ -195,7 +195,11 @@ for (ii, ii_true) in zip(range(len(rows)), rows):
                 #Spettri normali , quattro picchi di cui i picchi più alti sono elastici
                 
                 if matrix[ii][jj].n_peaks >= 4:
-                    matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
+                    if matrix[ii][jj].n_peaks == 5:
+                        matrix[ii][jj].Exclude_Glass_Peak()
+                    else:
+                        matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
+
                     if matrix[ii][jj].Check_Brillouin_Distances(average = 70, stdev = 70/10):
                         invisible += [(ii,jj), ]
                     else: 
@@ -241,7 +245,8 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write(str(invisible))
     f_log.write('\nTotale spettri boni :  {} di cui\n'.format(len(boni)))
     f_log.write('\nTotale spettri con elastici più alti di {} : {}\n'.format(almost_treshold, len(almost_height)))
-    f_log.write('\nTotale spettri normali : {}\n'.format(len(normals)))
+    f_log.write('\nTotale spettri normali : {}\n'.format(len(normals))) 
+    f_log.write('\nTotale spettri almost height : {}\n'.format(len(almost_height)))
     f_log.write('\n\nTotale spettri : {}\ndi cui {} inutilizzabili, '.format(dim, len(invisible)+len(saturated)))
     f_log.write('ossia il %3.2f percento\n'%(float(len(invisible)+len(saturated))*100/dim))
     f_log.write('Di cui il {} invisibili e il {} saturati\n\n'.format(len(invisible)*100/dim, len(saturated)*100/dim))
@@ -282,8 +287,8 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\nTempo impiegato per modifica spettri: {} s\nTaglio spettri è {}\n\n'.format(mod_time, cut))
 
 # salvo info spettri e VIPA
-Save_XY_position(matrix, len(rows), len(cols), initial, path = analysis_path)
-Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
+#Save_XY_position(matrix, len(rows), len(cols), initial, path = analysis_path)
+#Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
 
 with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\n\nI saved xy info on xy.txt and xy_VIPA.txt in your analysis directory {}\n\n'.format(analysis_path))
@@ -374,8 +379,9 @@ if recover_markov == False:
     non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
 
     #too_markov         =   Whose_Param_Too_High('Gamma', 2., matrix, fitted)
+    Save_Spectra_Info(matrix, len(rows), len(cols), path = analysis_path)
     Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
-    Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt', path = analysis_path)
+    Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.hdf', path = analysis_path)
     Save_y_markov_fit(matrix, fitted, path = analysis_path)
     Save_cost_markov(matrix, fitted, path = analysis_path)
     print('\nHo salvato informazioni fit markoviano su {}\n'.format(analysis_path))
@@ -467,7 +473,8 @@ if not skip_tot:
     non_fitted_tot, accomplished_tot, exceded_tot, fitted_tot = Unpack_Fit(fit_tot)
 
     Save_Fit_Info(fit_tot, filename = 'tot_fit.txt', path=analysis_path)
-    Save_Tot_Fit_Parameters(matrix, fitted_tot, out_filename = 'tot_fit_params.txt', path = analysis_path)
+    Save_Tot_Fit_Parameters(matrix, fitted_tot, out_filename = 'tot_fit_params.hdf', path = analysis_path)
+    Save_Spectra_Info(matrix, len(rows), len(cols), path = analysis_path)
     Save_y_fit(matrix, fitted_tot, path = analysis_path)
     Save_cost_tot(matrix, fitted_tot, path = analysis_path)
 

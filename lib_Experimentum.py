@@ -109,6 +109,10 @@ class Spectrum  :
         """
         self.peaks      =   Find_Highest_n_peaks(self.peaks, 4)
         self.n_peaks    =   self.peaks['idx'].size
+    
+    def Exclude_Glass_Peak(self):
+
+        self.peaks      =   Find_First_n_peaks(self.peaks, 4, exclude = [3])
         
     def Get_Spectrum_4_Peaks_by_Order(self):
 
@@ -480,6 +484,7 @@ class Spectrum  :
 
         """
         if self.n_peaks == 2:
+
             #per chi non ha elastici
             idx_min               =   self.peaks['idx'][0] - int(mean_dist01/2)
             idx_max               =   self.peaks['idx'][1] + int(mean_dist23/2)
@@ -1212,8 +1217,9 @@ def Initialize_Matrix(ii_0, jj_0, ii_stop, jj_stop):
     for ii in rows:
         riga = ()
         for jj in cols:
-            riga  = riga + (Spectrum('Element ('+str(ii)+','+str(jj)+')'),)
-        matrix = matrix + (riga,)
+            riga  = riga + (Spectrum(name = str((ii,jj))),)
+        
+        matrix += (riga,)
 
     print('Ho inizializzato una matrice %dx%d, per un totale di %d spettri'%(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])  ))
 
@@ -1514,34 +1520,22 @@ def Verify_Initial_Conditions(matrix, ver = (), init = ()):
 
     print("Il parametro è :", matrix[init[0]][init[1]].p0.values[0])
 
-def Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.txt' , path = './'):
+def Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.hdf' , path = './'):
 
-    """
-    Salvo nella cartella di analisi un file di nome 'markov_fit_params.txt' nella cartella di analisi associata alla presa dati
-    la struttura è 
-    ogni riga contiene un dizionario già strutturato per file .json che DataFrame è in grado di acquisire
+    for ii,jj in fitted:
 
-    FONDAMENTALE è l'ordine delle righe che corrisponde a quello di fitted()
+        matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
 
-    """
+    print('Salvato parametri markov fit su file '+path+out_filename)
 
-    with open(path+out_filename, 'w') as f_out:
+def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.hdf' , path = './'):
+    
+    for ii,jj in fitted:
 
-        for (ii,jj) in fitted:
-   
-            f_out.write(json.dumps(matrix[ii][jj].Markov_Fit_Params.to_dict())+'\n')
+        matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
 
-    print('Stampato parametri fit su file '+path+out_filename)
+    print('Salvato parametri markov fit su file '+path+out_filename)
 
-def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.txt' , path = './'):
-
-    with open(path+out_filename, 'w') as f_out:
-
-        for (ii,jj) in fitted:
-   
-            f_out.write(json.dumps(matrix[ii][jj].Tot_Fit_Params.to_dict())+'\n')
-
-    print('Stampato parametri fit su file '+path+out_filename)
 
 def Save_XY_VIPA(x,y, out_filename = 'xy_VIPA.txt' , path = './'):
 
@@ -1766,7 +1760,6 @@ def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols, p_gauss):
 
 	for (ii,jj) in neigh:
 		if (hasattr(matrix[ii][jj], 'Markov_Fit_Params')):
-			print(np.isnan(matrix[ii][jj].Markov_Fit_Params.T['StdErrs'].values))
 			if True not in np.isnan(matrix[ii][jj].Markov_Fit_Params.T['StdErrs'].values):
 				condition_delta = ('delta_position' in getattr(matrix[ii][jj], 'Markov_Fit_Params').keys())
 				if (columns == cols_mark_nodelta) | ((columns == cols_mark) & condition_delta) :
@@ -1911,3 +1904,21 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
         else: print('Did not understand. Retry.\n')
 
     return recover_markov, skip_tot, exclude_delta, method
+
+
+def Save_Spectra_Info(matrix, n_rows, n_cols, out_filename = 'spectra.hdf', path = '/.'):
+
+    for ii,jj in np.ndindex(n_rows, n_cols):
+
+        d = matrix[ii][jj]
+        df = pd.DataFrame()
+
+        df['x_freq'] = d.x_freq
+        df['y'] = d.y
+
+        if hasattr(d, 'y_markov_fit') : df['y_markov_fit'] = d.y_markov_fit
+        if hasattr(d, 'y_fit') : df['y_tot_fit'] = d.y_fit
+        
+        df.to_hdf(path+out_filename, key=d.name)
+
+    
