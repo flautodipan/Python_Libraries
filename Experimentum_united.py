@@ -27,7 +27,7 @@ now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
 spectra_filename    =   'NO_ARS_12_02'
 VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
-analysis_dir        =   'analysis/'
+analysis_dir        =   'dabuttare/'
 
 #operatives
 
@@ -62,7 +62,7 @@ p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.9751
 recover_markov = False
 rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', 'inf')
 #tot fit
-skip_tot = False
+skip_tot = True
 rules_tot_bounds                   =   (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 'inf')
 ############
 
@@ -95,8 +95,8 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(0,0,3,3)
-matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+matrix, rows, cols = Initialize_Matrix(0,0,3,3)
+#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 
 
