@@ -8,13 +8,15 @@ from scipy.stats import pearsonr
 
 now_path = '../GROMACS/'
 save_path = now_path+'CORRELATIONS/'
-DF = pd.read_json(now_path+'WTC_data_frame.json')
+treshold = 10
+DF = pd.read_json(now_path+'WTC_data_frame_{}ang.json'.format(str(treshold)))
 DF_noBS_RNA = pd.concat([DF[DF.Is_BS == False], DF[DF.Is_Prot == False]], ignore_index= True)
 DF_BS_RNA = pd.concat([DF[DF.Is_BS == True], DF[DF.Is_Prot == False]], ignore_index = True)
 
 #DF['z_RMSF'] = (DF.RMSF.values - np.mean(DF.RMSF.values))/np.std(DF.RMSF.values)
 
 Kds = np.array([4., 4., 700., 1320., 1350., 1360., 1800.])
+Kds_sort = (np.array([4.,4., 1360, 1350, 1320, 700, 1800]))
 WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6')
 colori = ['royalblue', 'cornflowerblue', 'forestgreen', 'goldenrod', 'orange', 'darkorchid', 'firebrick' ]
 colors = {wtc : color for (wtc, color) in zip(WTC_identifier, colori)}
@@ -25,11 +27,11 @@ numerosity = 20
 ######  RMSF
 #totale
 rmsf_min = np.min(DF.RMSF)
-rmsf_max = 0.239#np.min([np.max(DF.RMSF[DF.WTC_identifier == key]) for key in WTC_identifier]) #il minore tra i massimi delle distribuzioni delle singole dinamiche
+rmsf_max = 0.23#np.min([np.max(DF.RMSF[DF.WTC_identifier == key]) for key in WTC_identifier]) #il minore tra i massimi delle distribuzioni delle singole dinamiche
 rmsf_cutoffs = np.linspace(rmsf_min, rmsf_max, numerosity)
 #BS
 rmsf_BS_min = np.min(DF.RMSF[DF.Is_BS == True])
-rmsf_BS_max = 0.250#np.min([np.max(DF.RMSF[DF.Is_BS == True][DF.WTC_identifier == key]) for key in WTC_identifier])
+rmsf_BS_max = 0.25#np.min([np.max(DF.RMSF[DF.Is_BS == True][DF.WTC_identifier == key]) for key in WTC_identifier])
 rmsf_BS_cutoffs = np.linspace(rmsf_BS_min, rmsf_BS_max, numerosity)
 #RNA
 rmsf_RNA_min = np.min(DF.RMSF[DF.Is_Prot == False])
@@ -83,6 +85,9 @@ rmsf_rmsf_BS_correlations = []
 rmsf_rmsf_RNA_correlators = []
 rmsf_rmsf_RNA_correlations = []
 
+rmsf_rmsf_BS_RNA_correlators = []
+rmsf_rmsf_BS_RNA_correlations = []
+
 #rmsf-covstd
 rmsf_covstd_correlators = []
 rmsf_covstd_correlations = []
@@ -123,12 +128,14 @@ covstd_rmsf_correlations = []
 
 #popolazioni
 population_min = 3
-populations = ['covave_covstd_BS','covstd_rmsf', 'covstd_covave','rmsf_covave', 'covave_covstd', 'covave_rmsf, ''covave_rmsf_noBS_RNA', 'covave_rmsf_BS_RNA', 'rmsf_covstd', 'rmsf_rmsf', 'rmsf_rmsf_BS', 'rmsf_rmsf_RNA' ]
+populations = ['rmsf_rmsf_BS_RNA', 'covave_covstd_BS','covstd_rmsf', 'covstd_covave','rmsf_covave', 'covave_covstd', 'covave_rmsf','covave_rmsf_noBS_RNA', 'covave_rmsf_BS_RNA', 'rmsf_covstd', 'rmsf_rmsf', 'rmsf_rmsf_BS', 'rmsf_rmsf_RNA' ]
 
 #rmsf-rmsf
 rmsf_rmsf_populations = []
 rmsf_rmsf_BS_populations = []
 rmsf_rmsf_RNA_populations = []
+rmsf_rmsf_BS_RNA_populations = []
+
 
 #rmsf-std(cov)
 rmsf_covstd_populations = []
@@ -163,7 +170,8 @@ for rmsf_cutoff, rmsf_BS_cutoff, rmsf_RNA_cutoff, covstd_cutoff, covstd_BS_cutof
     #variabili da RMSF-rmsf
     rmsf_rmsf = { key :DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff].values for key in WTC_identifier}
     rmsf_rmsf_BS = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_BS_cutoff][DF.Is_BS == True].values for key in WTC_identifier}
-    rmsf_rmsf_RNA = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_RNA_cutoff][DF.Is_Prot == False].values for key in WTC_identifier}
+    rmsf_rmsf_RNA = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_Prot == False].values for key in WTC_identifier}
+    rmsf_rmsf_BS_RNA = {key : DF_BS_RNA.RMSF[DF_BS_RNA.WTC_identifier == key][DF_BS_RNA.RMSF > rmsf_cutoff].values for key in WTC_identifier}
     #variabili da RMSF-covstd
     rmsf_covstd = { key :DF.RMSF[DF.WTC_identifier == key][DF.Covariance_Std > covstd_cutoff].values for key in WTC_identifier}
     #variabili da RMSF-covave
@@ -187,7 +195,7 @@ for rmsf_cutoff, rmsf_BS_cutoff, rmsf_RNA_cutoff, covstd_cutoff, covstd_BS_cutof
     rmsf_rmsf_populations.append({ key : len(rmsf_rmsf[key]) for key in WTC_identifier})
     rmsf_rmsf_BS_populations.append({ key : len(rmsf_rmsf_BS[key]) for key in WTC_identifier})
     rmsf_rmsf_RNA_populations.append({ key : len(rmsf_rmsf_RNA[key]) for key in WTC_identifier})
-    
+    rmsf_rmsf_BS_RNA_populations.append({ key : len(rmsf_rmsf_BS_RNA[key]) for key in WTC_identifier})
     rmsf_covstd_populations.append({ key : len(rmsf_covstd[key]) for key in WTC_identifier})
 
     rmsf_covave_populations.append({ key : len(rmsf_covave[key]) for key in WTC_identifier})
@@ -205,7 +213,7 @@ for rmsf_cutoff, rmsf_BS_cutoff, rmsf_RNA_cutoff, covstd_cutoff, covstd_BS_cutof
 
 
     count=0
-    for pop, pop_name in zip([covave_covstd_BS_populations[n_step -1],covstd_rmsf_populations[n_step -1], covstd_covave_populations[n_step -1], rmsf_covave_populations[n_step -1], covave_covstd_populations[n_step-1], covave_rmsf_populations[n_step-1], covave_rmsf_noBS_RNA_populations[n_step-1],covave_rmsf_BS_RNA_populations[n_step-1], rmsf_covstd_populations[n_step-1], rmsf_rmsf_populations[n_step-1], rmsf_rmsf_BS_populations[n_step-1], rmsf_rmsf_RNA_populations[n_step-1], ], populations):
+    for pop, pop_name in zip([rmsf_rmsf_BS_RNA_populations[n_step -1], covave_covstd_BS_populations[n_step -1],covstd_rmsf_populations[n_step -1], covstd_covave_populations[n_step -1], rmsf_covave_populations[n_step -1], covave_covstd_populations[n_step-1], covave_rmsf_populations[n_step-1], covave_rmsf_noBS_RNA_populations[n_step-1],covave_rmsf_BS_RNA_populations[n_step-1], rmsf_covstd_populations[n_step-1], rmsf_rmsf_populations[n_step-1], rmsf_rmsf_BS_populations[n_step-1], rmsf_rmsf_RNA_populations[n_step-1], ], populations):
 
         populations_step = [pop[key] for key in WTC_identifier]
         check_idx = np.argmin(populations_step)
@@ -220,7 +228,7 @@ for rmsf_cutoff, rmsf_BS_cutoff, rmsf_RNA_cutoff, covstd_cutoff, covstd_BS_cutof
             break
         count += 1
     if stop: 
-        for pop in [covave_covstd_BS_populations, covstd_rmsf_populations, covstd_covave_populations, rmsf_covave_populations, covave_covstd_populations, covave_rmsf_populations, covave_rmsf_noBS_RNA_populations,covave_rmsf_BS_RNA_populations,rmsf_covstd_populations, rmsf_rmsf_populations, rmsf_rmsf_BS_populations,rmsf_rmsf_RNA_populations,] :
+        for pop in [rmsf_rmsf_BS_RNA_populations, covave_covstd_BS_populations, covstd_rmsf_populations, covstd_covave_populations, rmsf_covave_populations, covave_covstd_populations, covave_rmsf_populations, covave_rmsf_noBS_RNA_populations,covave_rmsf_BS_RNA_populations,rmsf_covstd_populations, rmsf_rmsf_populations, rmsf_rmsf_BS_populations,rmsf_rmsf_RNA_populations,] :
             pop.remove(pop[-1])
         break
 
@@ -229,49 +237,52 @@ for rmsf_cutoff, rmsf_BS_cutoff, rmsf_RNA_cutoff, covstd_cutoff, covstd_BS_cutof
 
         #rmsf-rmsf
         rmsf_rmsf_correlators.append([np.mean(rmsf_rmsf[key]) for key in WTC_identifier])
-        rmsf_rmsf_correlations.append(pearsonr(Kds, rmsf_rmsf_correlators[n_step-1]))
+        rmsf_rmsf_correlations.append(pearsonr(Kds_sort, rmsf_rmsf_correlators[n_step-1]))
 
         rmsf_rmsf_BS_correlators.append([np.mean(rmsf_rmsf_BS[key]) for key in WTC_identifier])
-        rmsf_rmsf_BS_correlations.append(pearsonr(Kds, rmsf_rmsf_BS_correlators[n_step-1]))
+        rmsf_rmsf_BS_correlations.append(pearsonr(Kds_sort, rmsf_rmsf_BS_correlators[n_step-1]))
 
         rmsf_rmsf_RNA_correlators.append([np.mean(rmsf_rmsf_RNA[key]) for key in WTC_identifier])
-        rmsf_rmsf_RNA_correlations.append(pearsonr(Kds, rmsf_rmsf_RNA_correlators[n_step-1]))
+        rmsf_rmsf_RNA_correlations.append(pearsonr(Kds_sort, rmsf_rmsf_RNA_correlators[n_step-1]))
+
+        rmsf_rmsf_BS_RNA_correlators.append([np.mean(rmsf_rmsf_BS_RNA[key]) for key in WTC_identifier])
+        rmsf_rmsf_BS_RNA_correlations.append(pearsonr(Kds_sort, rmsf_rmsf_BS_RNA_correlators[n_step-1]))
         
         #rmsf-covstd
 
         rmsf_covstd_correlators.append([np.mean(rmsf_covstd[key]) for key in WTC_identifier])
-        rmsf_covstd_correlations.append(pearsonr(Kds, rmsf_covstd_correlators[n_step-1]))
+        rmsf_covstd_correlations.append(pearsonr(Kds_sort, rmsf_covstd_correlators[n_step-1]))
 
         #rmsf_covave
 
         rmsf_covave_correlators.append([np.mean(rmsf_covave[key]) for key in WTC_identifier])
-        rmsf_covave_correlations.append(pearsonr(Kds, rmsf_covave_correlators[n_step-1]))
+        rmsf_covave_correlations.append(pearsonr(Kds_sort, rmsf_covave_correlators[n_step-1]))
 
         #covave-rmsf
 
         covave_rmsf_correlators.append([np.mean(covave_rmsf[key]) for key in WTC_identifier])
-        covave_rmsf_correlations.append(pearsonr(Kds, covave_rmsf_correlators[n_step-1]))
+        covave_rmsf_correlations.append(pearsonr(Kds_sort, covave_rmsf_correlators[n_step-1]))
 
         covave_rmsf_noBS_RNA_correlators.append([np.mean(covave_rmsf_noBS_RNA[key]) for key in WTC_identifier])
-        covave_rmsf_noBS_RNA_correlations.append(pearsonr(Kds, covave_rmsf_noBS_RNA_correlators[n_step-1]))
+        covave_rmsf_noBS_RNA_correlations.append(pearsonr(Kds_sort, covave_rmsf_noBS_RNA_correlators[n_step-1]))
         
         covave_rmsf_BS_RNA_correlators.append([np.mean(covave_rmsf_BS_RNA[key]) for key in WTC_identifier])
-        covave_rmsf_BS_RNA_correlations.append(pearsonr(Kds, covave_rmsf_BS_RNA_correlators[n_step-1]))
+        covave_rmsf_BS_RNA_correlations.append(pearsonr(Kds_sort, covave_rmsf_BS_RNA_correlators[n_step-1]))
 
 
         #covave-covstd
         covave_covstd_correlators.append([np.mean(covave_covstd[key]) for key in WTC_identifier])
-        covave_covstd_correlations.append(pearsonr(Kds, covave_covstd_correlators[n_step-1]))
+        covave_covstd_correlations.append(pearsonr(Kds_sort, covave_covstd_correlators[n_step-1]))
         
         covave_covstd_BS_correlators.append([np.mean(covave_covstd_BS[key]) for key in WTC_identifier])
-        covave_covstd_BS_correlations.append(pearsonr(Kds, covave_covstd_BS_correlators[n_step-1]))
+        covave_covstd_BS_correlations.append(pearsonr(Kds_sort, covave_covstd_BS_correlators[n_step-1]))
 
         #covstd covave
         covstd_covave_correlators.append([np.mean(covstd_covave[key]) for key in WTC_identifier])
-        covstd_covave_correlations.append(pearsonr(Kds, covstd_covave_correlators[n_step-1]))
+        covstd_covave_correlations.append(pearsonr(Kds_sort, covstd_covave_correlators[n_step-1]))
 
         covstd_rmsf_correlators.append([np.mean(covstd_rmsf[key]) for key in WTC_identifier])
-        covstd_rmsf_correlations.append(pearsonr(Kds, covstd_rmsf_correlators[n_step-1]))
+        covstd_rmsf_correlations.append(pearsonr(Kds_sort, covstd_rmsf_correlators[n_step-1]))
 
 
 #%%
@@ -279,6 +290,7 @@ for rmsf_cutoff, rmsf_BS_cutoff, rmsf_RNA_cutoff, covstd_cutoff, covstd_BS_cutof
 rmsf_rmsf_populations = pd.DataFrame(rmsf_rmsf_populations)
 rmsf_rmsf_BS_populations = pd.DataFrame(rmsf_rmsf_BS_populations)
 rmsf_rmsf_RNA_populations = pd.DataFrame(rmsf_rmsf_RNA_populations)
+rmsf_rmsf_BS_RNA_populations = pd.DataFrame(rmsf_rmsf_BS_RNA_populations)
 
 rmsf_covstd_populations = pd.DataFrame(rmsf_covstd_populations)
 rmsf_covave_populations = pd.DataFrame(rmsf_covave_populations)
@@ -307,15 +319,16 @@ f, ax = plt.subplots()
 
 ax.plot(steps, [corr[0] for corr in rmsf_rmsf_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_rmsf',)
 ax.plot(steps, [corr[0] for corr in rmsf_rmsf_BS_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_rmsf_BS', )
-ax.plot(steps, [corr[0] for corr in rmsf_covstd_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_covstd',)
-ax.plot(steps, [corr[0] for corr in rmsf_covave_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_covave',)
-ax.plot(steps, [corr[0] for corr in covave_rmsf_correlations], marker = 'o', ls = 'dashed', label = 'covave_rmsf',)
-ax.plot(steps, [corr[0] for corr in covave_covstd_correlations], marker = 'o', ls = 'dashed', label = 'covave_covstd',)
+#ax.plot(steps, [corr[0] for corr in rmsf_covstd_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_covstd',)
+#ax.plot(steps, [corr[0] for corr in rmsf_covave_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_covave',)
+#ax.plot(steps, [corr[0] for corr in covave_rmsf_correlations], marker = 'o', ls = 'dashed', label = 'covave_rmsf',)
+#ax.plot(steps, [corr[0] for corr in covave_covstd_correlations], marker = 'o', ls = 'dashed', label = 'covave_covstd',)
 #ax.plot(steps, [corr[0] for corr in covave_covstd_BS_correlations], marker = 'o', ls = 'dashed', label = 'covave_covstd_BS',)
 ax.plot(steps, [corr[0] for corr in covstd_covave_correlations], marker = 'o', ls = 'dashed', label = 'covstd_covave',)
 #ax.plot(steps, [corr[0] for corr in covstd_rmsf_correlations], marker = 'o', ls = 'dashed', label = 'covstd_rmsf',)
+ax.plot(steps, [corr[0] for corr in rmsf_rmsf_BS_RNA_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_rmsf_BS_RNA',)
 
-ax.set_title('Pearson correlation with Kd increasing cutoff', fontsize = 20)
+ax.set_title('Pearson correlation with Kd increasing cutoff\nBS treshold = {} Ang'.format(treshold), fontsize = 20, pad = 18)
 ax.set_xlabel('N steps', fontsize = 16)
 ax.set_ylabel('Correlation', fontsize = 16)
 ax.set_ylim(-1,1)
@@ -335,7 +348,7 @@ rmsf_max = 0.239#np.min([np.max(DF.RMSF[DF.WTC_identifier == key]) for key in WT
 rmsf_cutoffs = np.linspace(rmsf_min, rmsf_max, numerosity)
 #BS
 rmsf_BS_min = np.min(DF.RMSF[DF.Is_BS == True])
-rmsf_BS_max = 0.1800#np.min([np.max(DF.RMSF[DF.Is_BS == True][DF.WTC_identifier == key]) for key in WTC_identifier])
+rmsf_BS_max = 0.1500#np.min([np.max(DF.RMSF[DF.Is_BS == True][DF.WTC_identifier == key]) for key in WTC_identifier])
 rmsf_BS_cutoffs = np.linspace(rmsf_BS_min, rmsf_BS_max, numerosity)
 
 rmsf_rmsf_correlators = []
@@ -396,15 +409,15 @@ for rmsf_cutoff, rmsf_BS_cutoff in zip(rmsf_cutoffs, rmsf_BS_cutoffs):
 
         #rmsf-rmsf
         rmsf_rmsf_correlators.append([np.mean(rmsf_rmsf[key]) for key in WTC_identifier])
-        rmsf_rmsf_correlations.append(pearsonr(Kds, rmsf_rmsf_correlators[n_step-1]))
+        rmsf_rmsf_correlations.append(pearsonr(Kds_sort, rmsf_rmsf_correlators[n_step-1]))
 
         rmsf_rmsf_BS_correlators.append([np.mean(rmsf_rmsf_BS[key]) for key in WTC_identifier])
-        rmsf_rmsf_BS_correlations.append(pearsonr(Kds, rmsf_rmsf_BS_correlators[n_step-1]))
+        rmsf_rmsf_BS_correlations.append(pearsonr(Kds_sort, rmsf_rmsf_BS_correlators[n_step-1]))
         covave_rmsf_noBS_RNA_correlators.append([np.mean(covave_rmsf_noBS_RNA[key]) for key in WTC_identifier])
-        covave_rmsf_noBS_RNA_correlations.append(pearsonr(Kds, covave_rmsf_noBS_RNA_correlators[n_step-1]))
+        covave_rmsf_noBS_RNA_correlations.append(pearsonr(Kds_sort, covave_rmsf_noBS_RNA_correlators[n_step-1]))
         
         covave_rmsf_BS_RNA_correlators.append([np.mean(covave_rmsf_BS_RNA[key]) for key in WTC_identifier])
-        covave_rmsf_BS_RNA_correlations.append(pearsonr(Kds, covave_rmsf_BS_RNA_correlators[n_step-1]))
+        covave_rmsf_BS_RNA_correlations.append(pearsonr(Kds_sort, covave_rmsf_BS_RNA_correlators[n_step-1]))
 
 
 
@@ -421,10 +434,10 @@ ax.plot(steps, [corr[0] for corr in rmsf_rmsf_correlations], marker = 'o', ls = 
 ax.plot(steps, [corr[0] for corr in rmsf_rmsf_BS_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_rmsf_BS', )
 ax.plot(steps, [corr[0] for corr in covave_rmsf_noBS_RNA_correlations], marker = 'o', ls = 'dashed', label = 'covave_rmsf_noBS_RNA', )
 ax.plot(steps, [corr[0] for corr in covave_rmsf_BS_RNA_correlations], marker = 'o', ls = 'dashed', label = 'covave_rmsf_BS_RNA', )
-ax.set_title('Pearson correlation with Kd further increasing cutoff', fontsize = 20)
+ax.set_title('Pearson correlation with Kd further increasing cutoff\nBS treshold = {} Ang'.format(treshold), fontsize = 20, pad = 18)
 ax.set_xlabel('N steps', fontsize = 16)
 ax.set_ylabel('Correlation', fontsize = 16)
-ax.set_ylim(-1,0.15)
+ax.set_ylim(-1,1)
 f.set_size_inches(11, 8)
 ax.legend(loc = 'lower left', title = '<population>_<cutoff>')
 plt.savefig(save_path+'correlations_focus.pdf', format = 'pdf', bbox_to_inches = 'tight')

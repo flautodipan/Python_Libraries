@@ -344,7 +344,7 @@ class Spectrum  :
             plt.xlim(-50,50)
             plt.show()
    
-    def Fit_Pixel2GHz(self,  fig = False):
+    def Fit_Pixel2GHz(self,  fig = False, savepath = None, **img_kwargs):
 
         """
         Dai dati VIPA calcolo funzione di conversione in GHz
@@ -387,16 +387,24 @@ class Spectrum  :
 
         if fig:
 
+            f, ax = plt.subplots()
+
             x_fit = np.linspace(Delta_Pixel[0], Delta_Pixel[len(Delta_Pixel)-1], 100)
             y_fit = self.Poly2GHz[0]*(x_fit**3) + self.Poly2GHz[1]*(x_fit**2) + self.Poly2GHz[2]*x_fit + self.Poly2GHz[3]
+           
+            ax.plot(Delta_Pixel, Delta_GHz, '*', label='Peaks Data', c = img_kwargs['data_color'] if 'data_color' in img_kwargs else None )
+            ax.plot(x_fit, y_fit, label='Polynomial fit', alpha = .8, c = img_kwargs['fit_color'] if 'fit_color' in img_kwargs else None  )
+            ax.legend()
+            ax.set_title('Conversion GHz vs Pixel')
+            ax.xaxis.set_label_text('Delta Pixels')
+            ax.yaxis.set_label_text('Delta Frequencies (GHz)')
+            plt.tight_layout()
+            if savepath:
 
-            plt.figure()
-            plt.plot(Delta_Pixel, Delta_GHz, '.', label='Peaks Data')
-            plt.plot(x_fit, y_fit, label='Fit Polinomiale')
-            plt.legend()
-            plt.title('GHz vs Pixel')
+                f.savefig(savepath+'GHz_conversion.pdf', format = 'pdf')
             #plt.savefig('figure/'+fig+'.png')
             plt.show()
+
             plt.close()
         
     def VIPA_Pix2GHz (self, fig = False):
@@ -1520,22 +1528,12 @@ def Verify_Initial_Conditions(matrix, ver = (), init = ()):
 
     print("Il parametro è :", matrix[init[0]][init[1]].p0.values[0])
 
-<<<<<<< HEAD
 def Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.hdf' , path = './'):
 
     for ii,jj in fitted:
 
         matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
 
-=======
-
-def Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.hdf' , path = './'):
-
-    for ii,jj in fitted:
-
-        matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
-
->>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
     print('Salvato parametri markov fit su file '+path+out_filename)
 
 def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.hdf' , path = './'):
@@ -1545,10 +1543,6 @@ def Save_Tot_Fit_Parameters(matrix, fitted, out_filename = 'tot_fit_params.hdf' 
         matrix[ii][jj].Markov_Fit_Params.to_hdf(path+out_filename, key = str((ii,jj)))
 
     print('Salvato parametri markov fit su file '+path+out_filename)
-<<<<<<< HEAD
-
-=======
->>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
 
 def Save_XY_VIPA(x,y, out_filename = 'xy_VIPA.txt' , path = './'):
 
@@ -1802,7 +1796,6 @@ def serpentine_range(n_rows, n_cols, start):
             
     return new_boni
 
-<<<<<<< HEAD
 def Get_Analysis_Path_From_Terminal(now_path, spectra_filename):
 
 
@@ -1919,8 +1912,6 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
 
     return recover_markov, skip_tot, exclude_delta, method
 
-=======
->>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
 
 def Save_Spectra_Info(matrix, n_rows, n_cols, out_filename = 'spectra.hdf', path = '/.'):
 
@@ -1936,8 +1927,5 @@ def Save_Spectra_Info(matrix, n_rows, n_cols, out_filename = 'spectra.hdf', path
         if hasattr(d, 'y_fit') : df['y_tot_fit'] = d.y_fit
         
         df.to_hdf(path+out_filename, key=d.name)
-<<<<<<< HEAD
 
     
-=======
->>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00

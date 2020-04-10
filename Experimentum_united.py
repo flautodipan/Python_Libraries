@@ -21,53 +21,7 @@ import      configparser
 import      sys
 
 
-<<<<<<< HEAD
 #variables immutable
-=======
-############
-
-#I/O 
-spectra_filename = 'NO_ARS_12_02'
-VIPA_filename = 'NO_ARS_12_02_VIPA_quasisat.tif'
-log_file = 'log_'+spectra_filename
-now_path        =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-analysis_dir        =   'prova_old/'
-
-#operatives
-
-#esclusi a mano
-to_add              =   []
-
-syg_kwargs          =   {'height':  118.23428571428573, 'distance': 31.68, 'width': 3.089389560279557}
-distance = 31.68
-syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height':  23.477142857142866, 'distance': 31.68, 'width': 3.089389560279557}
-VIPA_treshold       =   6
-sat_height          =   50000
-sat_width           =   13.5
-almost_treshold     =   15000
-
-#quanto mi allontano dal VIPA
-pre_cut             =   False
-cut                 =   True
-
-mean_dist_01 = 36.73
-mean_dist_23 = 34.1
-
-#markov_fit
-p0_normal = np.array([0.0117459916, 7.38449158, 0.121011836, -1.25547485, 9.15336899, 0.0091681139, 3637.02575, 11.8426495, 16.7740108, 0.20605242, 2.0])
-p0_brillouin = np.array([0.0126819804, 7.37691957, 0.157798545, 0.101524727, 0.0360701391, 0.0117207865, 3637.02575, 11.8426495, 16.7740108, 0.181098222, 2.0])
-p0_almost = np.array([0.0127907825, 7.37284107, 0.150050025, 0.209978276, 0.0781550013, 0.0788650285, 3900.53727, 11.8426495, 16.7740108, 0.000338293612, 2.0])
-
-recover_markov = False
-rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf')
-#tot fit
-skip_tot = False
-rules_tot_bounds                   =   (0.2, 0.01, 0.01, 'positive', 'positive', 0.05, 0.01, 0.01, 'inf', 'inf')
-############
-
-#variables
->>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
 
 invisible           =   []
 brillouin_higher    =   []
@@ -98,9 +52,9 @@ if sys.argv[1] != '-f':
 elif sys.argv[1] == '-f': 
 
     print('Sto in modalità interattiva')
-    spectra_filename = 'NO_ARS_13_02'
+    spectra_filename = 'ARS_13_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-    analysis_name = 'prova'
+    analysis_name = 'dabuttare'
     if not os.path.exists(now_path +analysis_name+'/'):
         os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
     analysis_path = now_path + analysis_name +'/'
@@ -191,12 +145,8 @@ inputs.set('Markov', 'method', method)
 dati    =   Import_from_Matlab(spectra_filename, now_path, transpose = transpose, var_name = 'y3')
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-<<<<<<< HEAD
-matrix, rows, cols = Initialize_Matrix(0,9,2,11)
-=======
-matrix, rows, cols = Initialize_Matrix(0,0,3,3)
->>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
-#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+#matrix, rows, cols = Initialize_Matrix(0,9,2,11)
+matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
 inputs.set('I/O','n_cols', str(len(cols)))
@@ -337,18 +287,12 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\nTempo impiegato per modifica spettri: {} s\nTaglio spettri è {}\n\n'.format(mod_time, cut))
 
 # salvo info spettri e VIPA
-<<<<<<< HEAD
 #Save_XY_position(matrix, len(rows), len(cols), initial, path = analysis_path)
 #Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
-=======
-"""
-Save_XY_position(matrix, len(rows), len(cols), path = analysis_path)
-Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
->>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
 
 with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\n\nI saved xy info on xy.txt and xy_VIPA.txt in your analysis directory {}\n\n'.format(analysis_path))
-"""
+
 #%%
 #######################################################################################################################
 
@@ -423,24 +367,20 @@ if recover_markov == False:
 	markov_time     =   time.process_time()-start
 	tempo           =   tempo + (('fit markoviano', markov_time),)
 
-<<<<<<< HEAD
+    with open(analysis_path+log_file, 'a') as f_log:
+
         f_log.write('\n\n#####################   MARKOVIAN     FIT     ##########################\n\n')
         f_log.write('\nMetodo utilizzato per fit = {}'.format(method))
         f_log.write('\nTempo impiegato per fit markoviani: {:3.2} s'.format(markov_time))
         f_log.write('\n\Tempo impiegato ore = {:3.2}\n'.format(markov_time/3600))
-=======
-	with open(analysis_path+log_file, 'a') as f_log:
->>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
-
-		f_log.write('\n\n#####################   MARKOVIAN     FIT     ##########################\n\n')
-		f_log.write('\nTempo impiegato per fit markoviani: {:3.2} s'.format(markov_time))
-		f_log.write('\n\Tempo impiegato ore = {:3.2}\n'.format(markov_time/3600))
+        f_log.write('\n\n#####################   MARKOVIAN     FIT     ##########################\n\n')
+        f_log.write('\nTempo impiegato per fit markoviani: {:3.2} s'.format(markov_time))
+        f_log.write('\n\Tempo impiegato ore = {:3.2}\n'.format(markov_time/3600))
 
 	# 4) after - fit markoviano
 
 	non_fitted, accomplished, exceded, fitted = Unpack_Fit(fit)
 
-<<<<<<< HEAD
     #too_markov         =   Whose_Param_Too_High('Gamma', 2., matrix, fitted)
     Save_Spectra_Info(matrix, len(rows), len(cols), path = analysis_path)
     Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
@@ -448,15 +388,6 @@ if recover_markov == False:
     Save_y_markov_fit(matrix, fitted, path = analysis_path)
     Save_cost_markov(matrix, fitted, path = analysis_path)
     print('\nHo salvato informazioni fit markoviano su {}\n'.format(analysis_path))
-=======
-	#too_markov         =   Whose_Param_Too_High('Gamma', 2., matrix, fitted)
-	Save_Fit_Info(fit, filename = 'markov_fit.txt', path=analysis_path)
-	Save_Spectra_Info(matrix, len(rows), len(cols), path = analysis_path)      
-	Save_Markov_Fit_Parameters(matrix, fitted, out_filename = 'markov_fit_params.hdf', path = analysis_path)
-	Save_y_markov_fit(matrix, fitted, path = analysis_path)
-	Save_cost_markov(matrix, fitted, path = analysis_path)
-	print('\nHo salvato informazioni fit markoviano su {}\n'.format(analysis_path))
->>>>>>> e3fe2e6a9194b9d72a0fbbf2cc7dc19a9c703e00
 
 
 else:
