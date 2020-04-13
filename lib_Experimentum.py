@@ -9,6 +9,7 @@ from    scipy.optimize      import least_squares
 from    scipy.optimize      import curve_fit
 from    scipy.io            import loadmat
 import  json
+import  os
 
 from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate, S_Dynamical_Form_Factor_0, S_0_Generate, S_Dynamical_Form_Factor_0_nodelta, S_Dynamical_Form_Factor_2_nodelta     
 from    Alessandria         import *
@@ -134,7 +135,7 @@ class Spectrum  :
 
         self.peaks      =   Find_First_n_peaks(self.peaks, 4, exclude = [3])
 
-        
+
     def Get_VIPA_mat(self, mat_filename, path='./', tunable = None, offset = 'same', fig = False):
         
         """
