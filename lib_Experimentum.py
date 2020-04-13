@@ -130,6 +130,11 @@ class Spectrum  :
 
         self.n_peaks    =   self.peaks['idx'].size
 
+    def Exclude_Glass_Peak(self):
+
+        self.peaks      =   Find_First_n_peaks(self.peaks, 4, exclude = [3])
+
+        
     def Get_VIPA_mat(self, mat_filename, path='./', tunable = None, offset = 'same', fig = False):
         
         """
@@ -1695,3 +1700,122 @@ def serpentine_range(n_rows, n_cols, start):
             
             
     return new_boni
+
+
+
+def Get_Analysis_Path_From_Terminal(now_path, spectra_filename):
+
+
+    while True:
+
+        print('Insert analysis directory name.\n Considera che per la presa dati {} ci sono le cartelle:'.format(spectra_filename))
+        os.system('cd '+now_path +' && ls -lh -lt -d */' )
+        analysis_name = input()
+
+        if os.path.exists(now_path +analysis_name+'/'):
+
+            print("\nDirectory with such name already exists.\nPress 'o' to overwrite it, or 'n' to generate a new directory for analysis\n")
+            ans = input()
+            if (ans == 'n'):
+
+                print("Insert name of new directory\n")
+                new_name = input()
+                os.system('cd '+now_path +' && mkdir '+new_name)
+                analysis_path = now_path  + new_name +'/'
+                break
+
+            elif (ans == 'o'):
+
+                os.system('cd '+now_path +' && rm -r '+ analysis_name +'_backup/')
+                os.system('cd '+now_path +' && cp -r '+ analysis_name+' '+analysis_name+'_backup/')
+                print('I backed up your directory, for any inconvenience...\n')
+                analysis_path = now_path + analysis_name+ '/'
+
+                break
+            
+            else:
+                print('\nValue inserted not correct\n Try again motherfucker\n')
+        else:
+
+            os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+            analysis_path = now_path + analysis_name+ '/'
+            break
+    
+    return analysis_path
+    
+def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
+
+    delay = 3. #sec
+
+    if recover_markov:
+        print('You decided to recover markov fit from {} \nIt is correct? Enter "ok" if so, any other key to change this option'.format(analysis_path))  
+    else:
+        print('You will perform markov fit. Enter "ok" to continue, any other key to modify this opt\n')
+    if input() == 'ok':
+        pass  
+    else:
+        while(True):
+            print('Inserire "yes" to perform Markov, "no" to not perfom it')
+            inp = input()
+            if inp == 'yes':
+                print('You will perform markov fit')
+                time.sleep(delay)
+                break
+            elif inp == 'no':
+                
+                print('You will NOT perform markov fit and recover it from {}\nPress any key too continue otherwise change you analysis path running again script'.format(analysis_path))
+                if input(): break
+            else:
+                print('Did not understand. Retry')    
+
+    if skip_tot:
+        print('Skipping fit_tot is active. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            skip_tot = False
+            print('You will perform fit tot')
+            time.sleep(delay)
+    else:
+        print('Fit tot will be performed. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            skiptot = True
+            print('You will exclude delta in all fits')
+            time.sleep(delay)
+
+    
+    if exclude_delta:
+        print('Exclude delta from fit is active. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            exclude_delta = False
+            print('You will include delta in all fits')
+            time.sleep(delay)
+    else:
+        print('Fit will all be performed with delta. Press "ok" to confirm, any other to change')
+        if input() == 'ok':
+            pass
+        else:
+            exclude_delta = True
+            print('You will exclude delta in all fits')
+            time.sleep(delay)
+    
+    print('Insert fit algorithm: lm for Levenberg-Marqadrart, trf per trust region')
+
+    while True:
+        method = input()
+        if method == 'lm':
+            print('You choose lm')
+            time.sleep(delay)
+            break
+        elif method == 'trf':
+            print('You choose trf')
+            time.sleep(delay)
+            break
+        else: print('Did not understand. Retry.\n')
+
+    return recover_markov, skip_tot, exclude_delta, method
+

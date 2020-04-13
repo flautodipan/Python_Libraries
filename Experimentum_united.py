@@ -2,6 +2,9 @@
 #########################                                                   #######################
 #########################           EXPERIMENTUM UNITED                     #######################
 
+#########################                                                   #######################
+#########################           EXPERIMENTUM UNITED                     #######################
+
 #%%
 ######################################################################################################################
 #######   ||||    PREAMBOLO: - acquisiamo i file di INPUT
@@ -10,7 +13,6 @@
 #######    ||    
 #######   ||||
 
-
 #libraries
 import      numpy               as      np
 import      matplotlib.pyplot   as      plt
@@ -18,55 +20,11 @@ from        lib_Experimentum    import  *
 from        Alessandria         import  *
 import      time
 import      os
+import      configparser
+import      sys
 
 
-############
-
-#I/O 
-now_path        =   '../BRILLOUIN/TDP43/NO_ARS_12_02/'
-spectra_filename    =   'NO_ARS_12_02'
-VIPA_filename       =   'NO_ARS_12_02_VIPA_quasisat.tif'
-log_file            =   'log_'+spectra_filename
-analysis_dir        =   'dabuttare/'
-
-#operatives
-
-#esclusi a mano
-to_add              =   []
-
-syg_kwargs          =   {'height': 119, 'distance': 31, 'width': 3.}
-syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 23, 'distance': 31, 'width': 3.}
-VIPA_treshold       =   6
-sat_height          =   50000
-sat_width           =   13.5
-almost_treshold     =   15000
-
-#quanto mi allontano dal VIPA
-pre_cut             =   False
-cut                 =   True
-
-mean_dist_01 = 37
-mean_dist_23 = 34
-#markov_fit
-p0_normal = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
-        1.448930518e-01,  8.34614271,  4.79747192e+03, -1.00904973e+01,
-        1.58007162e+01,  2.11019859e-01, -3.10388495e-01])
-p0_brillouin = np.array([ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
-        1.48930518e-01,  2.34614271e-01,  4.79747192e+03, -1.00904973e+01,
-        1.58007162e+01,  2.11019859e-01, -3.10388495e-01])
-p0_almost = np.array([ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.97510814e+00,
-        5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
-        1.59365161e+01,  2.77695117e-01,  6.43211621e+00])
-
-recover_markov = False
-rules_markov_bounds     =   ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 0.2, 0.01, 0.001,  'inf', 'inf')
-#tot fit
-skip_tot = True
-rules_tot_bounds                   =   (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 'inf')
-############
-
-#variables
+#variables immutable
 
 invisible           =   []
 brillouin_higher    =   []
@@ -76,11 +34,106 @@ excluded            =   []
 almost_height       =   []
 normals             =   []
 
-cols_smart  =  ('Co', 'Omega', 'Gamma', 'delta_position',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position','delta_width',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols_real_nodelta =  ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
+
+#%%
+#ANALYSIS PATH 
+if sys.argv[1] != '-f':
+
+    print('Sto in modalità terminale\n')
+    spectra_filename = sys.argv[1]
+    now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
+    print("By default setting, I'm taking data from directory {}, hope it's correct\n".format(now_path))
+    
+    analysis_path = Get_Analysis_Path_From_Terminal(now_path, spectra_filename)
+
+elif sys.argv[1] == '-f': 
+
+    print('Sto in modalità interattiva')
+    spectra_filename = 'ARS_13_02'
+    now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
+    analysis_name = 'dabuttare'
+    if not os.path.exists(now_path +analysis_name+'/'):
+        os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+    analysis_path = now_path + analysis_name +'/'
+
+
+else:
+
+    raise ValueError('argv[1] = {} not recognized by software. Check \n'.format(sys.argv[1]))
+
+
+#%%
+
+inputs = configparser.ConfigParser()
+
+with open(now_path+'config.ini', 'r') as f:
+    inputs.read_file(f)
+
+############
+#I/O 
+
+VIPA_filename       =   inputs['I/O']['VIPA_filename']
+log_file            =   'log_'+spectra_filename
+transpose           =   inputs.getboolean('I/O', 'transpose')
+
+inputs.set('I/O', 'analysis_path', analysis_path)
+inputs.set('I/O', 'now_path', now_path)
+
+
+#operatives
+initial             =   inputs['Operatives']['initial']
+to_add              =   eval(inputs['Operatives']['to_add'])
+exclude_delta       =   inputs.getboolean('Operatives', 'exclude_delta')
+syg_kwargs          =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs')}
+syg_kwargs_VIPA     =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_VIPA')}
+syg_kwargs_brill    =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_brill')}
+VIPA_treshold       =  inputs.getfloat('Operatives','VIPA_treshold')
+sat_height          =  inputs.getfloat('Operatives','sat_height')
+sat_width           =  inputs.getfloat('Operatives','sat_width')
+almost_treshold     =  inputs.getfloat('Operatives','almost_treshold')
+pre_cut             =  inputs.getboolean('Operatives','pre_cut')
+cut                 =  inputs.getboolean('Operatives','cut')
+mean_dist_01        =  inputs.getfloat('Operatives','mean_dist_01')
+mean_dist_23        =  inputs.getfloat('Operatives','mean_dist_23')
+#markov_fit
+
+recover_markov      = inputs.getboolean('Markov', 'recover_markov')
+first_normal        = inputs.get('Markov', 'first_normal')
+first_almost         = inputs.get('Markov', 'first_almost')
+p0_normal           = np.array(eval(inputs['Markov']['p0_normal']))
+p0_almost           = np.array(eval(inputs['Markov']['p0_almost']))
+
+rules_markov_bounds =   eval(inputs['Markov']['rules_markov_bounds'])
+#tot fit
+skip_tot            =  inputs.getboolean('Tot', 'skip_tot')
+rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
+
+############
+
+if sys.argv[1] != '-f':
+    print('p0s lenght is {} for normal, {} for almost\n'.format(len(p0_normal), len(p0_almost)))
+    recover_markov, skip_tot, exclude_delta, method = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta)
+    inputs.set('Operatives', 'exclude_delta', str(exclude_delta))
+    inputs.set('Markov', 'recover_markov', str(recover_markov))
+    inputs.set('Tot', 'skip_tot', str(skip_tot) )
+   
+else:
+    log_file            =   'inter_log_'+spectra_filename
+    recover_markov = False
+    skip_tot = False
+    exclude_delta = False
+    initial = initial
+    method = 'trf'
+    print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
+
+inputs.set('Markov', 'method', method)
+
 # %%
 #2) ######################################################################################################################
 
@@ -92,22 +145,23 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 
 
 #import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3')
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 matrix, rows, cols = Initialize_Matrix(0,0,3,3)
 #matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
+inputs.set('I/O','n_rows', str(len(rows)))
+inputs.set('I/O','n_cols', str(len(cols)))
 
-
-os.system('cd ' + now_path +' & mkdir ' + now_path+analysis_dir)
-analysis_path            =   now_path +analysis_dir
+with open(analysis_path+'config.ini', 'w') as fin:
+    inputs.write(fin)
+del inputs
 
 with open(analysis_path+log_file, 'w') as f_log:
     f_log.write('#This is a log file: you will find info on script run for {}\n'.format(spectra_filename))
     f_log.write('\n\nHo inizializzato una matrice {}x{}, per un totale di {} spettri'.format(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])))
     
-# %%
 ### riempio oggetti spectrum
 
 tempo = ()
@@ -116,11 +170,12 @@ start = super_start
 
 matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
-for ii in range(len(rows)):
-    for jj in range(len(cols)):
+for (ii, ii_true) in zip(range(len(rows)), rows):  
+    for (jj, jj_true) in zip(range(len(cols)), cols):
+
         print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
         
-        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = pre_cut, cut_range = (200, 600))
+        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = (200, 600))
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
 
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
@@ -131,14 +186,20 @@ for ii in range(len(rows)):
 not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = sat_height, saturation_width = sat_width)
 excluded        = saturated.copy()
 excluded        = Escludi_a_Mano(to_add, excluded)
-for ii in range(len(rows)):  
-    for jj in range(len(cols)):
+
+for (ii, ii_true) in zip(range(len(rows)), rows):  
+    for (jj, jj_true) in zip(range(len(cols)), cols):
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
-            if (ii,jj) not in excluded:
+
+            if (ii_true,jj_true) not in excluded:
                 #Spettri normali , quattro picchi di cui i picchi più alti sono elastici
                 
                 if matrix[ii][jj].n_peaks >= 4:
-                    matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
+                    if matrix[ii][jj].n_peaks == 5:
+                        matrix[ii][jj].Exclude_Glass_Peak()
+                    else:
+                        matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
+
                     if matrix[ii][jj].Check_Brillouin_Distances(average = 70, stdev = 70/10):
                         invisible += [(ii,jj), ]
                     else: 
@@ -170,6 +231,7 @@ acq_time    =   time.process_time()-start
 tempo       =   tempo + (('acquisizione', acq_time),)
 print('\nTempo impiegato per acquisizione spettri: {} s\n'.format(acq_time))
 
+#%%
 with open(analysis_path+log_file, 'a') as f_log:
 
     f_log.write('\n\n###############################INFO ON DATA ACQUISITION#######################################\n\n')
@@ -183,7 +245,8 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write(str(invisible))
     f_log.write('\nTotale spettri boni :  {} di cui\n'.format(len(boni)))
     f_log.write('\nTotale spettri con elastici più alti di {} : {}\n'.format(almost_treshold, len(almost_height)))
-    f_log.write('\nTotale spettri normali : {}\n'.format(len(normals)))
+    f_log.write('\nTotale spettri normali : {}\n'.format(len(normals))) 
+    f_log.write('\nTotale spettri almost height : {}\n'.format(len(almost_height)))
     f_log.write('\n\nTotale spettri : {}\ndi cui {} inutilizzabili, '.format(dim, len(invisible)+len(saturated)))
     f_log.write('ossia il %3.2f percento\n'%(float(len(invisible)+len(saturated))*100/dim))
     f_log.write('Di cui il {} invisibili e il {} saturati\n\n'.format(len(invisible)*100/dim, len(saturated)*100/dim))
@@ -264,8 +327,7 @@ if recover_markov == False:
         
             if (ii,jj) in almost_height:
                 p0s.append(p0_almost)
-            elif ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
-                p0s.append(p0_brillouin)
+
             else:#normals
                 p0s.append(p0_normal)
 
@@ -280,8 +342,7 @@ if recover_markov == False:
 
             if (ii,jj) in almost_height:
                 p0_almost = matrix[ii][jj].Markov_Fit_Params.values[0]
-            elif ((ii,jj) in brillouin_higher) | ((ii,jj) in brillouin_highest):
-                p0_brillouin =  matrix[ii][jj].Markov_Fit_Params.values[0]
+
             else:#normals
                 p0_normal =  matrix[ii][jj].Markov_Fit_Params.values[0]
 
@@ -313,7 +374,7 @@ if recover_markov == False:
 
 else:
 
-    print('\n\n You chose to SKIP the markovian fit and recover info from {}\n\n'.format(now_path+analysis_dir))
+    print('\n\n You chose to SKIP the markovian fit and recover info from {}\n\n'.format(analysis_path))
 
     ############## faccio er ricovery
 

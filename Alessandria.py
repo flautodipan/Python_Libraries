@@ -168,7 +168,7 @@ def Find_Nearest_Array(array, value):
 
     return (array[idx], idx)
 
-def Import_from_Matlab (mat_filename, path, **kwargs):
+def Import_from_Matlab (mat_filename, path, transpose = True, **kwargs):
 
     """
     Funzione che importa da matlab, file 'path+matfilename'
@@ -185,7 +185,8 @@ def Import_from_Matlab (mat_filename, path, **kwargs):
 
         dati    =   dati[kwargs['var_name']]
     
-    return dati
+    if transpose: return dati.T
+    else:     return dati
 
 
 def Import_TIF(filename, path = './'):
@@ -201,15 +202,15 @@ def Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols):
     """
     Dato elemento matrice, ritorna tupla con gli 8 primi vicini
     """
-    neighbours = ()
+    neighbours = []
 
 
     for ii in range(ii_0 - 1, ii_0+2, 1):
         for jj in range(jj_0 -1, jj_0 +2, 1):
             condition_inside = (ii >= 0) & (ii < n_rows) & (jj >= 0) & (jj < n_cols)
             if ((ii,jj) != (ii_0, jj_0)) & condition_inside:
-
-                neighbours = neighbours + ((ii,jj),)
+                neighbours.append((ii,jj))
+                
     return neighbours
 
 """
