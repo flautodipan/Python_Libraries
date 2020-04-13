@@ -118,7 +118,7 @@ class Protein:
 
 class RNA:
 
-    def __init__(self, pdb_filename, chain_id = 'A', from_web = False, model = 1):
+    def __init__(self, pdb_filename, chain_id = 'A', from_web = False, model = 1, initial = None):
         
         """
         Classe dedicata all'RNA, che viene letto dal file pdb indicato con pdb_filename
@@ -185,12 +185,18 @@ class RNA:
             self.atoms  =   self.pdb.df['ATOM']
             self.atoms  =   self.atoms[self.pdb.df['ATOM']['chain_id']==chain_id] 
             #self.terminus =  self.pdb.df['OTHERS']
-    
+
+        if initial:
+
+            self.initial = initial
+        else:
+            self.initial = self.atoms.residue_number[0]
+
         
-    def Get_P_Coord(self): 
+    def Get_P_Coord(self, atom_name = 'P'): 
 
        
-        self.P = self.atoms[self.pdb.df['ATOM']['atom_name']=='P']
+        self.P = self.atoms[self.pdb.df['ATOM']['atom_name']==atom_name]
         
         self.P_xcoord = np.array(self.P['x_coord'])
         self.P_ycoord = np.array(self.P['y_coord'])
@@ -1120,15 +1126,15 @@ def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first 
         cont_next = np.count_nonzero(Asym_Cont[i, :])
         j = 0
         for j in range (cont_prev, cont_next + cont_prev):
-                Bond_i = Bond_i + (int(NonZero[1][j]+1+second[1]),)
+                Bond_i = Bond_i + (int(NonZero[1][j]+second[1]),)
 
         if (cont_next!=0):
             if verbose:
                 print ("Il "+str(i+1+first[1])+" residuo di "+first[0]+" lega con "+str(cont_next)+" residui di "+second[0]+ "\n I residui \n", np.array(Bond_i)+1,'\n')
             cont_prev = cont_prev + cont_next #aggiorno
-            Bonds = Bonds + (Bond_i,)
+        Bonds = Bonds + (Bond_i,)
         if (cont_next != len(Bond_i)):
-                
+              
             raise ValueError("Qualcosa è andato storto: taglia della tupla dei residui di contatto non coincide con il numero dei cont_nonzero\n\n")
         
     return Bonds
@@ -1148,34 +1154,38 @@ def Print_Bonds_HDOCK (Bonds, filename, distance, initial):
     
     f.close()
 
-def Print_Protein_BS_old (Bonds, size, filename = 'BS.txt', initial = 0):
+def Print_Protein_BS_old (Bonds, size, filename = 'BS.txt', prot_initial = 0, RNA_initial = 0):
 
     """
     stampa residui proteina coinvolti nel legame
 
     """
     Binding_Site = ()
+    Binding_Site_RNA = ()
 
     count = 0
 
     for kk in range(size):
         for Bond in Bonds:
-            
-            if (((kk+1+initial) in Bond) & ((kk+1+initial) not in Binding_Site)):
+            if (((kk+1+prot_initial) in Bond) & ((kk+1+prot_initial) not in Binding_Site)):
 
-                Binding_Site = Binding_Site + (kk+1+initial,)
+                Binding_Site = Binding_Site + (kk+1+prot_initial,)
                 count += 1
         
     Binding_Site = np.sort(Binding_Site)
 
+    for ii in range(len(Bonds)):
+          if len(Bonds[ii]) != 0:
+              Binding_Site_RNA += (RNA_initial+ii,)
+
+    Binding_Site_RNA = np.sort(Binding_Site_RNA)
+
     print ("La proteina utilizza nel legame (definito dalla distanza inserita) i residui\n", Binding_Site)
     print('per un totale di %d residui'%len(Binding_Site))
-    
-    f = open(filename, 'w')
-    f.write(str(Binding_Site))
-    f.close()
 
-    return Binding_Site
+    BS = {'Prot' : Binding_Site, 'RNA' : Binding_Site_RNA}
+
+    return BS
 
 def Print_Protein_BS(Bonds, filename, path='./'):
 
