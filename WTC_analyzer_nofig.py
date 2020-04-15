@@ -89,7 +89,7 @@ for treshold in range(8,13):
         #treshold = 10
 
         TDP43   = BA.Protein(now_path+pdb_filename, model = False)
-        TDP43.Get_CA_Coord()
+        TDP43.Get_CA_Coord(atom_name='CA')
         RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B', model = False, initial=TDP43.initial+TDP43.CA.shape[0])
         RNA.Get_P_Coord(atom_name="P")
         print('Ok, acquisito correttamente pdb')
@@ -121,10 +121,15 @@ for treshold in range(8,13):
             idx_BS[ii] = np.where(res == bs)[0]
         """
         cov_matrix_CAP = np.genfromtxt(now_path+now_name+'CAP_cov_matrix.txt') 
+        N = cov_matrix_CAP.shape[0]
+        pearson_matrix_CAP = BA.Pearson_Matrix_from_Cov(cov_matrix_CAP, N)
+
         WTC_traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA.xvg', now_path, skip_lines= 27 )
 
 
         # 2) data framing
+
+        pearson_covariance = 'both'
 
         df = pd.DataFrame(res, columns=['Residue_number'])
 
@@ -132,8 +137,26 @@ for treshold in range(8,13):
         df['Is_Prot'] = [True if ii < idx_RNA_start else False for ii in range(len(res))]
         df['Is_BS'] = [True if (r in BS['Prot']) | (r in BS['RNA']) else False for r in res]
         df['RMSF'] = RMSF_res
-        df['Covariance_Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
-        df['Covariance_Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+
+        if pearson_covariance == True:
+            df['Covariance_Mean'] = [np.mean(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
+            df['Covariance_Std'] = [np.std(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
+        
+        
+        elif pearson_covariance == False:
+
+            df['Covariance_Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+            df['Covariance_Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+        
+        else:
+            df['Pearson_Mean'] = [np.mean(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
+            df['Pearson_Std'] = [np.std(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
+            df['Covariance_Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+            df['Covariance_Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+        
+        
+
+
         df['RMSD_Mean'] = [np.mean(WTC_traj.RMSD_eq), ]* len(res)
         df['RMSD_Std'] = [np.std(WTC_traj.RMSD_eq), ]*len(res)
         df['Gyradium_Mean']  = [np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq:]),]*len(res)

@@ -95,9 +95,9 @@ class Protein:
         
         pass
         
-    def Get_CA_Coord(self):      
+    def Get_CA_Coord(self, atom_name = 'CA'):      
        
-        self.CA = self.atoms[self.pdb.df['ATOM']['atom_name']=='CA']
+        self.CA = self.atoms[self.pdb.df['ATOM']['atom_name']==atom_name]
         
         self.CA_xcoord = np.array(self.CA['x_coord'])
         self.CA_ycoord = np.array(self.CA['y_coord'])
@@ -190,7 +190,7 @@ class RNA:
 
             self.initial = initial
         else:
-            self.initial = self.atoms.residue_number[0]
+            self.initial = self.atoms.residue_number.values[0]
 
         
     def Get_P_Coord(self, atom_name = 'P'): 
@@ -1007,7 +1007,17 @@ def Get_Covariance_Matrix(N, filename, path = './',):
     
     return cov_matrix
 
-def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, text = False, text_size = 5, path = './', **kwargs):
+def Pearson_Matrix_from_Cov(cov_matrix, N):
+
+    pearson = np.zeros((N,N))
+    for ii in range(N):
+        for jj in range(N):
+            
+            pearson[ii,jj] = cov_matrix[ii,jj]/(np.sqrt(cov_matrix[ii,ii]*cov_matrix[jj,jj]))
+
+    return pearson
+
+def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, pearson = False, text = False, text_size = 5, path = './', **kwargs):
         
     if c_type == 'Atoms':
         ylabel = 'Atom number'
@@ -1048,7 +1058,11 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, text = False, text_size
 
     if text:
         ax.table(text)
-    ax.set_title('{} Covariance Matrix for {}'.format(c_type, name), pad = 1.)
+    if not pearson:
+        ax.set_title('{} Covariance Matrix for {}'.format(c_type, name), pad = 1.)
+    else:
+        ax.set_title('{} Pearson Covariance Matrix for {}'.format(c_type, name), pad = 1.)
+    
     plt.colorbar(cm) 
     ax.set_ylabel(ylabel)
 
@@ -1058,7 +1072,10 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, text = False, text_size
 
     plt.tight_layout()
     f.autolayout=True
-    f.savefig(path+name+'_'+c_type+'cov_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
+    if not pearson:
+        f.savefig(path+name+'_'+c_type+'cov_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
+    else:
+        f.savefig(path+name+'_'+c_type+'pear_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
 
 def CAP_Cov_Matrix(cov_matrix, idx, save_filename, save_path = './'):
 

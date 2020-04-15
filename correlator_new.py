@@ -204,7 +204,6 @@ for treshold in range(8,13):
 
 # %%
 #further study
-# VERSIONE CON PUNTO SPERIMENTALE di wtc1
 
 ##
 #per fit con  errori x,y
@@ -217,129 +216,161 @@ def f_lin(x, m, q):
     return m*x+q
 ##
 
-WTC_identifier_reduced = ('wtc1', 'wtc1_h', 'wtc3', 'wtc4', 'wtc6')
-Kds_reduced = [DF.Kd[DF.WTC_identifier == key].values[0] for key in WTC_identifier_reduced]
-colori = ['royalblue', 'cornflowerblue', 'goldenrod', 'orange', 'firebrick' ]
-colors = {wtc : color for (wtc, color) in zip(WTC_identifier_reduced, colori)}
-chi_squares = []
+# VERSIONE CON PUNTO SPERIMENTALE di wtc1
+# ERRORI presi sui 3 punti che dovrebbero essere uguali
+
+to_exclude = [2,3,5]
+max_err = np.max([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
+min_err = np.min([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
+err = max_err - min_err
 
 # 1) 
-for ii in range(12):
+#ciclo sugli step
+for ii in range(1):
 
     print('\n\n\n STEP {} \n\n\n'.format(ii))
-
     old_correlators = covave_rmsf_BS_correlators[ii]
-    new_correlators = []
-    excluded = [3,]
 
-    for key, jj in zip(WTC_identifier, range(len(WTC_identifier))):
-        if key in WTC_identifier_reduced:
-            new_correlators.append(old_correlators[jj])
-        else:
-            excluded.append(jj)
+    for kk in to_exclude:
 
-    max_err = np.max([covave_rmsf_BS_correlators[ii][kk] for kk in excluded])
-    min_err = np.min([covave_rmsf_BS_correlators[ii][kk] for kk in excluded])
-    err = max_err - min_err
+        new_correlators = old_correlators.copy()
+        new_correlators.remove(new_correlators[kk])
+        new_Kds = Kds.copy()
+        new_Kds.remove(new_Kds[kk])
 
+        fig, ax = plt.subplots()
+        ax.set_ylabel('1000*Correlation (nm^2)')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_title('Pearson correlation of covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, covave_rmsf_BS_correlations[0][0], covave_rmsf_BS_correlations[0][1]))
+        ax.scatter(Kds[:], 1000*np.array(covave_rmsf_BS_correlators[ii][:]), c = 'red', label = 'data')
+        ax.plot(Kds[kk], 1000*np.array(covave_rmsf_BS_correlators[ii][kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
+        ax.vlines(1340, min_err*1000, max_err*1000, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
+        ax.legend()
+        plt.show()
 
-    fig, ax = plt.subplots()
-    ax.set_title('REDUCED\npasso {}'.format(ii))
-    ax.scatter(Kds_reduced, 1000*np.array(new_correlators), c = 'red')
+    
+        mydata = odr.RealData(new_Kds, new_correlators, sy = err)
+        myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
+        myoutput = myodr.run()
 
-    fig, ax = plt.subplots()
-    ax.set_title('WHOLE\npasso {}'.format(ii))
-    ax.scatter(Kds, 1000*np.array(covave_rmsf_BS_correlators[ii]), c = 'red', label = 'correlation data')
-    ax.vlines(1340, min_err*1000, max_err*1000, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
-    ax.legend()
-    plt.show()
+        fig, ax = plt.subplots()
+        x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
+        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\n {} excluded'.format(treshold, ii, WTC_identifier[kk]), fontsize = 16)
+        ax.set_xlabel('Kds (nM)')
+        ax.set_ylabel('Covariance (nm^2)')
+        ax.errorbar(new_Kds, new_correlators, yerr = err, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
+        ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
+        ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
+        plt.show()
 
-    mydata = odr.RealData(Kds_reduced, new_correlators, sy = err)
-    myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-    myoutput = myodr.run()
-    chi_squares.append(myoutput.sum_square)
-
-    fig, ax = plt.subplots()
-    x = np.linspace(np.min(Kds_reduced), np.max(Kds_reduced), 1000)
-    ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}'.format(treshold, ii), fontsize = 16)
-    ax.set_xlabel('Kds (nM)')
-    ax.set_ylabel('Covariance (nm^2)')
-    ax.errorbar(Kds_reduced, new_correlators, yerr = err, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
-    ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-    ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-    plt.show()
-
-
-fig, ax = plt.subplots()
-ax.set_title('Chi Square with step')
-ax.plot(chi_squares, '*', label = 'chi square')
-ax.set_xlabel('step')
-ax.set_ylabel('chi square')
-ax.legend()
-plt.show()
 # %%
 
-##
+## VERSIONE SENZA DATO NMR
 
-WTC_identifier_reduced = ('wtc1_h', 'wtc3', 'wtc4', 'wtc6')
-Kds_reduced = [DF.Kd[DF.WTC_identifier == key].values[0] for key in WTC_identifier_reduced]
-colori = ['cornflowerblue', 'goldenrod', 'orange', 'firebrick' ]
-colors = {wtc : color for (wtc, color) in zip(WTC_identifier_reduced, colori)}
-chi_squares = []
+to_exclude = [2,3,5]
+max_err = np.max([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
+min_err = np.min([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
+err = max_err - min_err
 
 # 1) 
-for ii in range(12):
+#ciclo sugli step
+for ii in range(1):
 
     print('\n\n\n STEP {} \n\n\n'.format(ii))
-
     old_correlators = covave_rmsf_BS_correlators[ii]
-    new_correlators = []
-    excluded = [3,]
 
-    for key, jj in zip(WTC_identifier, range(len(WTC_identifier))):
-        if key in WTC_identifier_reduced:
-            new_correlators.append(old_correlators[jj])
-        else:
-            excluded.append(jj)
+    for kk in to_exclude:
 
-    max_err = np.max([covave_rmsf_BS_correlators[ii][kk] for kk in excluded])
-    min_err = np.min([covave_rmsf_BS_correlators[ii][kk] for kk in excluded])
-    err = max_err - min_err
+        new_correlators = old_correlators.copy()
+        new_correlators.remove(new_correlators[kk])
+        new_correlators.remove(new_correlators[0])
+        new_Kds = Kds.copy()
+        new_Kds.remove(new_Kds[kk])
+        new_Kds.remove(new_Kds[0])
 
+        fig, ax = plt.subplots()
+        ax.set_ylabel('1000*Correlation (nm^2)')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_title('Pearson correlation of covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, covave_rmsf_BS_correlations[0][0], covave_rmsf_BS_correlations[0][1]))
+        ax.scatter(Kds[1:], 1000*np.array(covave_rmsf_BS_correlators[ii][1:]), c = 'red', label = 'data')
+        ax.plot(Kds[kk], 1000*np.array(covave_rmsf_BS_correlators[ii][kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
+        ax.vlines(1340, min_err*1000, max_err*1000, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
+        ax.legend()
+        plt.show()
 
-    fig, ax = plt.subplots()
-    ax.set_title('REDUCED\npasso {}'.format(ii))
-    ax.scatter(Kds_reduced, 1000*np.array(new_correlators), c = 'red')
+    
+        mydata = odr.RealData(new_Kds, new_correlators, sy = err)
+        myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
+        myoutput = myodr.run()
 
-    fig, ax = plt.subplots()
-    ax.set_title('WHOLE\npasso {}'.format(ii))
-    ax.scatter(Kds, 1000*np.array(covave_rmsf_BS_correlators[ii]), c = 'red', label = 'data')
-    ax.vlines(1340, min_err*1000, max_err*1000, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
-    ax.legend()
-    plt.show()
-
-    mydata = odr.RealData(Kds_reduced, new_correlators, sy = err)
-    myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-    myoutput = myodr.run()
-    chi_squares.append(myoutput.sum_square)
-
-    fig, ax = plt.subplots()
-    x = np.linspace(np.min(Kds_reduced), np.max(Kds_reduced), 1000)
-    ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}'.format(treshold, ii), fontsize = 16)
-    ax.set_xlabel('Kds (nM)')
-    ax.set_ylabel('Covariance (nm^2)')
-    ax.errorbar(Kds_reduced, new_correlators, yerr = err, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
-    ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-    ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-    plt.show()
+        fig, ax = plt.subplots()
+        x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
+        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\n {} excluded'.format(treshold, ii, WTC_identifier[kk]), fontsize = 16)
+        ax.set_xlabel('Kds (nM)')
+        ax.set_ylabel('Covariance (nm^2)')
+        ax.errorbar(new_Kds, new_correlators, yerr = err, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
+        ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
+        ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
+        plt.show()
 
 
-fig, ax = plt.subplots()
-ax.set_title('Chi Square with step')
-ax.plot(chi_squares, '*', label = 'chi square')
-ax.set_xlabel('step')
-ax.set_ylabel('chi square')
-ax.legend()
-plt.show()
+# %%
+
+# %%
+
+## VERSIONE SENZA DATO NMR
+## ma i cui prendo l'errore con la differenza tra lo sperimentale e non 
+
+to_exclude_exclude =  [0,1]
+
+
+max_err = np.max([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude_exclude])
+min_err = np.min([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude_exclude])
+err = max_err - min_err
+
+to_exclude = [2,3,5]
+
+# 1) 
+#ciclo sugli step
+for ii in range(1):
+
+    print('\n\n\n STEP {} \n\n\n'.format(ii))
+    old_correlators = covave_rmsf_BS_correlators[ii]
+
+    for kk in to_exclude:
+
+        new_correlators = old_correlators.copy()
+        new_correlators.remove(new_correlators[kk])
+        new_correlators.remove(new_correlators[0])
+        new_Kds = Kds.copy()
+        new_Kds.remove(new_Kds[kk])
+        new_Kds.remove(new_Kds[0])
+
+        fig, ax = plt.subplots()
+        ax.set_ylabel('1000*Correlation (nm^2)')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_title('Pearson correlation of covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, covave_rmsf_BS_correlations[0][0], covave_rmsf_BS_correlations[0][1]))
+        ax.scatter(Kds[:], 1000*np.array(covave_rmsf_BS_correlators[ii][:]), c = 'red', label = 'data')
+        ax.plot(Kds[kk], 1000*np.array(covave_rmsf_BS_correlators[ii][kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
+        ax.plot(Kds[0], 1000*np.array(covave_rmsf_BS_correlators[ii][0]), 'o',  color = 'orange', fillstyle = None, lw = 3,)
+
+        ax.vlines(0, min_err*1000, max_err*1000, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
+        ax.legend()
+        plt.show()
+
+    
+        mydata = odr.RealData(new_Kds, new_correlators, sy = err)
+        myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
+        myoutput = myodr.run()
+
+        fig, ax = plt.subplots()
+        x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
+        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\n {} excluded'.format(treshold, ii, WTC_identifier[kk]), fontsize = 16)
+        ax.set_xlabel('Kds (nM)')
+        ax.set_ylabel('Covariance (nm^2)')
+        ax.errorbar(new_Kds, new_correlators, yerr = err, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
+        ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
+        ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
+        plt.show()
 
 # %%

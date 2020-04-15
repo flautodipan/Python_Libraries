@@ -20,19 +20,20 @@ warnings.filterwarnings("ignore")
 now_temp = '300 K'
 scale='ns'
 
-#WTC2
-now_path    =   '../GROMACS/WTC2/'
-now_name    =    'wtc2'
-n_frames = 10001
-time_range = [0, 1000000]
-time_range_eq = [400000, 1000000]
-color       =   'forestgreen'
-darkcolor   =   'darkgreen'
-brightcolor = 'goldenrod'
-contrastcolor = 'crimson'
-darkcontrastcolor = 'darkred'
-ylim = (0,1)
-gyrad_ylim = (1.3, 1.9)
+
+#WTC5
+now_path    =   '../GROMACS/WTC5/'
+now_name    =    'wtc5'
+n_frames = 30001
+time_range = [0, 3000000]
+time_range_eq = [2100000, 3000000]
+color = 'darkorchid'
+darkcolor = 'indigo'
+brightcolor = 'crimson'
+contrastcolor = 'chartreuse'
+darkcontrastcolor = 'yellowgreen'
+ylim = (0,2)
+gyrad_ylim = (1.1, 1.7)
 
 
 
@@ -192,7 +193,7 @@ Dist    = BA.Dist_Matrix(Coord)
 Cont    = BA.Contacts_Matrix(Dist, treshold)
 Bonds   = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA.lenght), ("TDP43", "RNA"), first=  ('RNA', 1), second = ('Proteina', TDP43.initial))
 
-BS      = BA.Print_Protein_BS_old(Bonds, TDP43.lenght, initial=TDP43.initial)
+BS      = BA.Print_Protein_BS_old(Bonds, TDP43.lenght, prot_initial=TDP43.initial, RNA_initial=RNA.initial)['Prot']
 
 with open  (now_path+filename, 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues\n")
@@ -346,9 +347,17 @@ if not skip_cov:
 else:
     cov_matrix_CAP = np.genfromtxt(now_path+now_name+'CAP_cov_matrix.txt')  
 
-BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.005, 0.005))
+
+BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.001, 0.001))
+
+#%%
+#trasformo in matrice di pearson
 
 
+N = idx.size
+pearson_matrix_CAP = BA.Pearson_Matrix_from_Cov(cov_matrix_CAP, N)
+
+BA.Print_Cov_Matrix_BS(pearson_matrix_CAP, now_name, 'CA', BS, res, pearson = True, path = now_path, clim = (-1, 1))
 
 
 # %%
