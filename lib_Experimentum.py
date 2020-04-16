@@ -313,9 +313,10 @@ class Spectrum  :
     def Fit_VIPA_Gaussian(self, fig = False, verbose = False):
 
         peaks_idx   =   find_peaks(self.y_VIPA, height = self.gauss_fit_height, distance = self.VIPA_peaks_dist, width = 1)[0]
-    
+        print(peaks_idx)
+        print(self.x_VIPA_freq[peaks_idx])
         gmod = Model(gaussian)
-        result = gmod.fit(self.y_VIPA[peaks_idx], x = self.x_VIPA_freq[peaks_idx], A = 1., mu = 1, sigma = 1)
+        result = gmod.fit(self.y_VIPA[peaks_idx], x = self.x_VIPA_freq[peaks_idx], A = 1., mu = 10, sigma = 10)
         
         A = result.values['A']
         mu = result.values['mu']
@@ -344,20 +345,16 @@ class Spectrum  :
             plt.xlim(-50,50)
             plt.show()
    
-    def Fit_Pixel2GHz(self,  fig = False):
+    def Fit_Pixel2GHz(self,  fig = False, savepath = None, **img_kwargs):
 
         """
         Dai dati VIPA calcolo funzione di conversione in GHz
-
         Parametri
         (wrap di scipy.signal.find_peaks())
-
         altezza         altezza minima per essere ammesso nel novero dei picchi
                         default su 0
-
         dist            distanza tra un picco e l'altro, onde evitare assunzioni strane
                         di default il 'min del free spectral range' in  pixel è 100
-
         """
  
 
@@ -387,17 +384,26 @@ class Spectrum  :
 
         if fig:
 
+            f, ax = plt.subplots()
+
             x_fit = np.linspace(Delta_Pixel[0], Delta_Pixel[len(Delta_Pixel)-1], 100)
             y_fit = self.Poly2GHz[0]*(x_fit**3) + self.Poly2GHz[1]*(x_fit**2) + self.Poly2GHz[2]*x_fit + self.Poly2GHz[3]
+           
+            ax.plot(Delta_Pixel, Delta_GHz, '*', label='Peaks Data', c = img_kwargs['data_color'] if 'data_color' in img_kwargs else None )
+            ax.plot(x_fit, y_fit, label='Polynomial fit', alpha = .8, c = img_kwargs['fit_color'] if 'fit_color' in img_kwargs else None  )
+            ax.legend()
+            ax.set_title('Conversion GHz vs Pixel')
+            ax.xaxis.set_label_text('Delta Pixels')
+            ax.yaxis.set_label_text('Delta Frequencies (GHz)')
+            plt.tight_layout()
+            if savepath:
 
-            plt.figure()
-            plt.plot(Delta_Pixel, Delta_GHz, '.', label='Peaks Data')
-            plt.plot(x_fit, y_fit, label='Fit Polinomiale')
-            plt.legend()
-            plt.title('GHz vs Pixel')
+                f.savefig(savepath+'GHz_conversion.pdf', format = 'pdf')
             #plt.savefig('figure/'+fig+'.png')
             plt.show()
+
             plt.close()
+        
         
     def VIPA_Pix2GHz (self, fig = False):
             
@@ -531,10 +537,10 @@ class Spectrum  :
 
         self.cost_markov        =   0.5*np.sum(getattr(self, attribute)(p0, self.y)**2)
 
-    def Get_cost_tot(self, p0, p_gauss):
+    def Get_cost_tot(self, p0, p_gauss, kernel):
         # senza le gauss
-
-        self.cost_tot           =   0.5*np.sum(self.Residuals_NoGauss(p0, self.y, p_gauss)**2)
+    
+        self.cost_tot           =   0.5*np.sum(self.Residuals_NoGauss(p0, self.y, p_gauss, kernel)**2)
 
     def Get_p0_by_Markov(self, p0, treshold, **kwargs):
 
@@ -569,10 +575,14 @@ class Spectrum  :
         else:
             return  0
 
-    def Initials_Parameters_from_Markov(self, Markov_Fit_Params, columns):
+
+    def Initials_Parameters_from_Markov(self):
         
+        if 'delta_position' not in self.Markov_Fit_Params.keys():             columns = cols_mark_nodelta
+        else:   columns = cols_mark
+
         self.p0 =  pd.DataFrame({}, columns = cols, index = ['Values'])
-        self.p0.T.Values[list(columns)] = [value for value in Markov_Fit_Params[list(columns)].values[0]]
+        self.p0.T.Values[list(columns)] = [value for value in self.Markov_Fit_Params[list(columns)].values[0]]
         self.p0['Delta']            =   self.p0['Gamma']
         self.p0['tau']              =   [1.]
 
@@ -666,32 +676,44 @@ class Spectrum  :
             plt.plot(conv_range, self.y_Gauss_convolution)
             plt.title('convoluzione dati VIPA con funz S2 più moltiplicazione Gauss')
 
-    def Convolve_Theoretical_Response_Fast (self, p, p_gauss):
+    def Get_VIPA_for_fit(self, mode, **kwargs):
+
+        if mode == 'natural':
+                
+            _ , idx_min                 =       Find_Nearest(self.x_VIPA_freq, -35.)
+            _ , idx_max                 =       Find_Nearest(self.x_VIPA_freq, 35.)
+            self.w_j_VIPA                    =       self.x_VIPA_freq[idx_min:idx_max]
+            self.VIPA_w_j                    =       self.y_VIPA[idx_min:idx_max-1]
+            self.Delta_w_j_VIPA         =       Get_Delta_Between_Array_Elements(self.w_j_VIPA)
+            self.w_j_VIPA               =       self.w_j_VIPA[:-1]#-1 per azzeccare dim coi bins
+
+
+        elif mode == 'interpolate':
+
+            self.w_j_VIPA               =       np.linspace(-35., 35, kwargs['interpolation_density'])
+            self.VIPA_w_j               =       self.Interpolate_VIPA(self.w_j_VIPA)             
+
+
+
+    def Convolve_Theoretical_Response_Fast (self, p, p_gauss, kernel):
 
         """
         Versione per non fittare parametri della gaussiana nel fit totale
-
         Funziona con modello Real (Markov + Rilassamento exp) --> 12 parametri
         """
 
         self.y_convolution      =       np.zeros(self.x_freq.size)
-        _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
-        _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
-        w_j_VIPA                =       self.x_VIPA_freq[idx_min:idx_max]#-1 per azzeccare dim coi bins
-        VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
-        Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
-        w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
-        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/(p_gauss[0]*(np.exp(-((w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
         
         for  ii in range(len(self.x_freq)):
 
-            delta_w                 =   self.x_freq[ii] -   w_j_VIPA
-            theor                   =   S_Dynamical_Form_Factor_2(delta_w-p[8], *p[0:8])
+            delta_w                 =   self.x_freq[ii] -   self.w_j_VIPA
+            theor                   =   lorentian(delta_w, *p[5:8]) + S_Dynamical_Form_Factor_2_nodelta(delta_w-p[8], *p[0:5])
             self.y_convolution[ii]  =   np.sum(theor*kernel)
 
         self.y_Gauss_convolution   =   p[9] + self.y_convolution*p_gauss[0]*np.exp(-((self.x_freq - p_gauss[1])**2)/(2*(p_gauss[2]**2)))
 
         return self.y_Gauss_convolution
+    
     
     def Gauss_Convolve_Theoretical_Response_Fast (self, p):
 
@@ -813,27 +835,27 @@ class Spectrum  :
         """
         Versione veloce della funzione Gauss_Convolve_Markovian
         Funziona con modello Markov --> 11 parametri
-
         """
         self.y_markov_convolution      =       np.zeros(self.x_freq.size)
-        _ , idx_min             =       Find_Nearest(self.x_VIPA_freq, -35.)
-        _ , idx_max             =       Find_Nearest(self.x_VIPA_freq, 35.)
-        w_j_VIPA                =       self.x_VIPA_freq[idx_min:idx_max]#-1 per azzeccare dim coi bins
-        VIPA_w_j                =       self.y_VIPA[idx_min:idx_max-1]
-        Delta_w_j_VIPA          =       Get_Delta_Between_Array_Elements(w_j_VIPA)
-        w_j_VIPA                =       w_j_VIPA[:w_j_VIPA.size-1]
-        kernel                  =       VIPA_w_j*Delta_w_j_VIPA/(p[6]*(np.exp(-((w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
-        
+        if hasattr(self, 'Delta_w_j_VIPA'):
+
+            kernel                  =       self.VIPA_w_j*self.Delta_w_j_VIPA/(p[6]*(np.exp(-((self.w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
+
+        else:
+
+            kernel                  =       self.VIPA_w_j/(p[6]*(np.exp(-((self.w_j_VIPA-p[7])**2)/(2*(p[8]**2)))))
+
+
         for  ii in range(len(self.x_freq)):
 
-            delta_w                 =   self.x_freq[ii] -   w_j_VIPA
-            theor                   =   delta_function(delta_w, *p[3:6]) + S_Dynamical_Form_Factor_0_nodelta(delta_w-p[9], *p[0:3])
-
+            delta_w                 =   self.x_freq[ii] -   self.w_j_VIPA
+            theor                   =   lorentian(delta_w, *p[3:6])  +  S_Dynamical_Form_Factor_0_nodelta(delta_w-p[9], *p[0:3])
             self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
  
         self.y_Gauss_markov_convolution   =   p[10] + self.y_markov_convolution*p[6]*np.exp(-((self.x_freq - p[7])**2)/(2*(p[8]**2)))
 
         return self.y_Gauss_markov_convolution 
+    
 
 
     def Gauss_Convolve_Markovian_Response_Smart (self, p, fantoccio = False, fig = False):
@@ -917,24 +939,27 @@ class Spectrum  :
 
         return (self.Gauss_Convolve_Markovian_Response_Smart_Fast(p) - y)/self.y_err
 
-    def Residuals_NoGauss(self, p, y, p_gauss):
+    def Residuals_NoGauss(self, p, y, p_gauss, kernel):
         
-        return (self.Convolve_Theoretical_Response_Fast(p, p_gauss) - y)/self.y_err
-    
-    def Non_Linear_Least_Squares (self, p_gauss, columns, p0 = 'auto', bound = (-np.inf, np.inf), fig = False, **kwargs):
+        return (self.Convolve_Theoretical_Response_Fast(p, p_gauss, kernel) - y)/self.y_err
+
+    def Non_Linear_Least_Squares (self, p_gauss, columns, p0 = 'auto', fig = False, **kwargs):
 
         """
-
         OSS le kwargs sono quelle di least_squares() di scipy.optimize
-
         """       
-        start            =    time.process_time()
+        attribute = 'Residuals_NoGauss'
+ 
+
+        start                   =    time.process_time()
+        kernel                  =       self.VIPA_w_j/(p_gauss[0]*(np.exp(-((self.w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
+
 
         if p0 == 'auto':
 
-            self.res_lsq     =    least_squares(self.Residuals_NoGauss, self.p0[list(columns)].values[0], args= ([self.y, p_gauss]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(getattr(self, attribute), self.p0[list(columns)].values[0], args= ([self.y, p_gauss, kernel]),  **kwargs)    
         else:
-            self.res_lsq     =    least_squares(self.Residuals_NoGauss, p0, args= ([self.y]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y, p_gauss, kernel]),  **kwargs)    
             
         print("s impiegati a fare il fit totale ", time.process_time()-start, '\n')
 
@@ -970,6 +995,7 @@ class Spectrum  :
         if (self.res_lsq['success'] == False):
             return 2
         else: return 1
+
 
     def Get_Fit_Bounds(self, rules, columns): 
 
@@ -1020,31 +1046,31 @@ class Spectrum  :
     def Residuals_Markov(self, p, y):
         
         return (self.Gauss_Convolve_Markovian_Response_Fast(p) - y)/self.y_err
-    
-    def Non_Linear_Least_Squares_Markov (self, columns, p0 = 'auto',  bound = (-np.inf, np.inf), fig = False, zoom = False, **kwargs):
 
-        if columns == cols_smart:
-            attribute = 'Residuals_Markov_Smart'
-        elif columns == cols_mark:
-            attribute = 'Residuals_Markov'
-        else : raise ValueError('Choose columns for fit')
+    
+    def Non_Linear_Least_Squares_Markov (self, columns, p0 = 'auto', fig = False, zoom = False, **kwargs):
+
+        attribute = 'Residuals_Markov'
 
         start            =    time.process_time()
+
         if p0 == 'auto':
-            self.res_lsq     =    least_squares(getattr(self, attribute), self.p0[list(columns)].values[0], args= ([self.y]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(getattr(self, attribute), x0 = self.p0[list(columns)].values[0], args= ([self.y]),  **kwargs)    
         else:
-            self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y]), bounds = bound,  **kwargs)    
+            self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y]),  **kwargs)    
 
         print("s impiegati a fare il fit ", time.process_time()-start, '\n')
         Parameters       =    self.res_lsq.x
         
         try:
+
             J                =    self.res_lsq.jac
             cov              =    np.linalg.inv(J.T.dot(J))
             Delta_Parameters =    np.sqrt(np.diagonal(cov))
 
         except  np.linalg.LinAlgError as err:
 
+            
             if 'Singular matrix' in str(err):
                 print('Ho trovato matrice singolare')
                 Delta_Parameters        =   np.empty(len(self.p0[list(columns)].values[0]))
@@ -1075,6 +1101,7 @@ class Spectrum  :
         if (self.res_lsq['success'] == False):
             return 2
         else: return 1
+    
     
     def Recover_Markov_Fit_Params(self, dictio_string):
 

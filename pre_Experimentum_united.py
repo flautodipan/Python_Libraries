@@ -13,9 +13,9 @@ import      os
 
 
 #I/O 
-spectra_filename    =   'ARS_13_02'
+spectra_filename    =   'ARS_14_02'
 now_path            =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-VIPA_filename       =   'NO_ARS_13_02_VIPA_quasisat.tif'
+VIPA_filename       =   'ARS_14_02_VIPA_realigned_quasisat.tif'
 log_file            =   'log_'+spectra_filename
 
 #operatives
@@ -32,7 +32,7 @@ syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
 #   e compio alcune operazioni di sistema utili per salvataggio dati
 
 #import dati spettro
-transpose = True
+transpose = False
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
@@ -279,11 +279,11 @@ config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.0
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 
 config['Operatives'] = {'exclude_delta' : True,'initial' : 'right','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
-config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 1.07378474e-01,  7.57148558e+00,  1.49128813e-01,  1.19015861e-01,
-        1.448930518e-01,  8.34614271,  4.79747192e+03, -1.00904973e+01,
-        1.58007162e+01,  2.11019859e-01, -3.10388495e-01], 'first_almost': first_almost, 'p0_almost' : [ 1.07186924e-01,  7.63051819e+00,  1.33280055e-01,  1.97510814e+00,
-        5.09986043e-01,  1.66616101e+00,  4.33362727e+03, -1.00496864e+01,
-        1.59365161e+01,  2.77695117e-01,  6.43211621e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
+config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 8.96002411e-03,  7.78685345e+00,  1.97997663e-01,  2.36718051e-01,
+        6.46439935e-03,  1.21324090e-02,  6.40050899e+04, -8.49750324e+00,
+        1.51587754e+01, -1.86762249e-03,  1.80459285e+01], 'first_almost': first_almost, 'p0_almost' : [ 8.91790919e-03,  7.85138816e+00,  1.83654375e-01,  3.10729167e-01,
+        7.87908464e-02,  8.11953189e-02,  3.48672288e+00, -8.32923584e+00,
+        1.51284882e+01,  3.27698015e-02,  2.89749822e+01], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
 
 config['Tot'] = {'skip_tot' : False, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)}
 

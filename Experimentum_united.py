@@ -55,7 +55,7 @@ if sys.argv[1] != '-f':
 elif sys.argv[1] == '-f': 
 
     print('Sto in modalità interattiva')
-    spectra_filename = 'ARS_13_02'
+    spectra_filename = 'ARS_14_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
     analysis_name = 'dabuttare'
     if not os.path.exists(now_path +analysis_name+'/'):
@@ -148,8 +148,8 @@ inputs.set('Markov', 'method', method)
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-matrix, rows, cols = Initialize_Matrix(0,0,3,3)
-#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+#matrix, rows, cols = Initialize_Matrix(0,0,3,3)
+matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
 inputs.set('I/O','n_cols', str(len(cols)))
@@ -323,6 +323,7 @@ if recover_markov == False:
 
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
 
+            matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
             p0s = Get_p0_by_Neighbours(matrix, ii, jj, len(rows), len(cols))
         
             if (ii,jj) in almost_height:
@@ -334,11 +335,11 @@ if recover_markov == False:
             matrix[ii][jj].Get_Best_p0(p0s, cols_mark)
 
             matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(cols_mark)].values[0], cols_mark)
-            print('Cost before fitting = {}'.format(matrix[ii][jj].cost_markov))
+            print('Cost before fitting = {:3.2f}'.format(matrix[ii][jj].cost_markov))
             matrix[ii][jj].Get_Fit_Bounds(rules_markov_bounds, cols_mark)
-            fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
+            fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(cols_mark, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
             matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], cols_mark)
-            print('Cost after fitting = {}\n'.format(matrix[ii][jj].cost_markov))
+            print('Cost after fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_markov))
 
             if (ii,jj) in almost_height:
                 p0_almost = matrix[ii][jj].Markov_Fit_Params.values[0]
@@ -420,13 +421,15 @@ if not skip_tot:
 
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
             p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
-            matrix[ii][jj].Initials_Parameters_from_Markov(matrix[ii][jj].Markov_Fit_Params, cols_mark)
+            kernel   = matrix[ii][jj].VIPA_w_j/(p_gauss[0]*(np.exp(-((matrix[ii][jj].w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
+
+            matrix[ii][jj].Initials_Parameters_from_Markov()
             matrix[ii][jj].Get_Fit_Bounds(rules_tot_bounds, columns = cols_real)
-            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss)
-            print('\nCost before fitting = {}\n'.format(matrix[ii][jj].cost_tot))
-            fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bound = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
-            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss)
-            print('\nCost after fitting = {}\n'.format(matrix[ii][jj].cost_tot))
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss, kernel)
+            print('\nCost before fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_tot))
+            fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss, kernel)
+            print('\nCost after fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_tot))
             #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
 
 
