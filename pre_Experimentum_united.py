@@ -13,16 +13,16 @@ import      os
 
 
 #I/O 
-spectra_filename    =   'ARS_14_02'
+spectra_filename    =   'ARS_11_02'
 now_path            =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-VIPA_filename       =   'ARS_14_02_VIPA_realigned_quasisat.tif'
+VIPA_filename       =   'ARS_11_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
 
 #operatives
 
 #esclusi a mano
 to_add              =   []
-syg_kwargs_test          =   {'height': 10, 'distance': 31, 'width': 2.1}
+syg_kwargs_test          =   {'height': 5, 'distance': 32, 'width': 2.1}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
 syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
 
@@ -33,7 +33,9 @@ syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
 
 #import dati spettro
 transpose = False
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
+pre_cut = True
+pre_cut_range = (0,180)
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y_all', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
@@ -52,7 +54,7 @@ for ii in range(len(rows)):
     for jj in range(len(cols)):
         print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
         
-        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = False, cut_range = (200, 600))
+        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_test)
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
         matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
@@ -137,7 +139,8 @@ else:
 if len(four) != (dim -len(excluded)):
     print('\nHo trovato {} spettri di cui non sono riuscito a trovare 4 picchi\n'.format(len(bizarre)))
     print(bizarre)
-    
+
+Plot_Elements_Spectrum(matrix, bizarre, peaks = True, pix = True)
 to_add += bizarre
 #%%
 # STATSTICHE:     costruisco variabili che mi permettono di studiare le posizioni relative
@@ -172,6 +175,8 @@ dist_23        = ()
 
 
 for (ii,jj) in four:
+
+        
 
         height_first  += (matrix[ii][jj].peaks['heights'][0],)
         height_second += (matrix[ii][jj].peaks['heights'][1],)
@@ -217,7 +222,23 @@ for (s, what) in zip(stats, ('Picco 1 height', 'Picco 2 height', 'Picco 3 height
     plt.legend()
     plt.show()
 
+#%%
+#aggiuntine a mano
+bad_idx= list(np.where(np.array(height_second) < 10)[0])
 
+
+count = 0
+to_plot = []
+for (ii,jj) in four:
+    if count in bad_idx:
+        print(str((ii,jj)))
+        to_plot.append((ii,jj))
+    count+=1
+
+to_add += to_plot
+syg_kwargs_height = 38.91
+syg_kwargs_brill_height = 5.4
+syg_kwargs_width = 2.4
 #%%
 #Suggestions
 
@@ -278,12 +299,12 @@ config['syg_kwargs'] = { 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'wid
 config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 
-config['Operatives'] = {'exclude_delta' : True,'initial' : 'right','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
-config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 8.96002411e-03,  7.78685345e+00,  1.97997663e-01,  2.36718051e-01,
-        6.46439935e-03,  1.21324090e-02,  6.40050899e+04, -8.49750324e+00,
-        1.51587754e+01, -1.86762249e-03,  1.80459285e+01], 'first_almost': first_almost, 'p0_almost' : [ 8.91790919e-03,  7.85138816e+00,  1.83654375e-01,  3.10729167e-01,
-        7.87908464e-02,  8.11953189e-02,  3.48672288e+00, -8.32923584e+00,
-        1.51284882e+01,  3.27698015e-02,  2.89749822e+01], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
+config['Operatives'] = {'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'exclude_delta' : False, 'initial' : 'right','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
+config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 6.09453018e-03,  7.46774482e+00,  1.31712795e-01,  2.39136196e-01,
+        1.13936085e-05,  2.78947527e-01,  4.71958556e+03, -9.62281912e+00,
+        1.58244543e+01,  1.21533037e-01,  3.25842410e+00], 'first_almost': first_almost, 'p0_almost' :[ 4.45785324e-03,  7.40442712e+00,  8.07935070e-02,  3.96812954e-02,
+        9.58287799e-02,  2.65541107e-01,  3.21314854e-08, -9.62281912e+00,
+        1.58244543e+01, -7.21776390e-02,  9.61758585e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
 
 config['Tot'] = {'skip_tot' : False, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)}
 

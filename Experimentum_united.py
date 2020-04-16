@@ -55,7 +55,7 @@ if sys.argv[1] != '-f':
 elif sys.argv[1] == '-f': 
 
     print('Sto in modalità interattiva')
-    spectra_filename = 'ARS_14_02'
+    spectra_filename = 'ARS_11_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
     analysis_name = 'dabuttare'
     if not os.path.exists(now_path +analysis_name+'/'):
@@ -89,6 +89,8 @@ inputs.set('I/O', 'now_path', now_path)
 #operatives
 initial             =   inputs['Operatives']['initial']
 to_add              =   eval(inputs['Operatives']['to_add'])
+pre_cut             =  inputs.getboolean('Operatives','pre_cut')
+pre_cut_range       =  eval(inputs['Operatives']['pre_cut_range'])
 exclude_delta       =   inputs.getboolean('Operatives', 'exclude_delta')
 syg_kwargs          =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs')}
 syg_kwargs_VIPA     =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_VIPA')}
@@ -145,7 +147,7 @@ inputs.set('Markov', 'method', method)
 
 
 #import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y_all', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 #matrix, rows, cols = Initialize_Matrix(0,0,3,3)
@@ -175,7 +177,7 @@ for (ii, ii_true) in zip(range(len(rows)), rows):
 
         print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
         
-        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = (200, 600))
+        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
 
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
@@ -463,6 +465,9 @@ with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('tempo impiegato per esecuzione dello script ore = %3.2f\n '%(super_time/3600))
     for (what,t) in tempo:
         f_log.write('di cui %f secondi =  %f  ore in %s \n' %(t, t/3600, what))
+
+
+# %%
 
 
 # %%
