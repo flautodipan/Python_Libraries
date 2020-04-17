@@ -8,7 +8,7 @@ from scipy.stats import pearsonr
 
 now_path = '../GROMACS/'
 save_path = now_path+'CORRELATIONS/'
-for treshold in range(8,13):
+for treshold in [12]:#range(8,13):
     
     print('\n\n\nTreshold = {}\n\n\n'.format(treshold))
 
@@ -23,6 +23,10 @@ for treshold in range(8,13):
 
     WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6')#'wtc5',
     Kds = [DF.Kd[DF.WTC_identifier == key].values[0] for key in WTC_identifier]
+
+    Kds = [4, 4, 1360, 650, 750, 1320, 1800]
+    Kds_errs = [0.9, 0.9, 600, 135, 150, 350, 400]
+
     colori = ['royalblue', 'cornflowerblue', 'forestgreen', 'goldenrod', 'orange', 'darkorchid', 'firebrick' ]
     colors = {wtc : color for (wtc, color) in zip(WTC_identifier, colori)}
 
@@ -251,259 +255,59 @@ def f_lin(x, m, q):
 ##
 
 # VERSIONE CON PUNTO SPERIMENTALE di wtc1
-# ERRORI presi sui 3 punti che dovrebbero essere uguali
+# ERRORI presi sui 3 punti che dovrebbero essere uguali,
+# meglio sui due che rimangono escludendone uno
+
 
 to_exclude = [2,3,5]
 # 1) 
 #ciclo sugli step
 for ii in range(1):
-    max_err = np.max([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
-    min_err = np.min([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
-    err = (max_err - min_err)
-
-
 
     print('\n\n\n STEP {} \n\n\n'.format(ii))
-    old_correlators = covave_rmsf_BS_correlators[ii]
+    old_correlators = z_covave_rmsf_BS_correlators[ii]
 
     for kk in to_exclude:
-
+        
+        #variabili che aggiorno
         new_correlators = old_correlators.copy()
         new_correlators.remove(new_correlators[kk])
         new_Kds = Kds.copy()
         new_Kds.remove(new_Kds[kk])
+        new_Kds_errs = new_Kds.copy()
+        new_Kds_errs.remove(new_Kds_errs[kk])
 
-        fig, ax = plt.subplots()
-        ax.set_ylabel('1000*Correlation (nm^2)')
-        ax.set_xlabel('Kd (nM)')
-        ax.set_title('Pearson correlation of covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, covave_rmsf_BS_correlations[0][0], covave_rmsf_BS_correlations[0][1]))
-        ax.scatter(Kds[:], 1000*np.array(covave_rmsf_BS_correlators[ii][:]), c = 'red', label = 'data')
-        ax.plot(Kds[kk], 1000*np.array(covave_rmsf_BS_correlators[ii][kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
-        ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
-        ax.legend()
-        plt.show()
-
-    
-        mydata = odr.RealData(new_Kds, new_correlators, sy = err/2)
-        myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-        myoutput = myodr.run()
-
-        fig, ax = plt.subplots()
-        x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
-        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\n {} excluded'.format(treshold, ii, WTC_identifier[kk]), fontsize = 16)
-        ax.set_xlabel('Kds (nM)')
-        ax.set_ylabel('Covariance (nm^2)')
-        ax.errorbar(new_Kds, new_correlators, yerr = err/2, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
-        ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-        ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-        plt.show()
-
-# %%
-
-## VERSIONE SENZA DATO NMR
-
-to_exclude = [2,3,5]
-for ii in range(1):
-    max_err = np.max([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
-    min_err = np.min([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
-    err =  (max_err-min_err)
-
-# 1) 
-#ciclo sugli step
-
-
-    print('\n\n\n STEP {} \n\n\n'.format(ii))
-    old_correlators = covave_rmsf_BS_correlators[ii]
-
-    for kk in to_exclude:
-
-        new_correlators = old_correlators.copy()
-        new_correlators.remove(new_correlators[kk])
-        new_correlators.remove(new_correlators[0])
-        new_Kds = Kds.copy()
-        new_Kds.remove(new_Kds[kk])
-        new_Kds.remove(new_Kds[0])
         new_correlations = pearsonr(new_Kds, new_correlators)
+        not_excluded = to_exclude.copy()
+        not_excluded.remove(kk)
+
+        max_err = np.max([old_correlators[jj] for jj in not_excluded])
+        min_err = np.min([old_correlators[jj] for jj in not_excluded])
+        err_max = (max_err - min_err)
+        err = err_max/3 #procedura standard
+
 
         fig, ax = plt.subplots()
-        ax.set_ylabel('1000*Correlation (nm^2)')
+        ax.set_ylabel('z - Correlation')
         ax.set_xlabel('Kd (nM)')
         ax.set_title('Pearson correlation of covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, new_correlations[0], new_correlations[1]))
-        ax.scatter(Kds[1:], 1000*np.array(covave_rmsf_BS_correlators[ii][1:]), c = 'red', label = 'data')
-        ax.plot(Kds[kk], 1000*np.array(covave_rmsf_BS_correlators[ii][kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
-        ax.plot(Kds[0], 1000*np.array(covave_rmsf_BS_correlators[ii][0]), 'o',  color = 'orange', fillstyle = None, lw = 3,)
-        ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
+        ax.scatter(Kds[:], np.array(old_correlators[:]), c = 'red', label = 'data')
+        ax.plot(Kds[kk], np.array(old_correlators[kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
+        ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'max error bar', linewidths = 2.)
         ax.legend()
         plt.show()
 
     
-        mydata = odr.RealData(new_Kds, new_correlators, sy = err/2)
+        mydata = odr.RealData(new_Kds, new_correlators, sy = err/2, sx = new_Kds_errs)
         myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
         myoutput = myodr.run()
 
         fig, ax = plt.subplots()
         x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
-        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\n {} excluded'.format(treshold, ii, WTC_identifier[kk]), fontsize = 16)
+        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation of {:3.2f} \n treshold = {} Ang step = {}\n {} excluded'.format(new_correlations[0], treshold, ii, WTC_identifier[kk]), fontsize = 16)
         ax.set_xlabel('Kds (nM)')
-        ax.set_ylabel('Covariance (nm^2)')
-        ax.errorbar(new_Kds, new_correlators, yerr = err/2, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
-        ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-        ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-        plt.show()
-
-# %%
-
-# VERSIONE TUTTI FRUTTI - errore coi 3
-
-fig, ax = plt.subplots()
-ax.set_ylabel('1000*Correlation (nm^2)')
-ax.set_xlabel('Kd (nM)')
-ax.set_title('Pearson correlation of covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, covave_rmsf_BS_correlations[0][0], covave_rmsf_BS_correlations[0][1]))
-ax.scatter(Kds[1:], 1000*np.array(covave_rmsf_BS_correlators[ii][1:]), c = 'red', label = 'data')
-ax.vlines(1340, min_err*1000, max_err*1000, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
-ax.legend()
-plt.show()
-
-mydata = odr.RealData(Kds, old_correlators, sy = err/2)
-myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-myoutput = myodr.run()
-
-fig, ax = plt.subplots()
-x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
-ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\nAll included'.format(treshold, ii), fontsize = 16)
-ax.set_xlabel('Kds (nM)')
-ax.set_ylabel('Covariance (nm^2)')
-ax.errorbar(Kds, old_correlators, yerr = err/2, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
-ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-plt.show()
-
-# %%
-
-## VERSIONE SENZA DATO NMR
-## ma i cui prendo l'errore con la differenza tra lo sperimentale e non 
-
-to_exclude_exclude =  [0,1]
-
-
-max_err = np.max([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude_exclude])
-min_err = np.min([covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude_exclude])
-err = max_err - min_err
-
-to_exclude = [2,3,5]
-
-# 1) 
-#ciclo sugli step
-for ii in range(1):
-
-    print('\n\n\n STEP {} \n\n\n'.format(ii))
-    old_correlators = covave_rmsf_BS_correlators[ii]
-
-    for kk in to_exclude:
-
-        new_correlators = old_correlators.copy()
-        new_correlators.remove(new_correlators[kk])
-        new_correlators.remove(new_correlators[0])
-        new_Kds = Kds.copy()
-        new_Kds.remove(new_Kds[kk])
-        new_Kds.remove(new_Kds[0])
-
-        fig, ax = plt.subplots()
-        ax.set_ylabel('1000*Correlation (nm^2)')
-        ax.set_xlabel('Kd (nM)')
-        ax.set_title('Pearson correlation of covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, covave_rmsf_BS_correlations[0][0], covave_rmsf_BS_correlations[0][1]))
-        ax.scatter(Kds[:], 1000*np.array(covave_rmsf_BS_correlators[ii][:]), c = 'red', label = 'data')
-        ax.plot(Kds[kk], 1000*np.array(covave_rmsf_BS_correlators[ii][kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
-        ax.plot(Kds[0], 1000*np.array(covave_rmsf_BS_correlators[ii][0]), 'o',  color = 'orange', fillstyle = None, lw = 3,)
-
-        ax.vlines(0, min_err*1000, max_err*1000, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
-        ax.legend()
-        plt.show()
-
-    
-        mydata = odr.RealData(new_Kds, new_correlators, sy = err/2)
-        myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-        myoutput = myodr.run()
-
-        fig, ax = plt.subplots()
-        x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
-        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\n {} excluded'.format(treshold, ii, WTC_identifier[kk]), fontsize = 16)
-        ax.set_xlabel('Kds (nM)')
-        ax.set_ylabel('Covariance (nm^2)')
-        ax.errorbar(new_Kds, new_correlators, yerr = err/2, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
-        ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-        ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-        plt.show()
-
-# %%
-
-# VERSIONE TUTTI FRUTTI - errore coi 3
-######################################
-########################################
-#########################################
-#222222222222222222222222222222
-
-
-
-
-# %%
-#further study
-
-##
-#per fit con  errori x,y
-import scipy.odr as odr
-linear = odr.Model(f)
-def f(A, x):
-    return A[0]*x+A[1]
-
-def f_lin(x, m, q):
-    return m*x+q
-##
-
-# VERSIONE CON PUNTO SPERIMENTALE di wtc1
-# ERRORI presi sui 3 punti che dovrebbero essere uguali
-
-to_exclude = [2,3,5]
-# 1) 
-#ciclo sugli step
-for ii in range(1):
-    max_err = np.max([z_covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
-    min_err = np.min([z_covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
-    err = (max_err - min_err)
-
-
-
-    print('\n\n\n STEP {} \n\n\n'.format(ii))
-    old_correlators = z_covave_rmsf_BS_correlators[ii]
-
-    for kk in to_exclude:
-
-        new_correlators = old_correlators.copy()
-        new_correlators.remove(new_correlators[kk])
-        new_Kds = Kds.copy()
-        new_Kds.remove(new_Kds[kk])
-
-        fig, ax = plt.subplots()
-        ax.set_ylabel('Correlation (nm^2)')
-        ax.set_xlabel('Kd (nM)')
-        ax.set_title('Pearson correlation of z_covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, z_covave_rmsf_BS_correlations[0][0], z_covave_rmsf_BS_correlations[0][1]))
-        ax.scatter(Kds[:], np.array(z_covave_rmsf_BS_correlators[ii][:]), c = 'red', label = 'data')
-        ax.plot(Kds[kk], np.array(z_covave_rmsf_BS_correlators[ii][kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
-        ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
-        ax.legend()
-        plt.show()
-
-    
-        mydata = odr.RealData(new_Kds, new_correlators, sy = err/2)
-        myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-        myoutput = myodr.run()
-
-        fig, ax = plt.subplots()
-        x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
-        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\n {} excluded'.format(treshold, ii, WTC_identifier[kk]), fontsize = 16)
-        ax.set_xlabel('Kds (nM)')
-        ax.set_ylabel('z_covariance (nm^2)')
-        ax.errorbar(new_Kds, new_correlators, yerr = err/2, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
+        ax.set_ylabel('z Covariance')
+        ax.errorbar(new_Kds, new_correlators, yerr = err/2, xerr = new_Kds_errs, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
         ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
         ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
         plt.show()
@@ -513,19 +317,16 @@ for ii in range(1):
 ## VERSIONE SENZA DATO NMR
 
 to_exclude = [2,3,5]
+
+#ciclo step
 for ii in range(1):
-    max_err = np.max([z_covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
-    min_err = np.min([z_covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude])
-    err =  (max_err-min_err)
-
-# 1) 
-#ciclo sugli step
-
 
     print('\n\n\n STEP {} \n\n\n'.format(ii))
     old_correlators = z_covave_rmsf_BS_correlators[ii]
 
     for kk in to_exclude:
+
+        #aggiornamento variabili
 
         new_correlators = old_correlators.copy()
         new_correlators.remove(new_correlators[kk])
@@ -533,116 +334,78 @@ for ii in range(1):
         new_Kds = Kds.copy()
         new_Kds.remove(new_Kds[kk])
         new_Kds.remove(new_Kds[0])
+        new_Kds_errs = new_Kds.copy()
+        new_Kds_errs.remove(new_Kds_errs[kk])       
+        new_Kds_errs.remove(new_Kds_errs[0])
+
         new_correlations = pearsonr(new_Kds, new_correlators)
+        not_excluded = to_exclude.copy()
+        not_excluded.remove(kk)
+
+        max_err = np.max([old_correlators[jj] for jj in not_excluded])
+        min_err = np.min([old_correlators[jj] for jj in not_excluded])
+        err_max = (max_err - min_err)
+        err = err_max/3 #procedura standard
+
+
 
         fig, ax = plt.subplots()
-        ax.set_ylabel('Correlation (nm^2)')
+        ax.set_ylabel('z - Correlation')
         ax.set_xlabel('Kd (nM)')
-        ax.set_title('Pearson correlation of z_covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, new_correlations[0], new_correlations[1]))
-        ax.scatter(Kds[1:], np.array(z_covave_rmsf_BS_correlators[ii][1:]), c = 'red', label = 'data')
-        ax.plot(Kds[kk], np.array(z_covave_rmsf_BS_correlators[ii][kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
-        ax.plot(Kds[0], np.array(z_covave_rmsf_BS_correlators[ii][0]), 'o',  color = 'orange', fillstyle = None, lw = 3,)
-        ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
+        ax.set_title('Pearson correlation of z - covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, new_correlations[0], new_correlations[1]))
+        ax.scatter(Kds[1:], np.array(old_correlators[1:]), c = 'red', label = 'data')
+        ax.plot(Kds[kk], np.array(old_correlators[kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
+        ax.plot(Kds[0], np.array(old_correlators[0]), 'o',  color = 'orange', fillstyle = None, lw = 3,)
+        ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'max error bar', linewidths = 2.)
         ax.legend()
         plt.show()
 
     
-        mydata = odr.RealData(new_Kds, new_correlators, sy = err/2)
+        mydata = odr.RealData(new_Kds, new_correlators, sy = err/2, sx = new_Kds_errs)
         myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
         myoutput = myodr.run()
 
         fig, ax = plt.subplots()
         x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
-        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\n {} excluded'.format(treshold, ii, WTC_identifier[kk]), fontsize = 16)
+        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation = {:3.2f}\n treshold = {} Ang step = {}\n {} excluded'.format(new_correlations[0], treshold, ii, WTC_identifier[kk]), fontsize = 16)
         ax.set_xlabel('Kds (nM)')
-        ax.set_ylabel('z_covariance (nm^2)')
-        ax.errorbar(new_Kds, new_correlators, yerr = err/2, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
+        ax.set_ylabel('z - Covariance')
+        ax.errorbar(new_Kds, new_correlators, yerr = err/2, xerr = new_Kds_errs, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
         ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
         ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
         plt.show()
 
 # %%
-#TUTTI FRUTTI
+
+# VERSIONE TUTTI FRUTTI - errore coi 3
+
+to_exclude = [2,5]
+max_err = np.max([old_correlators[jj] for jj in to_exclude])
+min_err = np.min([old_correlators[jj] for jj in to_exclude])
+err_max = (max_err - min_err)
+err = err_max/3 #procedura standard
 
 fig, ax = plt.subplots()
-ax.set_ylabel('Correlation (nm^2)')
-ax.set_xlabel('Kd (nM)')
+ax.set_ylabel('z - Correlation')
 ax.set_title('Pearson correlation of z_covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, z_covave_rmsf_BS_correlations[0][0], z_covave_rmsf_BS_correlations[0][1]))
-ax.scatter(Kds[1:], np.array(z_covave_rmsf_BS_correlators[ii][1:]), c = 'red', label = 'data')
-ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
+ax.scatter(Kds[:], z_covave_rmsf_BS_correlators[0][:], c = 'red', label = 'data')
+ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'max error bar', linewidths = 2.)
 ax.legend()
 plt.show()
 
-mydata = odr.RealData(Kds, old_correlators, sy = err/2)
+mydata = odr.RealData(Kds, z_covave_rmsf_BS_correlators[0], sy = err/2, sx = Kds_errs)
 myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
 myoutput = myodr.run()
 
 fig, ax = plt.subplots()
 x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
-ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\nAll included'.format(treshold, ii), fontsize = 16)
+ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation = {:3.2f} \n treshold = {} Ang step = {}\nAll included'.format(z_covave_rmsf_BS_correlations[ii][0], treshold, ii), fontsize = 16)
 ax.set_xlabel('Kds (nM)')
-ax.set_ylabel('z_covariance (nm^2)')
-ax.errorbar(Kds, old_correlators, yerr = err/2, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
+ax.set_ylabel('z Covariance')
+ax.errorbar(Kds, old_correlators, yerr = err/2, xerr = Kds_errs, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
 ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
 ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
 plt.show()
-
-# %%
-
-## VERSIONE SENZA DATO NMR
-## ma i cui prendo l'errore con la differenza tra lo sperimentale e non 
-
-to_exclude_exclude =  [0,1]
-
-
-max_err = np.max([z_covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude_exclude])
-min_err = np.min([z_covave_rmsf_BS_correlators[ii][kk] for kk in to_exclude_exclude])
-err = max_err - min_err
-
-to_exclude = [2,3,5]
-
-# 1) 
-#ciclo sugli step
-for ii in range(1):
-
-    print('\n\n\n STEP {} \n\n\n'.format(ii))
-    old_correlators = z_covave_rmsf_BS_correlators[ii]
-
-    for kk in to_exclude:
-
-        new_correlators = old_correlators.copy()
-        new_correlators.remove(new_correlators[kk])
-        new_correlators.remove(new_correlators[0])
-        new_Kds = Kds.copy()
-        new_Kds.remove(new_Kds[kk])
-        new_Kds.remove(new_Kds[0])
-
-        fig, ax = plt.subplots()
-        ax.set_ylabel('Correlation (nm^2)')
-        ax.set_xlabel('Kd (nM)')
-        ax.set_title('Pearson correlation of z_covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, z_covave_rmsf_BS_correlations[0][0], z_covave_rmsf_BS_correlations[0][1]))
-        ax.scatter(Kds[:], np.array(z_covave_rmsf_BS_correlators[ii][:]), c = 'red', label = 'data')
-        ax.plot(Kds[kk], np.array(z_covave_rmsf_BS_correlators[ii][kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
-        ax.plot(Kds[0], np.array(z_covave_rmsf_BS_correlators[ii][0]), 'o',  color = 'orange', fillstyle = None, lw = 3,)
-
-        ax.vlines(0, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'error bar', linewidths = 2.)
-        ax.legend()
-        plt.show()
-
-    
-        mydata = odr.RealData(new_Kds, new_correlators, sy = err/2)
-        myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-        myoutput = myodr.run()
-
-        fig, ax = plt.subplots()
-        x = np.linspace(np.min(new_Kds), np.max(new_Kds), 1000)
-        ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation\n treshold = {} Ang step = {}\n {} excluded'.format(treshold, ii, WTC_identifier[kk]), fontsize = 16)
-        ax.set_xlabel('Kds (nM)')
-        ax.set_ylabel('z_covariance (nm^2)')
-        ax.errorbar(new_Kds, new_correlators, yerr = err/2, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
-        ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-        ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-        plt.show()
 
 
 
