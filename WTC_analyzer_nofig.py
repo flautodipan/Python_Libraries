@@ -129,7 +129,6 @@ for treshold in range(8,13):
 
         # 2) data framing
 
-        pearson_covariance = 'both'
 
         df = pd.DataFrame(res, columns=['Residue_number'])
 
@@ -138,21 +137,28 @@ for treshold in range(8,13):
         df['Is_BS'] = [True if (r in BS['Prot']) | (r in BS['RNA']) else False for r in res]
         df['RMSF'] = RMSF_res
 
-        if pearson_covariance == True:
-            df['Covariance_Mean'] = [np.mean(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
-            df['Covariance_Std'] = [np.std(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
-        
-        
-        elif pearson_covariance == False:
 
-            df['Covariance_Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
-            df['Covariance_Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+        df['Pearson_Mean'] = [np.mean(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
+        df['Pearson_Std'] = [np.std(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
+        df['Covariance_Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+        df['Covariance_Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
         
-        else:
-            df['Pearson_Mean'] = [np.mean(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
-            df['Pearson_Std'] = [np.std(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
-            df['Covariance_Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
-            df['Covariance_Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+        Covariance_Mean_Prot_BS = []
+        Covariance_Mean_Prot_noBS = []
+        Covariance_Mean_RNA_BS = []
+        Covariance_Mean_RNA_noBS = []
+        for ii in range(len(res)):
+            Covariance_Mean_Prot_BS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in list(np.array(BS['Prot']) - df.Residue_number[0])]))
+            Covariance_Mean_Prot_noBS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
+            Covariance_Mean_RNA_BS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in list(np.array(BS['RNA']) - df.Residue_number[0])]))
+            Covariance_Mean_RNA_noBS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
+
+
+        df['Covariance_Mean_Prot_BS'] = Covariance_Mean_Prot_BS
+        df['Covariance_Mean_Prot_noBS'] = Covariance_Mean_Prot_noBS
+        
+        df['Covariance_Mean_RNA_BS'] = Covariance_Mean_RNA_BS
+        df['Covariance_Mean_RNA_noBS'] = Covariance_Mean_RNA_noBS
         
         
 

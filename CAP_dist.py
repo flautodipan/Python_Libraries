@@ -29,8 +29,10 @@ WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6')
 descriptor = {}
 now_temp = '300 K'
 scale='ns'
+df = pd.DataFrame()
 
-for treshold in range(8,13):
+#%%
+for treshold in [8, 9, 10]:#range(8,13):
     for ii in ['1', '1_h', '2', '3', '4', '5', '6']:
 
         print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
@@ -124,15 +126,33 @@ for treshold in range(8,13):
 
         descriptor[now_name] = (np.mean(min_CAP_dist))
 
+        df[str(treshold)+' ang'] = [descriptor[key] for key in WTC_identifier]
+
+
+
+df.to_json('../GROMACS/df_CAPdist.json')
+
+
+#%%
+
+for treshold in df.columns:
+
+
     f, ax = plt.subplots()
-    ax.set_title('Old Correlation at BS treshold = {} Ang\n pearson = {:3.2f} p-value = {:3.2f}'.format(treshold, *pearsonr(Kds, [descriptor[key] for key in WTC_identifier])))
-    ax.scatter(Kds, [descriptor[key] for key in WTC_identifier], color = 'green')
+    ax.set_title('New Correlation at BS treshold {} Ang\n pearson = {:3.2f} p-value = {:3.2f}'.format(treshold, *pearsonr(Kds_new, [df[treshold][key] for key in WTC_identifier])))
+    ax.errorbar(Kds_new, [df[treshold][key] for key in WTC_identifier], xerr = Kds_errs, fmt = 'o',  color = 'green', ecolor = 'magenta')
     ax.set_xlabel('Kd (nM)')
     ax.set_ylabel('CA-P Mean Dist (Ang)')
 
+
+
+# %%
+
+for treshold in df.columns:
+
     f, ax = plt.subplots()
-    ax.set_title('New Correlation at BS treshold {} Ang\n pearson = {:3.2f} p-value = {:3.2f}'.format(treshold, *pearsonr(Kds_new, [descriptor[key] for key in WTC_identifier])))
-    ax.errorbar(Kds_new, [descriptor[key] for key in WTC_identifier], xerr = Kds_errs, color = 'orange', ecolor = 'magenta')
+    ax.set_title('Old Correlation at BS treshold = {} Ang\n pearson = {:3.2f} p-value = {:3.2f}'.format(treshold, *pearsonr(Kds, [df[treshold][key] for key in WTC_identifier])))
+    ax.scatter(Kds, [df[treshold][key] for key in WTC_identifier], color = 'green')
     ax.set_xlabel('Kd (nM)')
     ax.set_ylabel('CA-P Mean Dist (Ang)')
 

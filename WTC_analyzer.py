@@ -174,7 +174,7 @@ print('Ho trovato il "centroide" della distribuzione RMSD a equilibrio\nnel fram
 #1b) prendo la BS di quel frame e te la stampo
 filename='BS_{}_make_ndx.txt'.format(now_name)
 pdb_filename = 'average_pdb_'+now_name+'.pdb'
-treshold = 10
+treshold = 12
 
 TDP43   = BA.Protein(now_path+pdb_filename, model = False)
 RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B', model = False)
@@ -194,6 +194,7 @@ Cont    = BA.Contacts_Matrix(Dist, treshold)
 Bonds   = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA.lenght), ("TDP43", "RNA"), first=  ('RNA', 1), second = ('Proteina', TDP43.initial))
 
 BS      = BA.Print_Protein_BS_old(Bonds, TDP43.lenght, prot_initial=TDP43.initial, RNA_initial=RNA.initial)['Prot']
+BS_RNA  = BA.Print_Protein_BS_old(Bonds, TDP43.lenght, prot_initial=TDP43.initial, RNA_initial=RNA.initial)['RNA']
 
 with open  (now_path+filename, 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues\n")

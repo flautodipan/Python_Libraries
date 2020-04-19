@@ -13,16 +13,16 @@ import      os
 
 
 #I/O 
-spectra_filename    =   'ARS_11_02'
+spectra_filename    =   'ARS_10_02'
 now_path            =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-VIPA_filename       =   'ARS_11_02_VIPA_quasisat.tif'
+VIPA_filename       =   'ARS_10_02_VIPA1.tif'
 log_file            =   'log_'+spectra_filename
 
 #operatives
 
 #esclusi a mano
 to_add              =   []
-syg_kwargs_test          =   {'height': 5, 'distance': 32, 'width': 2.1}
+syg_kwargs_test          =   {'height': 10, 'distance': 32, 'width': 2.1}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
 syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
 
@@ -33,9 +33,9 @@ syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
 
 #import dati spettro
 transpose = False
-pre_cut = True
+pre_cut = False
 pre_cut_range = (0,180)
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y_all', transpose = transpose)
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
