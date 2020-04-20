@@ -8,16 +8,15 @@ from scipy.stats import pearsonr
 
 now_path = '../GROMACS/'
 save_path = now_path+'CORRELATIONS/'
-for treshold in [12]:#range(8,13):
+for treshold in range(6,13):
     
     print('\n\n\nTreshold = {}\n\n\n'.format(treshold))
 
 
     DF = pd.read_json(now_path+'WTC_data_frame_{}ang.json'.format(str(treshold)))
     DF['z_Covariance_Mean'] = (DF.Covariance_Mean - np.mean(DF.Covariance_Mean))/(np.std(DF.Covariance_Mean))
-
-    DF_noBS_RNA = pd.concat([DF[DF.Is_BS == False], DF[DF.Is_Prot == False]], ignore_index= True)
-    DF_BS_RNA = pd.concat([DF[DF.Is_BS == True], DF[DF.Is_Prot == False]], ignore_index = True)
+    DF['z_Covariance_Mean_Prot_BS'] = (DF.Covariance_Mean_Prot_BS - np.mean(DF.Covariance_Mean_Prot_BS))/(np.std(DF.Covariance_Mean_Prot_BS))
+    DF['z_Covariance_Mean_RNA_BS'] = (DF.Covariance_Mean_RNA_BS - np.mean(DF.Covariance_Mean_RNA_BS))/(np.std(DF.Covariance_Mean_RNA_BS))
 
     #DF['z_RMSF'] = (DF.RMSF.values - np.mean(DF.RMSF.values))/np.std(DF.RMSF.values)
 
@@ -71,33 +70,17 @@ for treshold in [12]:#range(8,13):
     rmsf_rmsf_RNA_correlations = []
     rmsf_rmsf_RNA_populations = []
 
-    rmsf_covave_BS_RNA_correlators = []
-    rmsf_covave_BS_RNA_correlations = []
-    rmsf_covave_BS_RNA_populations = []
-
-
 
     #covave
-    covave_rmsf_noBS_correlators = []
-    covave_rmsf_noBS_correlations = []
-    covave_rmsf_noBS_populations = []
 
-    covave_rmsf_BS_correlators = []
-    covave_rmsf_BS_correlations = []
-    covave_rmsf_BS_populations = []
+    pearson_rmsf_BS_BS_correlators = []
+    pearson_rmsf_BS_BS_correlations = []
+    pearson_rmsf_BS_BS_populations = []
 
-
-    covave_rmsf_BS_RNA_correlators = []
-    covave_rmsf_BS_RNA_correlations = []
-    covave_rmsf_BS_RNA_populations = []
-
-
-    covave_rmsf_RNA_BS_correlators = []
-    covave_rmsf_RNA_BS_correlations = []
-    covave_rmsf_RNA_BS_populations = []
+    pearson_rmsf_RNA_RNA_correlators = []
+    pearson_rmsf_RNA_RNA_correlations = []
+    pearson_rmsf_RNA_RNA_populations = []
     
-    
-
     #z-score covave
     z_covave_rmsf_noBS_correlators = []
     z_covave_rmsf_noBS_correlations = []
@@ -108,17 +91,19 @@ for treshold in [12]:#range(8,13):
     z_covave_rmsf_BS_populations = []
 
 
-    covstd_rmsf_noBS_correlators = []
-    covstd_rmsf_noBS_correlations = []
-    covstd_rmsf_noBS_populations = []
+    z_covave_rmsf_BS_BS_correlators = []
+    z_covave_rmsf_BS_BS_correlations = []
+    z_covave_rmsf_BS_BS_populations = []
 
-    covstd_rmsf_BS_correlators = []
-    covstd_rmsf_BS_correlations = []
-    covstd_rmsf_BS_populations = []
+    z_covave_rmsf_RNA_RNA_correlators = []
+    z_covave_rmsf_RNA_RNA_correlations = []
+    z_covave_rmsf_RNA_RNA_populations = []
+    
 
     populations_step = []
     n_step = 0
     stop = False
+    zero_pop = False
 
     for covave_RNA_cutoff,rmsf_cutoff, rmsf_BS_cutoff in zip(covave_RNA_cutoffs, rmsf_cutoffs, rmsf_BS_cutoffs):
 
@@ -134,53 +119,39 @@ for treshold in [12]:#range(8,13):
         rmsf_rmsf_RNA = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_BS_cutoff][DF.Is_Prot == False].values for key in WTC_identifier}
         rmsf_rmsf_RNA_populations.append({ key : len(rmsf_rmsf_RNA[key]) for key in WTC_identifier})
 
-        rmsf_covave_BS_RNA = {key : DF.RMSF[DF.WTC_identifier == key][DF.Covariance_Mean_RNA_BS > covave_RNA_cutoff][DF.Is_Prot == True].values for key in WTC_identifier}
-        rmsf_covave_BS_RNA_populations.append({ key : len(rmsf_covave_BS_RNA[key]) for key in WTC_identifier})
-
-        covave_rmsf_noBS = {key : DF.Covariance_Mean[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == False] for key in WTC_identifier }
-        covave_rmsf_noBS_populations.append({ key : len(covave_rmsf_noBS[key]) for key in WTC_identifier})
-
-        covave_rmsf_BS = {key : DF.Covariance_Mean[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True] for key in WTC_identifier }
-        covave_rmsf_BS_populations.append({ key : len(covave_rmsf_BS[key]) for key in WTC_identifier})
-        
-        covave_rmsf_BS_RNA = {key : DF.Covariance_Mean_Prot_BS[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True][DF.Is_Prot == False] for key in WTC_identifier }
-        covave_rmsf_BS_RNA_populations.append({ key : len(covave_rmsf_BS_RNA[key]) for key in WTC_identifier})
-              
-        covave_rmsf_RNA_BS = {key : DF.Covariance_Mean_RNA_BS[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True][DF.Is_Prot == True] for key in WTC_identifier }
-        covave_rmsf_RNA_BS_populations.append({ key : len(covave_rmsf_RNA_BS[key]) for key in WTC_identifier})
-
-
-        covave_rmsf_RNA_BS = {key : DF.Covariance_Mean_RNA_BS[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True][DF.Is_Prot == True] for key in WTC_identifier }
-        covave_rmsf_RNA_BS_populations.append({ key : len(covave_rmsf_RNA_BS[key]) for key in WTC_identifier})
-
-
         z_covave_rmsf_noBS = {key : DF.z_Covariance_Mean[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == False] for key in WTC_identifier }
         z_covave_rmsf_noBS_populations.append({ key : len(z_covave_rmsf_noBS[key]) for key in WTC_identifier})
 
         z_covave_rmsf_BS = {key : DF.z_Covariance_Mean[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True] for key in WTC_identifier }
         z_covave_rmsf_BS_populations.append({ key : len(z_covave_rmsf_BS[key]) for key in WTC_identifier})
 
+        z_covave_rmsf_BS_BS = {key : DF.z_Covariance_Mean_Prot_BS[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True][DF.Is_Prot == True] for key in WTC_identifier }
+        z_covave_rmsf_BS_BS_populations.append({ key : len(z_covave_rmsf_BS_BS[key]) for key in WTC_identifier})
+              
+        z_covave_rmsf_RNA_RNA = {key : DF.z_Covariance_Mean_RNA_BS[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True][DF.Is_Prot == False] for key in WTC_identifier }
+        z_covave_rmsf_RNA_RNA_populations.append({ key : len(z_covave_rmsf_RNA_RNA[key]) for key in WTC_identifier})
 
-
-        covstd_rmsf_noBS = {key : DF.Covariance_Std[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == False] for key in WTC_identifier }
-        covstd_rmsf_noBS_populations.append({ key : len(covstd_rmsf_noBS[key]) for key in WTC_identifier})
-        covstd_rmsf_BS = {key : DF.Covariance_Std[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True] for key in WTC_identifier }
-        covstd_rmsf_BS_populations.append({ key : len(covstd_rmsf_BS[key]) for key in WTC_identifier})
-
+        pearson_rmsf_BS_BS = {key : DF.Pearson_Mean_Prot_BS[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True][DF.Is_Prot == True] for key in WTC_identifier }
+        pearson_rmsf_BS_BS_populations.append({ key : len(pearson_rmsf_BS_BS[key]) for key in WTC_identifier})
+       
+        pearson_rmsf_RNA_RNA = {key : DF.Pearson_Mean_RNA_BS[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True][DF.Is_Prot == False] for key in WTC_identifier }
+        pearson_rmsf_RNA_RNA_populations.append({ key : len(pearson_rmsf_RNA_RNA[key]) for key in WTC_identifier})
+        
         pop_step = pd.DataFrame(index=WTC_identifier)
+
         pop_step['rmsf_rmsf'] = [rmsf_rmsf_populations[n_step-1][key] for key in WTC_identifier]
         pop_step['rmsf_rmsf_BS'] = [rmsf_rmsf_BS_populations[n_step-1][key] for key in WTC_identifier]
         pop_step['rmsf_rmsf_RNA'] = [rmsf_rmsf_RNA_populations[n_step-1][key] for key in WTC_identifier]
-        pop_step['covave_rmsf_noBS'] = [covave_rmsf_noBS_populations[n_step-1][key] for key in WTC_identifier]
-        pop_step['covave_rmsf_BS'] = [covave_rmsf_BS_populations[n_step-1][key] for key in WTC_identifier]
-        pop_step['covave_rmsf_BS_RNA'] = [covave_rmsf_BS_RNA_populations[n_step-1][key] for key in WTC_identifier]
-        pop_step['covave_rmsf_RNA_BS'] = [covave_rmsf_RNA_BS_populations[n_step-1][key] for key in WTC_identifier]
 
         pop_step['z_covave_rmsf_noBS'] = [z_covave_rmsf_noBS_populations[n_step-1][key] for key in WTC_identifier]
         pop_step['z_covave_rmsf_BS'] = [z_covave_rmsf_BS_populations[n_step-1][key] for key in WTC_identifier]
-        pop_step['covstd_rmsf_noBS'] = [covstd_rmsf_noBS_populations[n_step-1][key] for key in WTC_identifier]
-        pop_step['covstd_rmsf_BS'] = [covstd_rmsf_BS_populations[n_step-1][key] for key in WTC_identifier]
-        pop_step['rmsf_covave_BS_RNA'] = [rmsf_covave_BS_RNA_populations[n_step-1][key] for key in WTC_identifier]
+
+        pop_step['z_covave_rmsf_BS_BS'] = [z_covave_rmsf_BS_BS_populations[n_step-1][key] for key in WTC_identifier]
+        pop_step['z_covave_rmsf_RNA_RNA'] = [z_covave_rmsf_RNA_RNA_populations[n_step-1][key] for key in WTC_identifier]
+        pop_step['pearson_rmsf_BS_BS'] = [pearson_rmsf_BS_BS_populations[n_step-1][key] for key in WTC_identifier]
+        pop_step['pearson_rmsf_RNA_RNA'] = [pearson_rmsf_RNA_RNA_populations[n_step-1][key] for key in WTC_identifier]
+
+
 
         for col in pop_step.columns:
             if np.min(pop_step[col].values) < min_pop:
@@ -194,57 +165,44 @@ for treshold in [12]:#range(8,13):
             rmsf_rmsf_populations.remove(rmsf_rmsf_populations[-1])
             rmsf_rmsf_BS_populations.remove(rmsf_rmsf_BS_populations[-1])
             rmsf_rmsf_RNA_populations.remove(rmsf_rmsf_RNA_populations[-1])
-            covave_rmsf_noBS_populations.remove(covave_rmsf_noBS_populations[-1])
-            covave_rmsf_BS_populations.remove(covave_rmsf_BS_populations[-1])
-            covave_rmsf_BS_RNA_populations.remove(covave_rmsf_BS_RNA_populations[-1])
-            covave_rmsf_RNA_BS_populations.remove(covave_rmsf_RNA_BS_populations[-1])
+            pearson_rmsf_BS_BS_populations.remove(pearson_rmsf_BS_BS_populations[-1])
+            pearson_rmsf_RNA_RNA_populations.remove(pearson_rmsf_RNA_RNA_populations[-1])
             z_covave_rmsf_noBS_populations.remove(z_covave_rmsf_noBS_populations[-1])
             z_covave_rmsf_BS_populations.remove(z_covave_rmsf_BS_populations[-1])
-            covstd_rmsf_noBS_populations.remove(covstd_rmsf_noBS_populations[-1])
-            covstd_rmsf_BS_populations.remove(covstd_rmsf_BS_populations[-1])
+            z_covave_rmsf_BS_BS_populations.remove(z_covave_rmsf_BS_BS_populations[-1])
+            z_covave_rmsf_RNA_RNA_populations.remove(z_covave_rmsf_RNA_RNA_populations[-1])
+            if n_step == 1: zero_pop = True
             break
         else:
 
             #rmsf-rmsf
             rmsf_rmsf_correlators.append([np.mean(rmsf_rmsf[key]) for key in WTC_identifier])
-            rmsf_rmsf_correlations.append(pearsonr(Kds, rmsf_rmsf_correlators[n_step-1]))
+            rmsf_rmsf_correlations.append(pearsonr(Kds[1:], rmsf_rmsf_correlators[n_step-1][1:]))
 
             rmsf_rmsf_BS_correlators.append([np.mean(rmsf_rmsf_BS[key]) for key in WTC_identifier])
-            rmsf_rmsf_BS_correlations.append(pearsonr(Kds, rmsf_rmsf_BS_correlators[n_step-1]))
-
+            rmsf_rmsf_BS_correlations.append(pearsonr(Kds[1:], rmsf_rmsf_BS_correlators[n_step-1][1:]))
 
             rmsf_rmsf_RNA_correlators.append([np.mean(rmsf_rmsf_RNA[key]) for key in WTC_identifier])
-            rmsf_rmsf_RNA_correlations.append(pearsonr(Kds, rmsf_rmsf_RNA_correlators[n_step-1]))
+            rmsf_rmsf_RNA_correlations.append(pearsonr(Kds[1:], rmsf_rmsf_RNA_correlators[n_step-1][1:]))
 
-            rmsf_covave_BS_RNA_correlators.append([np.mean(rmsf_covave_BS_RNA[key]) for key in WTC_identifier])
-            rmsf_covave_BS_RNA_correlations.append(pearsonr(Kds, rmsf_covave_BS_RNA_correlators[n_step-1]))
+            pearson_rmsf_BS_BS_correlators.append([np.mean(pearson_rmsf_BS_BS[key]) for key in WTC_identifier])
+            pearson_rmsf_BS_BS_correlations.append(pearsonr(Kds[1:], pearson_rmsf_BS_BS_correlators[n_step-1][1:]))
 
-            covave_rmsf_noBS_correlators.append([np.mean(covave_rmsf_noBS[key]) for key in WTC_identifier])
-
-            covave_rmsf_noBS_correlations.append(pearsonr(Kds, covave_rmsf_noBS_correlators[n_step-1]))
-            
-            covave_rmsf_BS_correlators.append([np.mean(covave_rmsf_BS[key]) for key in WTC_identifier])
-            covave_rmsf_BS_correlations.append(pearsonr(Kds, covave_rmsf_BS_correlators[n_step-1]))
-
-            covave_rmsf_BS_RNA_correlators.append([np.mean(covave_rmsf_BS_RNA[key]) for key in WTC_identifier])
-            covave_rmsf_BS_RNA_correlations.append(pearsonr(Kds, covave_rmsf_BS_RNA_correlators[n_step-1]))
-
-            covave_rmsf_RNA_BS_correlators.append([np.mean(covave_rmsf_RNA_BS[key]) for key in WTC_identifier])
-            covave_rmsf_RNA_BS_correlations.append(pearsonr(Kds, covave_rmsf_RNA_BS_correlators[n_step-1]))
-
+            pearson_rmsf_RNA_RNA_correlators.append([np.mean(pearson_rmsf_RNA_RNA[key]) for key in WTC_identifier])
+            pearson_rmsf_RNA_RNA_correlations.append(pearsonr(Kds[1:], pearson_rmsf_RNA_RNA_correlators[n_step-1][1:]))
 
             z_covave_rmsf_noBS_correlators.append([np.mean(z_covave_rmsf_noBS[key]) for key in WTC_identifier])
-            z_covave_rmsf_noBS_correlations.append(pearsonr(Kds, z_covave_rmsf_noBS_correlators[n_step-1]))
+            z_covave_rmsf_noBS_correlations.append(pearsonr(Kds[1:], z_covave_rmsf_noBS_correlators[n_step-1][1:]))
             
             z_covave_rmsf_BS_correlators.append([np.mean(z_covave_rmsf_BS[key]) for key in WTC_identifier])
-            z_covave_rmsf_BS_correlations.append(pearsonr(Kds, z_covave_rmsf_BS_correlators[n_step-1]))
+            z_covave_rmsf_BS_correlations.append(pearsonr(Kds[1:], z_covave_rmsf_BS_correlators[n_step-1][1:]))
 
-            covstd_rmsf_noBS_correlators.append([np.mean(covstd_rmsf_noBS[key]) for key in WTC_identifier])
-            covstd_rmsf_noBS_correlations.append(pearsonr(Kds, covstd_rmsf_noBS_correlators[n_step-1]))
-            
-            covstd_rmsf_BS_correlators.append([np.mean(covstd_rmsf_BS[key]) for key in WTC_identifier])
-            covstd_rmsf_BS_correlations.append(pearsonr(Kds, covstd_rmsf_BS_correlators[n_step-1]))
 
+            z_covave_rmsf_BS_BS_correlators.append([np.mean(z_covave_rmsf_BS_BS[key]) for key in WTC_identifier])
+            z_covave_rmsf_BS_BS_correlations.append(pearsonr(Kds[1:], z_covave_rmsf_BS_BS_correlators[n_step-1][1:]))
+
+            z_covave_rmsf_RNA_RNA_correlators.append([np.mean(z_covave_rmsf_RNA_RNA[key]) for key in WTC_identifier])
+            z_covave_rmsf_RNA_RNA_correlations.append(pearsonr(Kds[1:], z_covave_rmsf_RNA_RNA_correlators[n_step-1][1:]))
 
 
 
@@ -258,16 +216,17 @@ for treshold in [12]:#range(8,13):
 
     ax.plot(steps, [corr[0] for corr in rmsf_rmsf_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_rmsf',)
     ax.plot(steps, [corr[0] for corr in rmsf_rmsf_BS_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_rmsf_BS', )
-    ax.plot(steps, [corr[0] for corr in rmsf_covave_BS_RNA_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_covave_BS_RNA', )
 
     #ax.plot(steps, [corr[0] for corr in covave_rmsf_noBS_correlations], marker = 'o', ls = 'dashed', label = 'covave_rmsf_noBS', )
     #ax.plot(steps, [corr[0] for corr in covave_rmsf_BS_correlations], marker = 'o', ls = 'dashed', label = 'covave_rmsf_BS', )
-    ax.plot(steps, [corr[0] for corr in covave_rmsf_BS_RNA_correlations], marker = 'o', ls = 'dashed', label = 'covave_rmsf_BS_RNA', c = 'k' )
-    ax.plot(steps, [corr[0] for corr in covave_rmsf_RNA_BS_correlations], marker = 'o', ls = 'dashed', label = 'covave_rmsf_RNA_BS', c = 'k' )
+    ax.plot(steps, [corr[0] for corr in z_covave_rmsf_BS_BS_correlations], marker = 'o', ls = 'dashed', label = 'z_covave_rmsf_BS_BS', c = 'k' )
+    ax.plot(steps, [corr[0] for corr in z_covave_rmsf_RNA_RNA_correlations], marker = 'o', ls = 'dashed', label = 'z_covave_rmsf_RNA_RNA', c = 'magenta' )
 
     ax.plot(steps, [corr[0] for corr in z_covave_rmsf_noBS_correlations], marker = 'o', ls = 'dashed', label = 'z_covave_rmsf_noBS', )
     ax.plot(steps, [corr[0] for corr in z_covave_rmsf_BS_correlations], marker = 'o', ls = 'dashed', label = 'z_covave_rmsf_BS', color = 'red')
-
+    ax.plot(steps, [corr[0] for corr in pearson_rmsf_BS_BS_correlations], marker = 'o', ls = 'dashed', label = 'pearson_rmsf_BS_BS' )
+    ax.plot(steps, [corr[0] for corr in pearson_rmsf_RNA_RNA_correlations], marker = 'o', ls = 'dashed', label = 'pearson_rmsf_RNA_RNA')
+    
     #ax.plot(steps, [corr[0] for corr in rmsf_rmsf_RNA_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_rmsf_RNA', )
     #ax.plot(steps, [corr[0] for corr in covstd_rmsf_noBS_correlations], marker = 'o', ls = 'dashed', label = 'covstd_rmsf_noBS', )
     #ax.plot(steps, [corr[0] for corr in covstd_rmsf_BS_correlations], marker = 'o', ls = 'dashed', label = 'covstd_rmsf_BS', )
@@ -291,7 +250,59 @@ for treshold in [12]:#range(8,13):
     plt.show()
     plt.close()
 
+    #%#%
+    # SCATTER PLOT
 
+        #Scatterplot STEP 0 
+    if not zero_pop:
+
+        ii = 0
+
+        f, ax = plt.subplots()
+        ax.set_title('z_covave_rmsf_BS \n Step = {} Treshold = {}\n exclued : pearson = {:3.2f} p-value = {:3.2f}\n all: pearson = {:3.2f} p-value = {:3.2f}'.format(ii, treshold, *pearsonr(Kds[1:], z_covave_rmsf_BS_BS_correlators[0][1:]), *pearsonr(Kds[:], z_covave_rmsf_BS_BS_correlators[0][:])))
+        ax.errorbar(Kds[:] , z_covave_rmsf_BS_correlators[0][:], fmt = 'o', xerr = Kds_errs[:], color = 'red', ecolor = 'olivedrab', label = 'correlation data')
+        ax.errorbar(Kds[0] , z_covave_rmsf_BS_correlators[0][0], fmt = 'o', xerr = Kds_errs[0], color = 'olivedrab', ecolor = 'red', label = 'NMR excluded')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_ylabel('Prot BS z Covariance with all complex ')
+        ax.legend()
+        plt.show()
+
+
+        f, ax = plt.subplots()
+        ax.set_title('z_covave_rmsf_BS_BS \n Step = {} Treshold = {}\n exclued : pearson = {:3.2f} p-value = {:3.2f}\n all: pearson = {:3.2f} p-value = {:3.2f}'.format(ii, treshold, *pearsonr(Kds[1:], z_covave_rmsf_BS_BS_correlators[0][1:]), *pearsonr(Kds[:], z_covave_rmsf_BS_BS_correlators[0][:])))
+        ax.errorbar(Kds[:] , z_covave_rmsf_BS_BS_correlators[0][:], fmt = 'o', xerr = Kds_errs[:], color = 'k', ecolor = 'orange', label = 'correlation data')
+        ax.errorbar(Kds[0] , z_covave_rmsf_BS_BS_correlators[0][0], fmt = 'o', xerr = Kds_errs[0], color = 'limegreen', ecolor = 'yellowgreen', label = 'NMR excluded')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_ylabel('Prot BS z Covariance with Prot BS ')
+        ax.legend()
+        plt.show()
+
+        f, ax = plt.subplots()
+        ax.set_title('pearson_rmsf_BS_BS \n Step = {} Treshold = {}\n exclued : pearson = {:3.2f} p-value = {:3.2f}\n all: pearson = {:3.2f} p-value = {:3.2f}'.format(ii, treshold, *pearsonr(Kds[1:], pearson_rmsf_BS_BS_correlators[0][1:]), *pearsonr(Kds[:], pearson_rmsf_BS_BS_correlators[0][:])))
+        ax.errorbar(Kds[:] , pearson_rmsf_BS_BS_correlators[0][:], fmt = 'o', xerr = Kds_errs[:], color = 'maroon', ecolor = 'orange', label = 'correlation data')
+        ax.errorbar(Kds[0] , pearson_rmsf_BS_BS_correlators[0][0], fmt = 'o', xerr = Kds_errs[0], color = 'limegreen', ecolor = 'yellowgreen', label = 'NMR excluded')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_ylabel('Prot BS z Pearson with Prot BS ')
+        ax.legend()
+        plt.show()
+
+        f, ax = plt.subplots()
+        ax.set_title('z_covave_rmsf_RNA_RNA \n Step = {} Treshold = {}\n exclued : pearson = {:3.2f} p-value = {:3.2f}\n all: pearson = {:3.2f} p-value = {:3.2f}'.format(ii, treshold, *pearsonr(Kds[1:], z_covave_rmsf_RNA_RNA_correlators[0][1:]), *pearsonr(Kds[:], z_covave_rmsf_RNA_RNA_correlators[0][:])))
+        ax.errorbar(Kds[:] , z_covave_rmsf_RNA_RNA_correlators[0][:], fmt = 'o', xerr = Kds_errs[:], color = 'crimson', ecolor = 'darkolivegreen', label = 'correlation data')
+        ax.errorbar(Kds[0] , z_covave_rmsf_RNA_RNA_correlators[0][0], fmt = 'o', xerr = Kds_errs[0], color = 'darkgoldenrod', ecolor = 'yellowgreen', label = 'NMR excluded')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_ylabel('RNA z Covariance with RNA ')
+        ax.legend()
+        plt.show()
+
+        f, ax = plt.subplots()
+        ax.set_title('pearson_rmsf_RNA_RNA \n Step = {} Treshold = {}\n exclued : pearson = {:3.2f} p-value = {:3.2f}\n all: pearson = {:3.2f} p-value = {:3.2f}'.format(ii, treshold, *pearsonr(Kds[1:], pearson_rmsf_RNA_RNA_correlators[0][1:]), *pearsonr(Kds[:], pearson_rmsf_RNA_RNA_correlators[0][:])))
+        ax.errorbar(Kds[:] , pearson_rmsf_RNA_RNA_correlators[0][:], fmt = 'o', xerr = Kds_errs[:], color = 'mediumpurple', ecolor = 'darkolivegreen', label = 'correlation data')
+        ax.errorbar(Kds[0] , pearson_rmsf_RNA_RNA_correlators[0][0], fmt = 'o', xerr = Kds_errs[0], color = 'darkgoldenrod', ecolor = 'yellowgreen', label = 'NMR excluded')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_ylabel('RNA z Pearson with RNA ')
+        ax.legend()
+        plt.show()
 # %%
 #further study
 
@@ -318,8 +329,8 @@ for ii in range(1):
 
     to_exclude = [2,5]
 
-    old_correlators = covave_rmsf_BS_RNA_correlators[ii]
-    new_correlations = covave_rmsf_BS_RNA_correlations[ii]
+    old_correlators = covave_rmsf_BS_BS_correlators[ii]
+    new_correlations = covave_rmsf_BS_BS_correlations[ii]
 
 
     max_err = np.max([z_covave_rmsf_BS_correlators[ii][jj] for jj in to_exclude])

@@ -134,13 +134,17 @@ df.to_json('../GROMACS/df_CAPdist.json')
 
 
 #%%
+df = pd.read_json('../GROMACS/df_CAPdist.json')
+
 
 for treshold in df.columns:
 
 
     f, ax = plt.subplots()
-    ax.set_title('New Correlation at BS treshold {} Ang\n pearson = {:3.2f} p-value = {:3.2f}'.format(treshold, *pearsonr(Kds_new, [df[treshold][key] for key in WTC_identifier])))
-    ax.errorbar(Kds_new, [df[treshold][key] for key in WTC_identifier], xerr = Kds_errs, fmt = 'o',  color = 'green', ecolor = 'magenta')
+    ax.set_title('New Correlation for CA-P distances \n BS treshold {} Ang\n excl: pearson = {:3.2f} p-value = {:3.2f}\n all: pearson = {:3.2f} p-value = {:3.2f}'.format(treshold, *pearsonr(Kds_new[1:], [df[treshold][key]for key in WTC_identifier][1:] ), *pearsonr(Kds_new, [df[treshold][key] for key in WTC_identifier])))
+    ax.errorbar(Kds_new[1:], [df[treshold][key] for key in WTC_identifier][1:], xerr = Kds_errs[1:], fmt = 'o',  color = 'green', ecolor = 'magenta')
+    ax.errorbar(Kds_new[0], [df[treshold][key] for key in WTC_identifier][0], xerr = Kds_errs[0], fmt = 'o',  color = 'magenta', ecolor = 'green', label = 'NMR')
+    ax.legend()
     ax.set_xlabel('Kd (nM)')
     ax.set_ylabel('CA-P Mean Dist (Ang)')
 

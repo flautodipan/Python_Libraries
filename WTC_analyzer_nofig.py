@@ -21,7 +21,8 @@ dfs = {}
 now_temp = '300 K'
 scale='ns'
 
-for treshold in range(8,13):
+for treshold in range(6,13):
+
     for ii in ['1', '1_h', '2', '3', '4', '5', '6']:
 
         print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
@@ -147,11 +148,23 @@ for treshold in range(8,13):
         Covariance_Mean_Prot_noBS = []
         Covariance_Mean_RNA_BS = []
         Covariance_Mean_RNA_noBS = []
+
+        Pearson_Mean_Prot_BS = []
+        Pearson_Mean_Prot_noBS = []
+        Pearson_Mean_RNA_BS = []
+        Pearson_Mean_RNA_noBS = []
+    
+    
         for ii in range(len(res)):
             Covariance_Mean_Prot_BS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in list(np.array(BS['Prot']) - df.Residue_number[0])]))
             Covariance_Mean_Prot_noBS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
             Covariance_Mean_RNA_BS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in list(np.array(BS['RNA']) - df.Residue_number[0])]))
             Covariance_Mean_RNA_noBS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
+
+            Pearson_Mean_Prot_BS.append(np.mean([pearson_matrix_CAP[jj,ii] for jj in list(np.array(BS['Prot']) - df.Residue_number[0])]))
+            Pearson_Mean_Prot_noBS.append(np.mean([pearson_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
+            Pearson_Mean_RNA_BS.append(np.mean([pearson_matrix_CAP[jj,ii] for jj in list(np.array(BS['RNA']) - df.Residue_number[0])]))
+            Pearson_Mean_RNA_noBS.append(np.mean([pearson_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
 
 
         df['Covariance_Mean_Prot_BS'] = Covariance_Mean_Prot_BS
@@ -159,6 +172,13 @@ for treshold in range(8,13):
         
         df['Covariance_Mean_RNA_BS'] = Covariance_Mean_RNA_BS
         df['Covariance_Mean_RNA_noBS'] = Covariance_Mean_RNA_noBS
+        
+
+        df['Pearson_Mean_Prot_BS'] = Pearson_Mean_Prot_BS
+        df['Pearson_Mean_Prot_noBS'] = Pearson_Mean_Prot_noBS
+        
+        df['Pearson_Mean_RNA_BS'] = Pearson_Mean_RNA_BS
+        df['Pearson_Mean_RNA_noBS'] = Pearson_Mean_RNA_noBS
         
         
 
