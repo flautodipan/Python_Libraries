@@ -168,6 +168,17 @@ def Find_Nearest_Array(array, value):
 
     return (array[idx], idx)
 
+def Is_Far_by_N_sigma_from_Mean(value, population, N):
+    
+    """
+    Funzione che ritorna True quando value >(<) di mu +(-) N*sigma 
+    dove mu è mean di population e  sigma è la std 
+    """
+
+    if (value > np.mean(population) + N*np.std(population)) | (np.mean(population) < value + N*np.std(population)):
+        return True
+    else: return False
+
 def Import_from_Matlab (mat_filename, path, transpose = True, **kwargs):
 
     """
@@ -231,3 +242,18 @@ def lorentian (x, mu, sigma, A):
 def delta_function (x, position, width, amplitude):
 
     return amplitude*np.exp(-((x-position)/width)**2/(np.abs(width)*np.sqrt(np.pi)))
+
+
+def Is_Far_by_N_sigma_from_Mean(value, population, N, verbose = False):
+    
+    """
+    Funzione che ritorna True quando value >(<) di mu +(-) N*sigma 
+    dove mu è mean di population e  sigma è la std 
+    """
+
+    if (value > (np.mean(population) + N*np.std(population))) | (value < (np.mean(population) - N*np.std(population))):
+        if verbose : print('{:3.2f} fuori da media {:3.2f} di {} std {:3.2f}'.format(value, np.mean(population),N,  np.std(population)))
+        return True
+    else: return False
+
+    

@@ -3,6 +3,7 @@ import  numpy               as np
 import  pandas              as pd
 from    matplotlib.pyplot   import plot
 import  matplotlib.pyplot   as plt
+from matplotlib_scalebar import scalebar
 from    scipy.signal        import find_peaks
 from    scipy.optimize      import leastsq
 from    scipy.optimize      import least_squares
@@ -1317,7 +1318,7 @@ def Verify_Fit(matrix, boni, fit, parameter, where, treshold):
             plt.title(str((ii,jj)))
 
 
-def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, cmap, inf, sup, Deltas = False,  fig = False, path = './'):
+def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, Deltas = False):
 
 
     if fit == 'markov':
@@ -1348,48 +1349,76 @@ def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, cmap, in
     print('Completata Parameter_Map per '+parameter)
     print('Ho trovato {} elementi saturati'.format(len(nans)))
 
-    if fig:
-
-        cm = plt.get_cmap(cmap)
-        cm.set_bad(color='k')
-        plt.matshow(p_map, cmap = cmap)
-        plt.clim(inf, sup)
-        plt.title(value+' '+parameter+' Map')
-        plt.colorbar()
-        plt.xlabel('Row Index')
-        plt.ylabel('Col Idx')
-        plt.savefig(path + fig+'.pdf', format = 'pdf')
-        plt.show()
-
     return  (p_map, nans)
 
 
-def Interpolate_Parameter_Map(p_map, cmap, fig = False, path = ''):
+def Interpolate_Parameter_Map(p_map, parameter, fit, matrix, n_rows, n_cols, inf, sup,):
 
+    if fit == 'markov':
+        parameters = 'Markov_Fit_Params'           
+    elif fit == 'tot':
+        parameters = 'Tot_Fit_Params'
 
+    new_map = np.zeros((n_rows, n_cols))
     for ii in range(p_map.shape[0]):
-        for jj in range (p_map.shape[1]):   
-            if p_map[ii,jj] == np.nan:
-                print('Entro per elemento %s'%(str((ii,jj))))
-                neigh = Get_Neighbours2D(ii,jj)
-                print('Vado a sostituire con %s'%(str(np.nanmean([matrix[kk][ll].Fit_Params[parameter]['Values'] for (kk,ll) in neigh]))))
-                p_map[ii,jj] = np.nanmean([matrix[kk][ll].Fit_Params[parameter]['Values'] for (kk,ll) in neigh])
+        for jj in range (p_map.shape[1]): 
+            
+         
+            #print(str((ii,jj)))
+            
+            neigh = Get_Neighbours2D(ii,jj,n_rows, n_cols)
+            neigh_params = [getattr(matrix[kk][ll], parameters).T.Values[parameter] for kk, ll in neigh if hasattr(matrix[kk][ll], parameters)]
+            #print(neigh_params)
+            ave = []
+            count = 0
+            for (mm,nn) in neigh:
+
+                is_nan = np.isnan(p_map[mm,nn])
+                is_high = p_map[mm,nn] > sup 
+                is_low = p_map[mm,nn] < inf
+                if hasattr(matrix[mm][nn], parameters):
+                    is_different = Is_Far_by_N_sigma_from_Mean(p_map[mm,nn], neigh_params, N = 1.5)
+                    if is_different : count+=1
+                else: is_different = True
+
+                if not (is_nan | is_high | is_low | is_different):
+                    ave.append(p_map[mm, nn])
+ 
+            new_map[ii,jj] = np.average(ave,)
+
+            #print('Su {} ho {} outlier'.format(len(neigh_params), count))
 
 
-    print('Completata Interpolazione per elementi di parameter map che non aveano valore\n')
+    print('Completata Interpolazione per elementi di {} {} map \n'.format(fit, parameter))
+    return  new_map
 
-    if fig:
+def Print_Parameter_Map(p_map, inf, sup, parameter, fit, name, pix_scale, filename, path = './', **kwargs):
 
-        cm = plt.get_cmap(cmap)
-        plt.matshow(p_map, cmap = cm)
-        plt.title(' Map Interpolated')
-        plt.colorbar()
-        plt.xlabel('Row Index')
-        plt.ylabel('Col Idx')
-        plt.savefig(path + fig+'.png')
-        plt.close()
+    if parameter == 'Omega':
+        title = 'Brillouin shift $\Omega$ {} Map ({})'.format(fit, name)
+    elif parameter == 'Gamma':
+        title = 'Brillouin width $\Gamma$ {} Map ({})'.format(fit, name)
+    else: raise ValueError('Specifica parametro')
 
-    return  p_map
+    f, ax = plt.subplots()
+
+    img = ax.matshow(p_map, cmap = 'jet')
+    cbar = plt.colorbar(img, ax = ax, label = 'GHz', orientation = 'vertical')
+    img.set_clim(inf, sup)
+
+    ax.set_title(title, fontsize = 14)
+    ax.set_xlabel('Row Index')
+    ax.set_ylabel('Col Idx')
+    ax.tick_params('x', bottom = True, top = True, labelbottom = True, labeltop = False)
+    ax.tick_params('y', left = True, right = True)
+
+    bar = scalebar.ScaleBar(300, units = 'nm', location = 'lower right', length_fraction=0.1, height_fraction=0.005, font_properties = {'size' : 10}, color = 'white', frameon = False)
+    plt.gca().add_artist(bar)
+
+    plt.tight_layout()
+    f.savefig(path+filename+'.pdf', format = 'pdf')
+
+    plt.show()
 
 def Escludi_a_Mano(to_add, excluded):
 
@@ -1400,7 +1429,8 @@ def Escludi_a_Mano(to_add, excluded):
     excluded.sort()
     return excluded
 
-def Whose_Param_Too_High(param, treshold, fit,  matrix, fitted):
+
+def Whose_Param_Too_High(param, treshold, fit,  matrix, fitted, verbose = False):
 
 
     if fit == 'markov':
@@ -1413,11 +1443,12 @@ def Whose_Param_Too_High(param, treshold, fit,  matrix, fitted):
     for (ii,jj) in (fitted):
         if getattr(matrix[ii][jj],attr)[param]['Values'] > treshold:
             too_high    =   too_high    +   ((ii,jj),)
-            print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values']))
+            if verbose:
+                print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values']))
 
     return too_high
 
-def Whose_Param_Too_Low(param, treshold, fit, matrix, fitted):
+def Whose_Param_Too_Low(param, treshold, fit, matrix, fitted, verbose = False):
 
     if fit == 'markov':
         attr = 'Markov_Fit_Params'
@@ -1430,9 +1461,11 @@ def Whose_Param_Too_Low(param, treshold, fit, matrix, fitted):
     for (ii,jj) in (fitted):
         if getattr(matrix[ii][jj],attr)[param]['Values'] <= treshold:
             too_low    =   too_low    +   ((ii,jj),)
-            print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values'][param]['Values']))
+            if verbose:
+                print(str((ii,jj))+' ha '+param+'= %3.2f'%(getattr(matrix[ii][jj],attr)[param]['Values'][param]['Values']))
 
     return too_low
+
 
 def Save_Fitted_Info(path, n_rows, n_cols, fitted):
 
