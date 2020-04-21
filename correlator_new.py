@@ -8,7 +8,7 @@ from scipy.stats import pearsonr
 
 now_path = '../GROMACS/'
 save_path = now_path+'CORRELATIONS/'
-for treshold in range(6,13):
+for treshold in [9]:#range(6,13):
     
     print('\n\n\nTreshold = {}\n\n\n'.format(treshold))
 
@@ -122,7 +122,7 @@ for treshold in range(6,13):
         z_covave_rmsf_noBS = {key : DF.z_Covariance_Mean[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == False] for key in WTC_identifier }
         z_covave_rmsf_noBS_populations.append({ key : len(z_covave_rmsf_noBS[key]) for key in WTC_identifier})
 
-        z_covave_rmsf_BS = {key : DF.z_Covariance_Mean[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True] for key in WTC_identifier }
+        z_covave_rmsf_BS = {key : DF.z_Covariance_Mean[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True][DF.Is_Prot == True] for key in WTC_identifier }
         z_covave_rmsf_BS_populations.append({ key : len(z_covave_rmsf_BS[key]) for key in WTC_identifier})
 
         z_covave_rmsf_BS_BS = {key : DF.z_Covariance_Mean_Prot_BS[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == True][DF.Is_Prot == True] for key in WTC_identifier }
@@ -303,20 +303,28 @@ for treshold in range(6,13):
         ax.set_ylabel('RNA z Pearson with RNA ')
         ax.legend()
         plt.show()
+
+        f, ax = plt.subplots()
+        ax.set_title('rmsf_BS \n Step = {} Treshold = {}\n exclued : pearson = {:3.2f} p-value = {:3.2f}\n all: pearson = {:3.2f} p-value = {:3.2f}'.format(ii, treshold, *pearsonr(Kds[1:], rmsf_rmsf_BS_correlators[0][1:]), *pearsonr(Kds[:], rmsf_rmsf_correlators[0][:])))
+        ax.errorbar(Kds[:] , rmsf_rmsf_BS_correlators[0][:], fmt = 'o', xerr = Kds_errs[:], color = 'orange', ecolor = 'purple', label = 'correlation data')
+        ax.errorbar(Kds[0] , rmsf_rmsf_BS_correlators[0][0], fmt = 'o', xerr = Kds_errs[0], color = 'purple', ecolor = 'orange', label = 'NMR excluded')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_ylabel('RMSF BS ')
+        ax.legend()
+        plt.show()
 # %%
 #further study
+# FIT
 
 ##
 #per fit con  errori x,y
 import scipy.odr as odr
-linear = odr.Model(f)
+
+
 def f(A, x):
     return A[0]*x+A[1]
 
-def f_lin(x, m, q):
-    return m*x+q
-##
-
+linear = odr.Model(f)
 # VERSIONE CON PUNTO SPERIMENTALE di wtc1 e con wtc3 (cioè con tutti)
 # ERRORI presi sui 2 punti che dovrebbero essere uguali,
 
@@ -325,152 +333,47 @@ def f_lin(x, m, q):
 
 #ciclo sugli step
 for ii in range(1):
-    print('\n\n\n STEP {} \n\n\n'.format(ii))
-
-    to_exclude = [2,5]
-
-    old_correlators = covave_rmsf_BS_BS_correlators[ii]
-    new_correlations = covave_rmsf_BS_BS_correlations[ii]
-
-
-    max_err = np.max([z_covave_rmsf_BS_correlators[ii][jj] for jj in to_exclude])
-    min_err = np.min([z_covave_rmsf_BS_correlators[ii][jj] for jj in to_exclude])
-    err_max = (max_err - min_err)
-    err = err_max/3 #procedura standard
-
-
-    fig, ax = plt.subplots()
-    ax.set_ylabel('z - Correlation')
-    ax.set_xlabel('Kd (nM)')
-    ax.set_title('Pearson correlation of covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, new_correlations[0], new_correlations[1]))
-    ax.scatter(Kds[:], np.array(old_correlators[:]), c = 'red', label = 'data')
-    ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'max error bar', linewidths = 2.)
-    ax.legend()
-    plt.show()
-
-
-    mydata = odr.RealData(Kds, old_correlators, sy = err/2, sx = Kds_errs)
-    myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-    myoutput = myodr.run()
-
-    fig, ax = plt.subplots()
-    x = np.linspace(np.min(Kds), np.max(Kds), 1000)
-    ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation of {:3.2f} \n treshold = {} Ang step = {}\n All included'.format(new_correlations[0], treshold, ii), fontsize = 16)
-    ax.set_xlabel('Kds (nM)')
-    ax.set_ylabel('z Covariance')
-    ax.errorbar(Kds, old_correlators, yerr = err/2, xerr = Kds_errs, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
-    ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-    ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-    plt.show()
-
-# %%
-
-## VERSIONE SENZA DATO NMR e senza wtc3
-
-to_exclude = [2,5]
-
-max_err = np.max([old_correlators[jj] for jj in to_exclude])
-min_err = np.min([old_correlators[jj] for jj in to_exclude])
-err_max = (max_err - min_err)
-err = err_max/3 #procedura standard
-
-#ciclo step
-for ii in range(1):
 
     print('\n\n\n STEP {} \n\n\n'.format(ii))
 
-    kk = 3
-    new_correlators = old_correlators.copy()
-    new_correlators.remove(new_correlators[kk])
-    new_correlators.remove(new_correlators[0])
+    for to_exclude in ([3,4], [2,5]):
 
-    new_Kds = Kds.copy()
-    new_Kds.remove(new_Kds[kk])
-    new_Kds.remove(new_Kds[0])
-
-    new_Kds_errs = Kds_errs.copy()
-    new_Kds_errs.remove(new_Kds_errs[kk])       
-    new_Kds_errs.remove(new_Kds_errs[0])
-
-    new_correlations = pearsonr(new_Kds, new_correlators)
+        max_err = np.max([z_covave_rmsf_BS_BS_correlators[ii][jj] for jj in to_exclude])
+        min_err = np.min([z_covave_rmsf_BS_BS_correlators[ii][jj] for jj in to_exclude])
+        err_max = (max_err - min_err)
+        err = err_max/3 #procedura standard
 
 
+        correlators = z_covave_rmsf_BS_BS_correlators[ii][1:]
+        correlations = z_covave_rmsf_BS_BS_correlations[ii][1:]
 
 
-    fig, ax = plt.subplots()
-    ax.set_ylabel('z - Correlation')
-    ax.set_xlabel('Kd (nM)')
-    ax.set_title('Pearson correlation of z - covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, new_correlations[0], new_correlations[1]))
-    ax.scatter(Kds[1:], np.array(old_correlators[1:]), c = 'red', label = 'data')
-    ax.plot(Kds[kk], np.array(old_correlators[kk]), 'o',  color = 'orange', fillstyle = None, lw = 3, label = 'excluded from fit')
-    ax.plot(Kds[0], np.array(old_correlators[0]), 'o',  color = 'orange', fillstyle = None, lw = 3,)
-    ax.vlines(1340, min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'max error bar', linewidths = 2.)
-    ax.legend()
-    plt.show()
+        fig, ax = plt.subplots()
+        ax.set_title('Scatter plot BS Covariance z score\ncorrelation = {:3.2f} p-value = {:3.2f}$'.format(*pearsonr(Kds[1:], correlators)))
+        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], color = 'k', ecolor = 'orange', label = 'correlation data')
+        ax.set_xlabel('Kd (nM)')
+        ax.set_ylabel('Prot BS z Covariance with Prot BS ')
+        ax.vlines(np.mean([Kds[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'max error bar', linewidths = 2.)
+        ax.legend()
+        plt.show()
 
-    
-    mydata = odr.RealData(new_Kds, new_correlators, sy = err/2, sx = new_Kds_errs)
-    myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-    myoutput = myodr.run()
+    #%#%
+        mydata = odr.RealData(Kds[1:], correlators, sy = err/2, sx = Kds_errs[1:])
+        myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
+        myoutput = myodr.run()
 
-    fig, ax = plt.subplots()
-    x = np.linspace(np.min(new_Kds), np.max(new_Kds)+ new_Kds_errs[np.argmax(new_Kds)], 1000)
-    ax.set_title(r'$\bf{y = mx + q}$'+' fit for correlation = {:3.2f}\n treshold = {} Ang step = {}\n {} excluded'.format(new_correlations[0], treshold, ii, WTC_identifier[kk]), fontsize = 16)
-    ax.set_xlabel('Kds (nM)')
-    ax.set_ylabel('z - Covariance')
-    ax.errorbar(new_Kds, new_correlators, yerr = err/2, xerr = new_Kds_errs, fmt = 'o', color = 'red', ecolor = 'orange', barsabove = True, lolims = True, uplims = True, label = 'data')
-    ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-    ax.legend(title = 'm = {:3.2e}$\pm${:3.2e}\nq = {:3.2e}$\pm${:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-    plt.show()
-
+        fig, ax = plt.subplots()
+        x = np.linspace(np.min(Kds), np.max(np.array(Kds)+np.array(Kds_errs)), 1000)
+        ax.set_title(r'$\bf{y = mx + q}$ fit of BS z-score correlation with BS'+'\n : correlation = {:3.2f} p-value = {:3.2f}'.format(*pearsonr(Kds[1:], correlators)))
+        ax.set_xlabel('Kd (nM)')
+        ax.set_ylabel('Prot BS z Covariance with Prot BS ')
+        ax.vlines(np.mean([Kds[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'firebrick', label = 'max error bar', linewidths = 2.)
+        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], yerr = err, color = 'k', ecolor = 'orange', label = 'correlation data')
+        ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
+        ax.legend(title = 'm = {:3.2e} $\pm$ {:3.2e}\nq = {:3.2e} $\pm$ {:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
+        plt.show()
 
 
-# %%
-
-# LOGARITMICO
-
-## VERSIONE SENZA DATO NMR e senza wtc3
-
-to_exclude = [2,5]
-
-max_err = np.max([old_correlators[jj] for jj in to_exclude])
-min_err = np.min([old_correlators[jj] for jj in to_exclude])
-err_max = (max_err - min_err)
-err = err_max/3 #procedura standard
-
-#ciclo step
-for ii in range(1):
-
-    print('\n\n\n STEP {} \n\n\n'.format(ii))
-    old_correlators = z_covave_rmsf_BS_correlators[ii]
-
-    kk = 3
-    new_correlators = old_correlators.copy()
-    new_correlators.remove(new_correlators[kk])
-    new_correlators.remove(new_correlators[0])
-
-    new_Kds = Kds.copy()
-    new_Kds.remove(new_Kds[kk])
-    new_Kds.remove(new_Kds[0])
-
-    new_Kds_errs = Kds_errs.copy()
-    new_Kds_errs.remove(new_Kds_errs[kk])
-    new_Kds_errs.remove(new_Kds_errs[0])
-
-    new_Kds_errs = list((np.array(new_Kds_errs))/new_Kds)
-    new_Kds = list(np.log(np.array(new_Kds)))
-
-
-    new_correlations = pearsonr(new_Kds, new_correlators)
-
-
-    fig, ax = plt.subplots()
-    ax.set_ylabel('z - Correlation')
-    ax.set_xlabel('log(Kd (nM))')
-    ax.set_title('Pearson correlation of z - covave_rmsf_BS at step {}\ncorrelation = {:3.2f}   p value = {:3.2f}'.format(ii, new_correlations[0], new_correlations[1]))
-    ax.errorbar(new_Kds, new_correlators, yerr = err/2, xerr = new_Kds_errs, fmt = 'o',  color = 'red', ecolor = 'orange',  label = 'data')
-    ax.legend()
-    
 
 
     

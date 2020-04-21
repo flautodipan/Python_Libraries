@@ -21,7 +21,7 @@ dfs = {}
 now_temp = '300 K'
 scale='ns'
 
-for treshold in range(6,13):
+for treshold in [9]:#range(6,13):
 
     for ii in ['1', '1_h', '2', '3', '4', '5', '6']:
 
