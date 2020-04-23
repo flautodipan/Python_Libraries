@@ -116,7 +116,7 @@ for treshold in [9]:#range(6,13):
         rmsf_rmsf_BS = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_BS_cutoff][DF.Is_BS == True].values for key in WTC_identifier}
         rmsf_rmsf_BS_populations.append({ key : len(rmsf_rmsf_BS[key]) for key in WTC_identifier})
 
-        rmsf_rmsf_RNA = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_BS_cutoff][DF.Is_Prot == False].values for key in WTC_identifier}
+        rmsf_rmsf_RNA = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_Prot == False].values for key in WTC_identifier}
         rmsf_rmsf_RNA_populations.append({ key : len(rmsf_rmsf_RNA[key]) for key in WTC_identifier})
 
         z_covave_rmsf_noBS = {key : DF.z_Covariance_Mean[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_BS == False] for key in WTC_identifier }
@@ -227,7 +227,7 @@ for treshold in [9]:#range(6,13):
     ax.plot(steps, [corr[0] for corr in pearson_rmsf_BS_BS_correlations], marker = 'o', ls = 'dashed', label = 'pearson_rmsf_BS_BS' )
     ax.plot(steps, [corr[0] for corr in pearson_rmsf_RNA_RNA_correlations], marker = 'o', ls = 'dashed', label = 'pearson_rmsf_RNA_RNA')
     
-    #ax.plot(steps, [corr[0] for corr in rmsf_rmsf_RNA_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_rmsf_RNA', )
+    ax.plot(steps, [corr[0] for corr in rmsf_rmsf_RNA_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_rmsf_RNA', )
     #ax.plot(steps, [corr[0] for corr in covstd_rmsf_noBS_correlations], marker = 'o', ls = 'dashed', label = 'covstd_rmsf_noBS', )
     #ax.plot(steps, [corr[0] for corr in covstd_rmsf_BS_correlations], marker = 'o', ls = 'dashed', label = 'covstd_rmsf_BS', )
     #ax.plot(steps, [corr[0] for corr in rmsf_covstd_correlations], marker = 'o', ls = 'dashed', label = 'rmsf_covstd',)
@@ -336,12 +336,13 @@ for ii in range(1):
 
     print('\n\n\n STEP {} \n\n\n'.format(ii))
 
-    for to_exclude in ([3,4], [2,5]):
+    for to_exclude in [[3,4]]:#, [2,5]):
 
         max_err = np.max([z_covave_rmsf_BS_BS_correlators[ii][jj] for jj in to_exclude])
         min_err = np.min([z_covave_rmsf_BS_BS_correlators[ii][jj] for jj in to_exclude])
         err_max = (max_err - min_err)
         err = err_max/3 #procedura standard
+        print(err/2)
 
 
         correlators = z_covave_rmsf_BS_BS_correlators[ii][1:]
@@ -349,11 +350,19 @@ for ii in range(1):
 
 
         fig, ax = plt.subplots()
-        ax.set_title('Scatter plot BS Covariance z score\ncorrelation = {:3.2f} p-value = {:3.2f}$'.format(*pearsonr(Kds[1:], correlators)))
-        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], color = 'k', ecolor = 'orange', label = 'correlation data')
+        ax.set_title('Protein BS Covariance with Protein BS  vs Kd\ncorrelation = {:3.2f} p-value = {:3.2f}'.format(*pearsonr(Kds[1:], correlators)))
+        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], color = 'k', ecolor = 'orange', label = 'simulated data', mew = 0.1)
+        ax.errorbar(Kds[0] , z_covave_rmsf_BS_BS_correlators[0][0], fmt = 'o', xerr = Kds_errs[0], color = 'orange', ecolor = 'k', label = 'NMR data', mew = 0.1)
+        for x,y, key in zip(Kds , z_covave_rmsf_BS_BS_correlators[0], WTC_identifier):
+            if key in ['wtc1_h']:
+                key = 'wtc1'
+                plt.annotate(key, (x,y), xytext = (5, -12), textcoords = 'offset points', )
+            elif key == 'wtc3': plt.annotate(key, (x,y), xytext = (-22, -15), textcoords = 'offset points', )
+            elif key == 'wtc1': continue
+            else: plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points')
         ax.set_xlabel('Kd (nM)')
         ax.set_ylabel('Prot BS z Covariance with Prot BS ')
-        ax.vlines(np.mean([Kds[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'max error bar', linewidths = 2.)
+        ax.vlines(np.mean([Kds[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'firebrick', label = 'max error bar', linewidths = 2.)
         ax.legend()
         plt.show()
 
@@ -364,11 +373,10 @@ for ii in range(1):
 
         fig, ax = plt.subplots()
         x = np.linspace(np.min(Kds), np.max(np.array(Kds)+np.array(Kds_errs)), 1000)
-        ax.set_title(r'$\bf{y = mx + q}$ fit of BS z-score correlation with BS'+'\n : correlation = {:3.2f} p-value = {:3.2f}'.format(*pearsonr(Kds[1:], correlators)))
+        ax.set_title(r'$\bf{y = mx + q}$ fit'+'\nProtein BS Covariance with Protein BS vs Kd'+'\ncorrelation = {:3.2f} p-value = {:3.2f}'.format(*pearsonr(Kds[1:], correlators)))
         ax.set_xlabel('Kd (nM)')
         ax.set_ylabel('Prot BS z Covariance with Prot BS ')
-        ax.vlines(np.mean([Kds[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'firebrick', label = 'max error bar', linewidths = 2.)
-        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], yerr = err, color = 'k', ecolor = 'orange', label = 'correlation data')
+        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], yerr = err, color = 'k', ecolor = 'orange', label = 'correlation data', mew = 0.1)
         ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
         ax.legend(title = 'm = {:3.2e} $\pm$ {:3.2e}\nq = {:3.2e} $\pm$ {:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
         plt.show()
