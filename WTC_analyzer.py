@@ -21,21 +21,19 @@ now_temp = '300 K'
 scale='ns'
 
 
-#WTC5
-now_path    =   '../GROMACS/WTC5/'
-now_name    =    'wtc5'
-n_frames = 30001
-time_range = [0, 3000000]
-time_range_eq = [2100000, 3000000]
-color = 'darkorchid'
-darkcolor = 'indigo'
-brightcolor = 'crimson'
-contrastcolor = 'chartreuse'
-darkcontrastcolor = 'yellowgreen'
-ylim = (0,2)
-gyrad_ylim = (1.1, 1.7)
-
-
+#WTC6
+now_path    =   '../GROMACS/WTC6/'
+now_name    =    'wtc6'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [400000, 1000000]
+color = 'firebrick'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastclor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
 
 """
 #WTC1_h
@@ -174,7 +172,7 @@ print('Ho trovato il "centroide" della distribuzione RMSD a equilibrio\nnel fram
 #1b) prendo la BS di quel frame e te la stampo
 filename='BS_{}_make_ndx.txt'.format(now_name)
 pdb_filename = 'average_pdb_'+now_name+'.pdb'
-treshold = 12
+treshold = 9
 
 TDP43   = BA.Protein(now_path+pdb_filename, model = False)
 RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B', model = False)
@@ -302,11 +300,12 @@ for bs in BS_split:
 
 
 ax.legend(title = 'RNA starts at res {}'.format(int(res[idx_RNA_start])))
-ax.set_title('RMSF for {} residues'.format(now_name), pad = 1.3)
-
+ax.set_title('RMSF for {} residues'.format(now_name), pad = 5)
+"""
 ax.table(text)
 ax.xaxis.set_ticks_position('top')
 ax.xaxis.set_label_position('top')
+"""
 ax.set_xlabel('Residue number')
 ax.set_ylabel('RMSF (nm)')
 plt.tight_layout()

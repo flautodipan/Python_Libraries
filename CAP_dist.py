@@ -39,61 +39,10 @@ for treshold in [9, 11]:#range(8,13):
 
         print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
 
-        if ii == '1_h':
+        now_name    =    'wtc'+ii
+        now_path = '../GROMACS/WTC'+ii+'/eq_frame_'+now_name+'/'
 
-            #WTC1_h
-            now_path    =   '../GROMACS/WTC1_h/'
-            now_name    =    'wtc1_h'
-            n_frames = 20001
-            time_range  =   [0, 2000000]
-            time_range_eq = [1000000, 2000000]
 
-        elif ii == '1':
-            if treshold  == 9: continue
-            else:
-                #WTC1
-                now_path    =   '../GROMACS/WTC1/'
-                now_name    =    'wtc1'
-                n_frames = 9700
-                time_range  =   [30060, 999960]
-                time_range_eq = [400060, 999960]
-        elif ii == '2':
-            #WTC2
-            now_path    =   '../GROMACS/WTC2/'
-            now_name    =    'wtc2'
-            n_frames = 10001
-            time_range = [0, 1000000]
-            time_range_eq = [400000, 1000000]
-        elif ii == '3':
-            #WTC3
-            now_path    =   '../GROMACS/WTC3/'
-            now_name    =    'wtc3'
-            n_frames = 20001
-            time_range = [0, 2000000]
-            time_range_eq = [600000, 2000000]
-        elif ii == '4':
-            #WTC4
-            now_path    =   '../GROMACS/WTC4/'
-            now_name    =    'wtc4'
-            n_frames = 10001
-            time_range = [0, 1000000]
-            time_range_eq = [400000, 1000000]
-        elif ii == '5':
-            #WTC5
-            now_path    =   '../GROMACS/WTC5/'
-            now_name    =    'wtc5'
-            n_frames = 30001
-            time_range = [0, 3000000]
-            time_range_eq = [2100000, 3000000]
-        elif ii == '6':
-            #WTC6
-            now_path    =   '../GROMACS/WTC6/'
-            now_name    =    'wtc6'
-            n_frames = 10001
-            time_range = [0, 1000000]
-            time_range_eq = [400000, 1000000]
-
-        now_path+='eq_frame_'+now_name+'/'
         min_CAP_dist = []
 
         for frame in os.listdir(now_path):
@@ -138,6 +87,7 @@ df.to_json('../GROMACS/df_CAPdist_new.json')
 
 
 #%%
+# FITTING and PLOTTING
 import scipy.odr as odr
 def f_lin(A, x):
     return A[0]*x+A[1]
@@ -189,24 +139,183 @@ for to_exclude in [[3,4]]:#, [2,5]]:
 
     ax.plot(x,f_lin(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
     ax.legend(title = 'm = {:3.2e} $\pm$ {:3.2e}\nq = {:3.2e} $\pm$ {:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
+    plt.tight_layout()
+    plt.savefig('../GROMACS/final_fit_CAP.pdf', format= 'pdf')
     plt.show()
 
 
 
 
 
+# %%
+# PARTE per P-CA ossia studio della comparison WTC1 WTC1h
 
+#CONFIGURAZIONE INIZIALE
+
+treshold = 9
+df_initial = pd.DataFrame()
+
+for ii in ['1', '1_h']:
+
+    print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
+
+    now_name    =    'wtc'+ii
+    now_path = '../GROMACS/WTC'+ii+'/'
+
+    frame = now_name+'.pdb'
+
+    TDP43   = BA.Protein(now_path+frame, model = False)
+    TDP43.Get_CA_Coord(atom_name='CA')
+    RNA     =  BA.RNA(now_path+frame, chain_id='B', model = False, initial=TDP43.initial+TDP43.CA.shape[0])
+    RNA.Get_P_Coord(atom_name="P")
+    RNA_start_idx = len(TDP43.CA) - 1
+
+    print('Ok, acquisito correttamente pdb {} per {}'.format(frame, now_name))
+
+    Coord   = np.concatenate((TDP43.CA_Coord, RNA.P_Coord))
+    Dist    = BA.Dist_Matrix(Coord)
+    Cont    = BA.Contacts_Matrix(Dist, treshold)
+    Bonds   = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA.lenght), ("TDP43", "RNA"), first=  ('RNA', 1), second = ('Proteina', TDP43.initial))
+    BS      = BA.Print_Protein_BS_old(Bonds, TDP43.lenght,prot_initial=TDP43.initial, RNA_initial= RNA.initial)
+    
+    d = {}
+    
+    for (x_P, y_P, z_P, res_num, res_name) in RNA.P[['x_coord', 'y_coord', 'z_coord', 'residue_number', 'residue_name']].values:
+
+        d[res_name+' '+str(res_num)] =  np.min([euclidean((x_CA, y_CA, z_CA),(x_P, y_P, z_P)) for x_CA,y_CA,z_CA, r_num in TDP43.CA[['x_coord', 'y_coord', 'z_coord', 'residue_number']].values if r_num in BS['Prot'] ])
+
+
+    df_initial[now_name] = d.values()
+    df_initial = df_initial.rename(index = { old : new for old, new in zip(range(11), d.keys())})
+
+#%%
+#PLOT
+
+labels = d.keys()
+x = np.arange(len(labels))
+x_BS = []
+for jj in x:
+    cond_div1 = (jj in np.where(df_initial['wtc1'].values < 9)[0] ) & ( jj not in np.where(df_initial['wtc1_h'].values < 9)[0])
+    cond_div2 = (jj in np.where(df_initial['wtc1'].values > 9)[0] ) & ( jj not in np.where(df_initial['wtc1_h'].values > 9)[0])
+    if cond_div1 | cond_div2: 
+        x_BS.append(jj)
+
+labels_BS = [l for l,ii in zip(labels, range(len(labels))) if ii in x_BS]
+x_BS = np.array(x_BS)
+width = 0.25
+print(x_BS, labels_BS)
+fig, ax = plt.subplots()
+ax.set_title('Initial config')
+ax.hlines(9, -0.5, 10.5, color = 'yellowgreen', linestyles = 'dashed', label = 'BS 9 $\AA$')
+ax.bar(x-width/2, df_initial['wtc1'], width, color = 'goldenrod')
+ax.bar(x+width/2, df_initial['wtc1_h'],width , color = 'firebrick')
+ax.bar(x_BS-width/2, [df_initial['wtc1'][l] for l in labels_BS], width, label = 'NMR', color = 'grey')
+ax.bar(x_BS+width/2, [df_initial['wtc1_h'][l] for l in labels_BS],width, label = 'Test' , color = 'k', alpha = 0.6)
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
 
 
 # %%
+# PARTE per P-CA ossia studio della comparison WTC1 WTC1h
+#CONFIGURAZIONE all'equilibrio
 
-for treshold in df.columns:
+treshold = 9
+dfs = []
 
-    f, ax = plt.subplots()
-    ax.set_title('Old Correlation at BS treshold = {} Ang\n pearson = {:3.2f} p-value = {:3.2f}'.format(treshold, *pearsonr(Kds, [df[treshold][key] for key in WTC_identifier])))
-    ax.scatter(Kds, [df[treshold][key] for key in WTC_identifier], color = 'green')
-    ax.set_xlabel('Kd (nM)')
-    ax.set_ylabel('CA-P Mean Dist (Ang)')
+
+for ii in ['1', '1_h']:
+    df = pd.DataFrame()
+    print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
+
+    now_name    =    'wtc'+ii
+    now_path = '../GROMACS/WTC'+ii+'/eq_frame_'+now_name+'/'
+
+    lista = os.listdir(now_path)
+    lista.sort()
+    sample = [lista[jj] for jj in np.arange(0, len(lista), 100)]
+
+    for frame in sample:
+
+
+        TDP43   = BA.Protein(now_path+frame, model = False)
+        TDP43.Get_CA_Coord(atom_name='CA')
+        RNA     =  BA.RNA(now_path+frame, chain_id='B', model = False, initial=TDP43.initial+TDP43.CA.shape[0])
+        RNA.Get_P_Coord(atom_name="P")
+        RNA_start_idx = len(TDP43.CA) - 1
+
+        print('Ok, acquisito correttamente pdb {} per {}'.format(frame, now_name))
+
+        Coord   = np.concatenate((TDP43.CA_Coord, RNA.P_Coord))
+        Dist    = BA.Dist_Matrix(Coord)
+        Cont    = BA.Contacts_Matrix(Dist, treshold)
+        Bonds   = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA.lenght), ("TDP43", "RNA"), first=  ('RNA', 1), second = ('Proteina', TDP43.initial))
+        BS      = BA.Print_Protein_BS_old(Bonds, TDP43.lenght,prot_initial=TDP43.initial, RNA_initial= RNA.initial)
+        
+        d = {}
+        
+        for (x_P, y_P, z_P, res_num, res_name) in RNA.P[['x_coord', 'y_coord', 'z_coord', 'residue_number', 'residue_name']].values:
+
+            d[res_name+' '+str(res_num)] =  np.min([euclidean((x_CA, y_CA, z_CA),(x_P, y_P, z_P)) for x_CA,y_CA,z_CA, r_num in TDP43.CA[['x_coord', 'y_coord', 'z_coord', 'residue_number']].values if r_num in BS['Prot'] ])
+
+        df[frame[10:12]] = d.values()
+    
+    df = df.rename(index = { old : new for old, new in zip(range(11), d.keys())})
+    dfs.append(df)
+
+DF = pd.DataFrame()
+DF['wtc1'] = dfs[0].mean(axis = 1)
+DF['wtc1_h'] = dfs[1].mean(axis = 1)
+
+DF.to_json('../GROMACS/df_CPA_dist_9_ang.json', orient='index')
+DF_std= pd.DataFrame()
+
+DF_std['wtc1'] = dfs[0].std(axis = 1)
+DF_std['wtc1_h'] = dfs[1].std(axis = 1)
+DF_std.to_json('../GROMACS/df_CPA_dist_9_ang_std.json', orient='index')
+
+#%%
+#PLOT
+DF = pd.read_json('../GROMACS/df_CPA_dist_9_ang.json').T
+x_BS = []
+for jj in x:
+    condeq1 =  (jj in np.where(DF['wtc1'].values < 9)[0] ) & ( jj in np.where(DF['wtc1_h'].values < 9)[0])
+    condeq2 =  (jj in np.where(DF['wtc1'].values > 9)[0] ) & ( jj in np.where(DF['wtc1_h'].values >  9)[0])
+
+    if condeq1 | condeq2: x_BS.append(jj)
+
+x_BS = np.array(x_BS)
+labels = DF.index
+x = np.arange(len(labels))
+labels_BS = [l for l,ii in zip(labels, range(len(labels))) if ii in x_BS]
+width = 0.25
+fig, ax = plt.subplots()
+ax.hlines(9, -0.5, 10.5, color = 'yellowgreen', linestyles = 'dashed', label = 'BS 9 $\AA$')
+ax.bar(x-width/2, DF['wtc1'], width, color = 'gray')
+ax.bar(x+width/2, DF['wtc1_h'],width , color = 'k', alpha = 0.6)
+ax.bar(x_BS-width/2, [DF['wtc1'][l] for l in labels_BS], width, label = 'NMR', color = 'goldenrod')
+ax.bar(x_BS+width/2, [DF['wtc1_h'][l] for l in labels_BS],width, label = 'Test' , color = 'firebrick')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
+
+
+# %%
+#%%
+#PLOT con config iniziale NMR - iniziale - finale WTC
+labels = DF.index
+x = np.arange(len(labels))
+width = 0.25
+fig, ax = plt.subplots()
+ax.hlines(9, -0.5, 10.5, color = 'k', linestyles = 'dashed')
+ax.text(-0.75, 9.5, 'BS 9 $\AA$', )
+ax.bar(x-width, [df_initial['wtc1'][l] for l in labels], width, label = 'NMR initial', color = 'goldenrod')
+ax.bar(x, [df_initial['wtc1_h'][l] for l in labels],width, label = 'Test initial' , color = 'olive', alpha = 0.8)
+ax.bar(x+width, [DF['wtc1_h'][l] for l in labels],width, label = 'Test equilibrated' , color = 'firebrick', alpha = 0.8)
+
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
 
 
 # %%

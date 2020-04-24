@@ -113,7 +113,7 @@ for treshold in [9]:#range(6,13):
         rmsf_rmsf = { key :DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff].values for key in WTC_identifier}
         rmsf_rmsf_populations.append({ key : len(rmsf_rmsf[key]) for key in WTC_identifier})
 
-        rmsf_rmsf_BS = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_BS_cutoff][DF.Is_BS == True].values for key in WTC_identifier}
+        rmsf_rmsf_BS = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_BS_cutoff][DF.Is_BS == True][DF.Is_Prot == True].values for key in WTC_identifier}
         rmsf_rmsf_BS_populations.append({ key : len(rmsf_rmsf_BS[key]) for key in WTC_identifier})
 
         rmsf_rmsf_RNA = { key : DF.RMSF[DF.WTC_identifier == key][DF.RMSF > rmsf_cutoff][DF.Is_Prot == False].values for key in WTC_identifier}
@@ -364,6 +364,8 @@ for ii in range(1):
         ax.set_ylabel('Prot BS z Covariance with Prot BS ')
         ax.vlines(np.mean([Kds[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'firebrick', label = 'max error bar', linewidths = 2.)
         ax.legend()
+        plt.tight_layout()
+        plt.savefig(now_path+'final_scatt_cov.pdf', format= 'pdf')
         plt.show()
 
     #%#%
@@ -379,6 +381,9 @@ for ii in range(1):
         ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], yerr = err, color = 'k', ecolor = 'orange', label = 'correlation data', mew = 0.1)
         ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
         ax.legend(title = 'm = {:3.2e} $\pm$ {:3.2e}\nq = {:3.2e} $\pm$ {:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
+        plt.tight_layout()
+        plt.savefig(now_path+'final_fit_cov.pdf', format= 'pdf')
+       
         plt.show()
 
 
