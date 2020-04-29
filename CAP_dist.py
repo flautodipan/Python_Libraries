@@ -223,7 +223,6 @@ ax.legend()
 treshold = 9
 dfs = []
 
-
 for ii in ['1', '1_h']:
     df = pd.DataFrame()
     print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
@@ -233,9 +232,9 @@ for ii in ['1', '1_h']:
 
     lista = os.listdir(now_path)
     lista.sort()
-    sample = [lista[jj] for jj in np.arange(0, len(lista), 100)]
+    #sample = [lista[jj] for jj in np.arange(0, len(lista), 10)]
 
-    for frame in sample:
+    for frame in lista:
 
 
         TDP43   = BA.Protein(now_path+frame, model = False)
@@ -268,6 +267,7 @@ DF['wtc1'] = dfs[0].mean(axis = 1)
 DF['wtc1_h'] = dfs[1].mean(axis = 1)
 
 DF.to_json('../GROMACS/df_CPA_dist_9_ang.json', orient='index')
+
 DF_std= pd.DataFrame()
 
 DF_std['wtc1'] = dfs[0].std(axis = 1)
@@ -310,12 +310,24 @@ fig, ax = plt.subplots()
 ax.hlines(9, -0.5, 10.5, color = 'k', linestyles = 'dashed')
 ax.text(-0.75, 9.5, 'BS 9 $\AA$', )
 ax.bar(x-width, [df_initial['wtc1'][l] for l in labels], width, label = 'NMR initial', color = 'goldenrod')
-ax.bar(x, [df_initial['wtc1_h'][l] for l in labels],width, label = 'Test initial' , color = 'olive', alpha = 0.8)
-ax.bar(x+width, [DF['wtc1_h'][l] for l in labels],width, label = 'Test equilibrated' , color = 'firebrick', alpha = 0.8)
+ax.bar(x, [df_initial['wtc1_h'][l] for l in labels],width, label = 'WTC1 initial' , color = 'olive', alpha = 0.8)
+ax.bar(x+width, [DF['wtc1_h'][l] for l in labels],width, label = 'WTC1 equilibrated' , color = 'firebrick', alpha = 0.8, capsize = 2.5, yerr =  [DF_std['wtc1_h'][l] for l in labels], ecolor = 'k')
 
 ax.set_xticks(x)
 ax.set_xticklabels(labels)
 ax.legend()
+ax.set_xlabel('RNA$_{12}$ nucleotides')
+ax.set_ylabel('Distance ($\AA$)')
+fig.savefig('../Scrittek/figures/residue_NMR_comparison.pdf', format = 'pdf')
 
+# %%
+from scipy.stats import pearsonr
+
+stats = pearsonr([DF['wtc1_h'][l] for l in labels], [df_initial['wtc1'][l] for l in labels] )
+fig, ax = plt.subplots()
+ax.set_xlabel('NMR')
+ax.set_ylabel('WTC1_test')
+ax.set_title('RNA distance from Protein NMR vs WTC1\nPearson = {:3.2f} p-value = {:3.2f}'.format(*stats))
+ax.scatter([DF['wtc1_h'][l] for l in labels], [df_initial['wtc1'][l] for l in labels] )
 
 # %%

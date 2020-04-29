@@ -1351,8 +1351,7 @@ def Get_Parameter_Map(fit, parameter, matrix, n_rows, n_cols, excluded, Deltas =
 
     return  (p_map, nans)
 
-
-def Interpolate_Parameter_Map(p_map, parameter, fit, matrix, n_rows, n_cols, inf, sup,):
+def Interpolate_Parameter_Map(p_map, parameter, fit, matrix, n_rows, n_cols, inf, sup):
 
     if fit == 'markov':
         parameters = 'Markov_Fit_Params'           
@@ -1384,20 +1383,26 @@ def Interpolate_Parameter_Map(p_map, parameter, fit, matrix, n_rows, n_cols, inf
                 if not (is_nan | is_high | is_low | is_different):
                     ave.append(p_map[mm, nn])
  
-            new_map[ii,jj] = np.average(ave,)
+            new_map[ii,jj] = np.average(ave,) if len(ave) != 0 else np.nanmean(neigh_params)
 
             #print('Su {} ho {} outlier'.format(len(neigh_params), count))
 
 
     print('Completata Interpolazione per elementi di {} {} map \n'.format(fit, parameter))
+
+
     return  new_map
 
 def Print_Parameter_Map(p_map, inf, sup, parameter, fit, name, pix_scale, filename, path = './', **kwargs):
 
     if parameter == 'Omega':
-        title = 'Brillouin shift $\Omega$ {} Map ({})'.format(fit, name)
+        title = 'Brillouin shift $\Omega$ {} Map\n({})'.format(fit, name)
     elif parameter == 'Gamma':
-        title = 'Brillouin width $\Gamma$ {} Map ({})'.format(fit, name)
+        title = 'Brillouin width $\Gamma$ {} Map\n({})'.format(fit, name)
+    elif parameter == 'Tau':
+        title = 'Constant of relaxation tau {} Map\n({})'.format(fit, name)
+    elif parameter == 'Delta':
+         title = 'Relaxation width $\Delta$ {} Map\n({})'.format(fit, name)
     else: raise ValueError('Specifica parametro')
 
     f, ax = plt.subplots()
@@ -1412,13 +1417,14 @@ def Print_Parameter_Map(p_map, inf, sup, parameter, fit, name, pix_scale, filena
     ax.tick_params('x', bottom = True, top = True, labelbottom = True, labeltop = False)
     ax.tick_params('y', left = True, right = True)
 
-    bar = scalebar.ScaleBar(300, units = 'nm', location = 'lower right', length_fraction=0.1, height_fraction=0.005, font_properties = {'size' : 10}, color = 'white', frameon = False)
+    bar = scalebar.ScaleBar(300, units = 'nm', location = kwargs['bar_loc'] if 'bar_loc' in kwargs else 'lower right', length_fraction=0.1, height_fraction=0.005, font_properties = {'size' : 10}, color = kwargs['bar_color'] if 'bar_color' in kwargs else 'white', frameon = kwargs['frameon'] if 'frameone' in kwargs else False)
     plt.gca().add_artist(bar)
 
     plt.tight_layout()
-    f.savefig(path+filename+'.pdf', format = 'pdf')
+    f.savefig(path+filename+'.pdf', format = 'pdf', bbox_to_inches = (0,0,1,1))
 
     plt.show()
+
 
 def Escludi_a_Mano(to_add, excluded):
 

@@ -351,8 +351,8 @@ for ii in range(1):
 
         fig, ax = plt.subplots()
         ax.set_title('Protein BS Covariance with Protein BS  vs Kd\ncorrelation = {:3.2f} p-value = {:3.2f}'.format(*pearsonr(Kds[1:], correlators)))
-        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], color = 'k', ecolor = 'orange', label = 'simulated data', mew = 0.1)
-        ax.errorbar(Kds[0] , z_covave_rmsf_BS_BS_correlators[0][0], fmt = 'o', xerr = Kds_errs[0], color = 'orange', ecolor = 'k', label = 'NMR data', mew = 0.1)
+        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], color = 'k', ecolor = 'orange', label = 'simulated data', mew = 0.1, capsize = 3)
+        ax.errorbar(Kds[0] , z_covave_rmsf_BS_BS_correlators[0][0], fmt = 'o', xerr = Kds_errs[0], color = 'orange', ecolor = 'k',capsize = 3, label = 'NMR data', mew = 0.1)
         for x,y, key in zip(Kds , z_covave_rmsf_BS_BS_correlators[0], WTC_identifier):
             if key in ['wtc1_h']:
                 key = 'wtc1'
@@ -378,7 +378,7 @@ for ii in range(1):
         ax.set_title(r'$\bf{y = mx + q}$ fit'+'\nProtein BS Covariance with Protein BS vs Kd'+'\ncorrelation = {:3.2f} p-value = {:3.2f}'.format(*pearsonr(Kds[1:], correlators)))
         ax.set_xlabel('Kd (nM)')
         ax.set_ylabel('Prot BS z Covariance with Prot BS ')
-        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], yerr = err, color = 'k', ecolor = 'orange', label = 'correlation data', mew = 0.1)
+        ax.errorbar(Kds[1:] , correlators, fmt = 'o', xerr = Kds_errs[1:], yerr = err, color = 'k', ecolor = 'orange', capsize = 3, label = 'correlation data', mew = 0.1)
         ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
         ax.legend(title = 'm = {:3.2e} $\pm$ {:3.2e}\nq = {:3.2e} $\pm$ {:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
         plt.tight_layout()

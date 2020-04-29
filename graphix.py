@@ -103,10 +103,10 @@ for what in ['potential', 'temp', 'press']:
 
 # %%
 # SPREADING PLOT
-
-Kds = np.array([4, 105, 650, 700, 750, 850, 1300, 1320, 1350, 1360, 1500, 1800])
-names = ['RNA12', 'Apt1.2', 'Apt2.2', 'Apt3.2', 'Apt2.1', 'Apt1.1', 'Apt4.2', 'NegApt1.2', 'Apt3.1', 'NegRNA12', 'Apt5.2', 'Apt6.2']
-md_idx = np.array([0, 3, 7, 8, 9, 11], dtype=int)
+Kds_errs = np.array([0.9, 37, 150, 135,150, 125, 150, 450, 350,  600, 500, 400 ])
+Kds = np.array([4, 105, 650, 650,  700, 750, 850, 1300, 1320, 1360, 1500, 1800])
+names = ['RNA12', 'Apt1.2', 'Apt2.2', 'Apt3.1','Apt3.2', 'Apt2.1', 'Apt1.1', 'Apt4.2', 'NegApt1.2',  'NegRNA12', 'Apt5.2', 'Apt6.2']
+"""md_idx = np.array([0, 3, 7, 8, 9, 11], dtype=int)
 idx=np.arange(0,len(Kds), dtype=int)
 other_idx = np.array([1,2,4,5,6,10], dtype = int)
 colors = []
@@ -120,9 +120,13 @@ for ii in idx:
     else : 
         colors.append(0)
         labels.append(None)
-
+"""
 f, ax = plt.subplots()
-ax.scatter(idx, Kds, c = colormap[np.array(colors, dtype=int)])
+
+for Kd
+ax.errorbar(idx, Kds, yerr = Kds_errs,  color = 'white', fmt = '.', ecolor = 'k', capsize = 3,)
+ax.scatter(idx, Kds, c = colormap[np.array(colors, dtype=int)],)
+
 ax.set_xticks(idx)
 ax.set_xticklabels(names)
 plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
@@ -133,5 +137,35 @@ ax.legend(labels)
 plt.tight_layout()
 
 f.savefig(path+'Kd_spreading_plot.pdf', format = 'pdf')
+
+# %%
+
+# NMR - test comparison - initial 
+
+take_path = '../GROMACS/'
+from BioAlessandria import Parse_xvg_skip
+
+RMSD_comp = Parse_xvg_skip(take_path+'NMR_comparison.xvg', skip = 50)
+
+RMSD_NMR = Parse_xvg_skip(take_path+'/WTC1/rmsd_wtc1.xvg', skip = 50)
+RMSD_test = Parse_xvg_skip(take_path+'/WTC1_h/rmsd_wtc1_h.xvg', skip = 50)
+
+f, ax = plt.subplots()
+ax.set_title('RMSD between NMR and WTC1 structures in time', fontsize = 13.5, pad = 10)
+#ax.hlines(np.mean(RMSD_eq), 0, 2000, color = 'k', linestyles = 'dashed', label = 'equilibrium RMSD mean')
+#ax.fill_betweenx(np.arange(ax.get_ylim()[0], 1.55, 0.1), 1000, 2000, color = 'firebrick', alpha = 0.2, label = 'Equilibrium time range')
+ax.plot(RMSD_comp[0]/1000, RMSD_comp[1], label = 'WTC1 vs NMR mean', color = 'firebrick', alpha = 0.8)
+ax.plot(RMSD_NMR[0][1:]/1000, RMSD_NMR[1][1:], label = 'NMR vs NMR initial', color = 'goldenrod', alpha = 0.8)
+ax.plot(RMSD_test[0][2:]/1000, RMSD_test[1][2:], label = 'WTC1 vs WTC1 initial', color = 'green', alpha = 0.8)
+
+ax.set_xlim(0,1000)
+ax.set_ylim(ax.get_ylim()[0], 1.8)
+ax.set_xlabel('Time (ns)')
+ax.set_ylabel('RMSD (nm)')
+ax.legend()
+plt.tight_layout()
+
+f.savefig(path+'NMR_comparison.pdf', format = 'pdf')
+
 
 # %%
