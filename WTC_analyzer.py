@@ -21,17 +21,17 @@ now_temp = '300 K'
 scale='ns'
 
 
-#WTC6
-now_path    =   '../GROMACS/WTC6/'
-now_name    =    'wtc6'
+#WTC7
+now_path    =   '../GROMACS/WTC7/'
+now_name    =    'wtc7'
 n_frames = 10001
 time_range = [0, 1000000]
-time_range_eq = [400000, 1000000]
+time_range_eq = [200000, 950000]
 color = 'firebrick'
 darkcolor = 'darkred'
 brightcolor = 'limegreen'
 contrastcolor='gold'
-darkcontrastclor = 'darkgoldenrod'
+darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
 
@@ -151,7 +151,7 @@ gyrad_ylim = (1.1, 1.8)
 
 WTC_traj = BA.Trajectory(bio_name='{} in water (T = {})'.format(now_name, now_temp))
 WTC_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 )
-WTC_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, scale = 'ns', ylim = ylim)
+WTC_traj.Get_RMSD(xvg_filename = 'rmsd_md_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, scale = 'ns', ylim = ylim)
 WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.1, color = color, darkcolor = darkcolor, scale = 'ns', ylim = ylim)
 
 
@@ -171,7 +171,7 @@ print('Ho trovato il "centroide" della distribuzione RMSD a equilibrio\nnel fram
 # %%
 #1b) prendo la BS di quel frame e te la stampo
 filename='BS_{}_make_ndx.txt'.format(now_name)
-pdb_filename = 'average_pdb_'+now_name+'.pdb'
+pdb_filename = 'average_pdb.pdb'
 treshold = 9
 
 TDP43   = BA.Protein(now_path+pdb_filename, model = False)
@@ -205,7 +205,8 @@ with open  (now_path+filename, 'w') as f:
 WTC_traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = False, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA_tot', color = color, scale = scale, ylim = ylim)
 WTC_traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = False, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS_tot', color = color, scale = scale, ylim = ylim)
 
-
+print('ok')
+#%%
 
 WTC_traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = True, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA', color = color, scale = scale)
 WTC_traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = True, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS', color = color, scale = scale)
@@ -330,7 +331,7 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 #%%
 # MATRICE COVARIANZA ATOMICA
-skip_cov = True
+skip_cov = False
 if not skip_cov:
     N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
     cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
@@ -348,7 +349,7 @@ else:
     cov_matrix_CAP = np.genfromtxt(now_path+now_name+'CAP_cov_matrix.txt')  
 
 
-BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.001, 0.001))
+BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.1, 0.1))
 
 #%%
 #trasformo in matrice di pearson

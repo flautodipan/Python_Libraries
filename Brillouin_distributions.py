@@ -108,13 +108,15 @@ plt.show()
 #%%
 #stampa mappe in Scrittek
 ref = p_gauss_ARS_72[1]
+Print_Parameter_Map(omega_map_ARS_72, omega_min, omega_max, 'Omega', 'markov', name_ARS_72, pix_scale_ARS_72, 'markov_omega_ARS_72', save_path)
+
 shift = ref - p_gauss_ARS_48[1]
 omega_map_ARS_48_new = omega_map_ARS_48 + shift
-Print_Parameter_Map(omega_map_ARS_48_new, omega_min, omega_max, 'Omega', 'markov', name_ARS_48, pix_scale_ARS_48, 'markov_omega_ARS_48', save_path)
+Print_Parameter_Map(omega_map_ARS_48, omega_min, omega_max, 'Omega', 'markov', name_ARS_48, pix_scale_ARS_48, 'markov_omega_ARS_48', save_path)
 
 shift = ref - p_gauss_NO_ARS_48[1]
 omega_map_NO_ARS_48_new = omega_map_NO_ARS_48 + shift
-Print_Parameter_Map(omega_map_NO_ARS_48_new, omega_min, omega_max, 'Omega', 'markov', name_NO_ARS_48, pix_scale_NO_ARS_48, 'markov_omega_NO_ARS_48', save_path)
+Print_Parameter_Map(omega_map_NO_ARS_48, omega_min, omega_max, 'Omega', 'markov', name_NO_ARS_48, pix_scale_NO_ARS_48, 'markov_omega_NO_ARS_48', save_path)
 
 
 

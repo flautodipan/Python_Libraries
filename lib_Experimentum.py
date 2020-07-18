@@ -1412,8 +1412,8 @@ def Print_Parameter_Map(p_map, inf, sup, parameter, fit, name, pix_scale, filena
     img.set_clim(inf, sup)
 
     ax.set_title(title, fontsize = 14)
-    ax.set_xlabel('Row Index')
-    ax.set_ylabel('Col Idx')
+    ax.set_xlabel('Col Index')
+    ax.set_ylabel('Row Idx')
     ax.tick_params('x', bottom = True, top = True, labelbottom = True, labeltop = False)
     ax.tick_params('y', left = True, right = True)
 
