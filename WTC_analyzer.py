@@ -15,8 +15,6 @@ warnings.filterwarnings("ignore")
 
 
 
-
-
 now_temp = '300 K'
 scale='ns'
 
@@ -25,6 +23,7 @@ scale='ns'
 now_path    =   '../GROMACS/WTC7/'
 now_name    =    'wtc7'
 n_frames = 10001
+#ps
 time_range = [0, 1000000]
 time_range_eq = [200000, 950000]
 color = 'firebrick'

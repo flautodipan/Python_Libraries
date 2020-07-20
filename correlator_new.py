@@ -20,13 +20,13 @@ for treshold in [9]:#range(6,13):
 
     #DF['z_RMSF'] = (DF.RMSF.values - np.mean(DF.RMSF.values))/np.std(DF.RMSF.values)
 
-    WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6')#'wtc5',
+    WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6', 'wtc7')#'wtc5',
     Kds = [DF.Kd[DF.WTC_identifier == key].values[0] for key in WTC_identifier]
 
-    Kds = [4, 4, 1360, 650, 750, 1320, 1800]
-    Kds_errs = [0.9, 0.9, 600, 135, 150, 350, 400]
+    Kds = [4, 4, 1360, 650, 750, 1320, 1800, 70]
+    Kds_errs = [0.9, 0.9, 600, 135, 150, 350, 400, 10]
 
-    colori = ['royalblue', 'cornflowerblue', 'forestgreen', 'goldenrod', 'orange', 'darkorchid', 'firebrick' ]
+    colori = ['royalblue', 'cornflowerblue', 'forestgreen', 'goldenrod', 'orange', 'darkorchid', 'firebrick', 'black']
     colors = {wtc : color for (wtc, color) in zip(WTC_identifier, colori)}
 
 

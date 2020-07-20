@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
 #exp data 
-Kds_sort  = [4., 4., 700., 1320., 1350., 1360., 1800.]
-Kds_ = [4., 4., 1360., 1350, 700, 1320, 1800]
-Kds = {'wtc{}'.format(n): kd for (n, kd) in zip(['1', '1_h', '2', '3', '4', '5', '6'], Kds_)}
+Kds_sort  = [4., 4., 70, 700., 1320., 1350., 1360., 1800.]
+Kds_ = [4., 4., 1360., 1350, 700, 1320, 1800, 70]
+Kds = {'wtc{}'.format(n): kd for (n, kd) in zip(['1', '1_h', '2', '3', '4', '5', '6', '7'], Kds_)}
 
 #inizializzo dataframe
 
@@ -23,7 +23,7 @@ scale='ns'
 
 for treshold in [9]:#range(6,13):
 
-    for ii in ['1', '1_h', '2', '3', '4', '5', '6']:
+    for ii in ['1', '1_h', '2', '3', '4', '5', '6', '7']:
 
         print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
 
@@ -78,6 +78,14 @@ for treshold in [9]:#range(6,13):
             n_frames = 10001
             time_range = [0, 1000000]
             time_range_eq = [400000, 1000000]
+
+        elif ii == '7':
+            #WTC7
+            now_path    =   '../GROMACS/WTC7/'
+            now_name    =    'wtc7'
+            n_frames = 10001
+            time_range = [0, 1000000]
+            time_range_eq = [200000, 950000]
 
         #WTC analyzer senza figure
 
