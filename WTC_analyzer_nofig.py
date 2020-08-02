@@ -23,7 +23,7 @@ scale='ns'
 
 for treshold in [9]:#range(6,13):
 
-    for ii in ['1', '1_h', '2', '3', '4', '5', '6', '7']:
+    for ii in ['1_h', '1','2', '3', '4', '5', '6', '7']:
 
         print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
 
@@ -153,6 +153,8 @@ for treshold in [9]:#range(6,13):
         df['Pearson_Std'] = [np.std(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
         df['Covariance_Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
         df['Covariance_Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+ 
+
         
         Covariance_Mean_Prot_BS = []
         Covariance_Mean_Prot_noBS = []
@@ -165,24 +167,38 @@ for treshold in [9]:#range(6,13):
         Pearson_Mean_RNA_noBS = []
     
     
-        for ii in range(len(res)):
-            Covariance_Mean_Prot_BS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in list(np.array(BS['Prot']) - df.Residue_number[0])]))
-            Covariance_Mean_Prot_noBS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
-            Covariance_Mean_RNA_BS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in list(np.array(BS['RNA']) - df.Residue_number[0])]))
-            Covariance_Mean_RNA_noBS.append(np.mean([cov_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
+        for kk in range(len(res)):
+            Covariance_Mean_Prot_BS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in list(np.array(BS['Prot']) - df.Residue_number[0])]))
+            Covariance_Mean_Prot_noBS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
+            Covariance_Mean_RNA_BS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in list(np.array(BS['RNA']) - df.Residue_number[0])]))
+            Covariance_Mean_RNA_noBS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
 
-            Pearson_Mean_Prot_BS.append(np.mean([pearson_matrix_CAP[jj,ii] for jj in list(np.array(BS['Prot']) - df.Residue_number[0])]))
-            Pearson_Mean_Prot_noBS.append(np.mean([pearson_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
-            Pearson_Mean_RNA_BS.append(np.mean([pearson_matrix_CAP[jj,ii] for jj in list(np.array(BS['RNA']) - df.Residue_number[0])]))
-            Pearson_Mean_RNA_noBS.append(np.mean([pearson_matrix_CAP[jj,ii] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
+            Pearson_Mean_Prot_BS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in list(np.array(BS['Prot']) - df.Residue_number[0])]))
+            Pearson_Mean_Prot_noBS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
+            Pearson_Mean_RNA_BS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in list(np.array(BS['RNA']) - df.Residue_number[0])]))
+            Pearson_Mean_RNA_noBS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
 
 
         df['Covariance_Mean_Prot_BS'] = Covariance_Mean_Prot_BS
         df['Covariance_Mean_Prot_noBS'] = Covariance_Mean_Prot_noBS
-        
+
+        if ii == '1_h':
+
+            mean_12 = np.mean(df['Covariance_Mean'][df.WTC_identifier == 'wtc1_h'])
+            std_12 = np.std(df['Covariance_Mean'][df.WTC_identifier == 'wtc1_h'])
+
         df['Covariance_Mean_RNA_BS'] = Covariance_Mean_RNA_BS
         df['Covariance_Mean_RNA_noBS'] = Covariance_Mean_RNA_noBS
         
+        #zscore
+        df['z_Covariance_Mean'] = (df['Covariance_Mean'] - np.mean(df['Covariance_Mean']))/(np.std(df['Covariance_Mean']))
+        df['z_Covariance_Mean_Prot_BS'] = (df.Covariance_Mean_Prot_BS - np.mean(df.Covariance_Mean_Prot_BS))/(np.std(df.Covariance_Mean_Prot_BS))
+
+        #zscore con riferimento RNA12
+
+        df['z_Covariance_Mean_12'] = (df['Covariance_Mean'] - mean_12)/std_12
+        df['z_Covariance_Mean_Prot_BS_12'] = (df.Covariance_Mean_Prot_BS - mean_12)/std_12
+
 
         df['Pearson_Mean_Prot_BS'] = Pearson_Mean_Prot_BS
         df['Pearson_Mean_Prot_noBS'] = Pearson_Mean_Prot_noBS
@@ -190,8 +206,6 @@ for treshold in [9]:#range(6,13):
         df['Pearson_Mean_RNA_BS'] = Pearson_Mean_RNA_BS
         df['Pearson_Mean_RNA_noBS'] = Pearson_Mean_RNA_noBS
         
-        
-
 
         df['RMSD_Mean'] = [np.mean(WTC_traj.RMSD_eq), ]* len(res)
         df['RMSD_Std'] = [np.std(WTC_traj.RMSD_eq), ]*len(res)
