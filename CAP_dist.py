@@ -14,15 +14,19 @@ from scipy.spatial.distance import euclidean
 from scipy.stats import pearsonr
 
 #exp data 
-Kds_sort  = [4., 4., 700., 1320., 1350., 1360., 1800.]
-Kds = [4., 4., 1360., 1350, 700, 1320, 1800]
+Kds_sort  = [4., 4., 70, 700., 1320., 1350., 1360., 1800.]
+Kds = [4., 4., 1360., 1350, 700, 1320, 1800, 70]
 #Kds = {'wtc{}'.format(n): kd for (n, kd) in zip(['1', '1_h', '2', '3', '4', '5', '6'], Kds_)}
 
-Kds_new =  [4, 4, 1360, 650, 750, 1320, 1800]
-Kds_errs = [0.9, 0.9, 600, 135, 150, 350, 400]
+Kds_new =  [4, 4, 1360, 650, 750, 1320, 1800, 70]
+Kds_errs = [0.9, 0.9, 600, 135, 150, 350, 400, 10]
 
-WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6')
+WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6', 'wtc7')
 
+#seven reduced
+red = False
+wtc7_7 = True
+wtc7_8 = False
 
 #inizializzo dataframe
 
@@ -33,16 +37,116 @@ df = pd.DataFrame()
 
 
 #%%
+<<<<<<< HEAD
 for treshold in [9]:#[9, 11]:#range(8,13):
+=======
+for treshold in [9]:#range(8,13):
+>>>>>>> passato
 
-    for ii in ['1', '1_h', '2', '3', '4', '5', '6']:
+    for ii in ['7']:#['1', '1_h', '2', '3', '4', '5', '6', '7']:
 
         print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
 
+<<<<<<< HEAD
         now_name    =    'wtc'+ii
         now_path = '../GROMACS/WTC'+ii+'/eq_frame_'+now_name+'/'
 
 
+=======
+        if ii == '1_h':
+
+            #WTC1_h
+            now_path    =   '../GROMACS/WTC1_h/'
+            now_name    =    'wtc1_h'
+            n_frames = 20001
+            time_range  =   [0, 2000000]
+            time_range_eq = [1000000, 2000000]
+
+        elif ii == '1':
+            if treshold  == 9: continue
+            else:
+                #WTC1
+                now_path    =   '../GROMACS/WTC1/'
+                now_name    =    'wtc1'
+                n_frames = 9700
+                time_range  =   [30060, 999960]
+                time_range_eq = [400060, 999960]
+        elif ii == '2':
+            #WTC2
+            now_path    =   '../GROMACS/WTC2/'
+            now_name    =    'wtc2'
+            n_frames = 10001
+            time_range = [0, 1000000]
+            time_range_eq = [400000, 1000000]
+        elif ii == '3':
+            #WTC3
+            now_path    =   '../GROMACS/WTC3/'
+            now_name    =    'wtc3'
+            n_frames = 20001
+            time_range = [0, 2000000]
+            time_range_eq = [600000, 2000000]
+        elif ii == '4':
+            #WTC4
+            now_path    =   '../GROMACS/WTC4/'
+            now_name    =    'wtc4'
+            n_frames = 10001
+            time_range = [0, 1000000]
+            time_range_eq = [400000, 1000000]
+        elif ii == '5':
+            #WTC5
+            now_path    =   '../GROMACS/WTC5/'
+            now_name    =    'wtc5'
+            n_frames = 30001
+            time_range = [0, 3000000]
+            time_range_eq = [2100000, 3000000]
+
+        elif ii == '6':
+            #WTC6
+            now_path    =   '../GROMACS/WTC6/'
+            now_name    =    'wtc6'
+            n_frames = 10001
+            time_range = [0, 1000000]
+            time_range_eq = [400000, 1000000]
+
+        elif ii == '7':
+            
+            if red == True:
+                #WTC7
+                now_path    =   '../GROMACS/WTC7/'
+                now_name    =    'wtc7'
+                n_frames = 10001
+                #ps
+                time_range = [0, 1000000]
+                time_range_eq = [200000, 950000]
+
+            elif wtc7_8 == True:
+
+                now_path    =   '../GROMACS/WTC7_8/'
+                now_name    =    'wtc7_8'
+                n_frames = 3001
+                time_range = [0, 300000]
+                time_range_eq = time_range
+
+            
+            elif wtc7_7 == True:
+
+                now_path    =   '../GROMACS/WTC7_7/'
+                now_name    =    'wtc7_7'
+                n_frames = 2301
+                time_range = [0, 230000]
+                time_range_eq = time_range
+
+            else:
+            
+                #WTC7
+                now_path    =   '../GROMACS/WTC7_red/'
+                now_name    =    'wtc7'
+                n_frames = 1251
+                time_range = [175000, 300000]
+                time_range_eq = time_range
+
+        now_path+='eq_frame_'+now_name+'/'
+>>>>>>> passato
         min_CAP_dist = []
 
         for frame in os.listdir(now_path):
@@ -82,54 +186,34 @@ for treshold in [9]:#[9, 11]:#range(8,13):
     df[str(treshold)+' ang'] = [descriptor[key] for key in WTC_identifier]
 
 
+if red:
 
-df.to_json('../GROMACS/df_CAPdist_new.json')
+    df.to_json('../GROMACS/df_CAPdist_new_red.json')
 
+elif wtc7_7:
 
+<<<<<<< HEAD
 #%%
 # FITTING and PLOTTING
 import scipy.odr as odr
 def f_lin(A, x):
     return A[0]*x+A[1]
+=======
+    df.to_json('../GROMACS/df_CAPdist_new_7.json')
+>>>>>>> passato
 
-linear = odr.Model(f_lin)
 
-df = pd.read_json('../GROMACS/df_CAPdist_new.json')
-df = df.rename(index = { old : new for old, new in zip(range(7), WTC_identifier)})
+elif wtc7_8:
 
-treshold = '9 ang'
-for to_exclude in [[3,4]]:#, [2,5]]:
+    df.to_json('../GROMACS/df_CAPdist_new_8.json')
 
-    print(" Treshold = {}  \nPunti con stessa fisica = {}".format(treshold, to_exclude))
+else:
 
-    max_err = np.max([df[treshold][jj] for jj in to_exclude])
-    min_err = np.min([df[treshold][jj] for jj in to_exclude])
-    err_max = (max_err - min_err)
-    err = err_max/np.sqrt(2) #procedura standard
-    print(err/2)
+    df.to_json('../GROMACS/df_CAPdist_new_red.json')
 
-    f, ax = plt.subplots()
-    ax.set_title(r'$C_\alpha$ - $P$ average min distance vs Kd'+'\nBS treshold = {} $\AA$\npearson = {:3.2f} p-value = {:3.2f}'.format(treshold[:2], *pearsonr(Kds_new[1:], [df[treshold][key]for key in WTC_identifier][1:] )))
-    ax.errorbar(Kds_new[1:], [df[treshold][key] for key in WTC_identifier][1:], xerr = Kds_errs[1:], fmt = 'o',  color = 'green', ecolor = 'magenta',mew = 0.1, label = 'simulated data')
-    ax.errorbar(Kds_new[0], [df[treshold][key] for key in WTC_identifier][0], xerr = Kds_errs[0], fmt = 'o',  color = 'magenta', ecolor = 'green', label = 'NMR', mew = 0.1)
-    ax.vlines(np.mean([Kds_new[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'max error bar', linewidths = 2.)
-    for x, key in zip(Kds_new, WTC_identifier):
-        y = df[treshold][key]
-        if key in ['wtc1_h']:
-            key = 'wtc1'
-            plt.annotate(key, (x,y), xytext = (5, -12), textcoords = 'offset points', )
-        elif key == 'wtc1': continue
-        elif key in ['wtc3', 'wtc6']:plt.annotate(key, (x,y), xytext = (-25, -15), textcoords = 'offset points', )
 
-        else: plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points')
-    ax.legend()
-    ax.set_xlabel('Kd (nM)')
-    ax.set_ylabel('CA-P Mean Dist (Ang)')
 
-    mydata = odr.RealData(Kds_new[1:], [df[treshold][key] for key in WTC_identifier][1:], sy = err/2, sx = Kds_errs[1:])
-    myodr = odr.ODR(mydata, linear, beta0=[1.,2.])
-    myoutput = myodr.run()  
-
+<<<<<<< HEAD
     fig, ax = plt.subplots()
     x = np.linspace(np.min(Kds_new), np.max(np.array(Kds_new)+np.array(Kds_errs)), 1000)
     
@@ -171,6 +255,9 @@ for to_exclude in [[3,4]]:#, [2,5]]:
     plt.tight_layout()
     plt.savefig('../GROMACS/final_fit_CAP.pdf', format= 'pdf')
     plt.show()
+=======
+
+>>>>>>> passato
 
 #%%
 x = Kds_new[1:]
