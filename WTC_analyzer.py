@@ -20,21 +20,20 @@ warnings.filterwarnings("ignore")
 now_temp = '300 K'
 scale='ns'
 
+#WTC7_8
 
-#WTC5
-now_path    =   '../GROMACS/WTC5/'
-now_name    =    'wtc5'
-n_frames = 30001
-time_range = [0, 3000000]
-time_range_eq = [2100000, 3000000]
-color = 'darkorchid'
-darkcolor = 'indigo'
-brightcolor = 'crimson'
-contrastcolor = 'chartreuse'
-darkcontrastcolor = 'yellowgreen'
-ylim = (0,2)
-gyrad_ylim = (1.1, 1.7)
-
+now_path    =   '../GROMACS/WTC7_8/'
+now_name    =    'wtc7_8'
+n_frames = 3001
+time_range = [0, 300000]
+time_range_eq = time_range
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
 
 
 """
@@ -141,6 +140,65 @@ ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
 
 
+#WTC7
+now_path    =   '../GROMACS/WTC7/'
+now_name    =    'wtc7'
+n_frames = 10001
+#ps
+time_range = [0, 1000000]
+time_range_eq = [200000, 950000]
+color = 'firebrick'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
+
+#WTC7_red
+
+now_path    =   '../GROMACS/WTC7_red/'
+now_name    =    'wtc7_red'
+n_frames = 1251
+time_range = [175000, 300000]
+time_range_eq = time_range
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
+
+#WTC7_7
+
+now_path    =   '../GROMACS/WTC7_7/'
+now_name    =    'wtc7_7'
+n_frames = 2301
+time_range = [0, 230000]
+time_range_eq = time_range
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
+
+#WTC7_8
+
+now_path    =   '../GROMACS/WTC7_8/'
+now_name    =    'wtc7_8'
+n_frames = 3001
+time_range = [0, 300000]
+time_range_eq = time_range
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
 """
 
 
@@ -336,7 +394,7 @@ skip_cov = True
 if not skip_cov:
     N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
     cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
-    BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS, res, path = now_path, clim = (-0.05, 0.05))
+    BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS, res, path = now_path, clim = (-0.005, 0.005))
 # MATRICE COVARIANZA CAP
 #%%
 # prendo gli indici atomici dei CA e P

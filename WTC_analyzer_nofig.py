@@ -21,6 +21,11 @@ dfs = {}
 now_temp = '300 K'
 scale='ns'
 
+#seven reduced
+red = False
+wtc7_7 = False
+wtc7_8 = True
+
 for treshold in [9]:#range(6,13):
 
     for ii in ['1_h', '1','2', '3', '4', '5', '6', '7']:
@@ -81,13 +86,40 @@ for treshold in [9]:#range(6,13):
 
         elif ii == '7':
             
-            #WTC7
-            now_path    =   '../GROMACS/WTC7/'
-            now_name    =    'wtc7'
-            n_frames = 10001
-            #ps
-            time_range = [0, 1000000]
-            time_range_eq = [200000, 950000]
+            if red == True:
+                #WTC7
+                now_path    =   '../GROMACS/WTC7/'
+                now_name    =    'wtc7'
+                n_frames = 10001
+                #ps
+                time_range = [0, 1000000]
+                time_range_eq = [200000, 950000]
+
+            elif wtc7_8 == True:
+
+                now_path    =   '../GROMACS/WTC7_8/'
+                now_name    =    'wtc7_8'
+                n_frames = 3001
+                time_range = [0, 300000]
+                time_range_eq = time_range
+
+            
+            elif wtc7_7 == True:
+
+                now_path    =   '../GROMACS/WTC7_7/'
+                now_name    =    'wtc7_7'
+                n_frames = 2301
+                time_range = [0, 230000]
+                time_range_eq = time_range
+
+            else:
+            
+                #WTC7
+                now_path    =   '../GROMACS/WTC7_red/'
+                now_name    =    'wtc7'
+                n_frames = 1251
+                time_range = [175000, 300000]
+                time_range_eq = time_range
 
         #WTC analyzer senza figure
 
@@ -126,12 +158,15 @@ for treshold in [9]:#range(6,13):
         res = np.array(res, dtype=int)
         idx_RNA_start = np.where( res == 1.)[0][0]
         res[idx_RNA_start:] += res[idx_RNA_start-1]
+
         """
         idx_BS = np.zeros(len(BS['Prot']), dtype = int)
         for (ii,bs) in zip(range(len(BS)), BS):
             idx_BS[ii] = np.where(res == bs)[0]
         """
-        cov_matrix_CAP = np.genfromtxt(now_path+now_name+'CAP_cov_matrix.txt') 
+        print('\n\n{}\n\n'.format(now_path+now_name+'CAP_cov_matrix.txt'))
+        cov_matrix_CAP = np.genfromtxt(now_path+now_name+'CAP_cov_matrix.txt')
+        print('Covarianza media di {} è {}\n\n\n'.format(now_name, np.mean(cov_matrix_CAP))) 
         N = cov_matrix_CAP.shape[0]
         pearson_matrix_CAP = BA.Pearson_Matrix_from_Cov(cov_matrix_CAP, N)
 
@@ -143,7 +178,7 @@ for treshold in [9]:#range(6,13):
 
         df = pd.DataFrame(res, columns=['Residue_number'])
 
-        df['WTC_identifier'] = [now_name,]*len(res)
+        df['WTC_identifier'] = ['wtc'+ii,]*len(res)
         df['Is_Prot'] = [True if ii < idx_RNA_start else False for ii in range(len(res))]
         df['Is_BS'] = [True if (r in BS['Prot']) | (r in BS['RNA']) else False for r in res]
         df['RMSF'] = RMSF_res
@@ -211,7 +246,7 @@ for treshold in [9]:#range(6,13):
         df['RMSD_Std'] = [np.std(WTC_traj.RMSD_eq), ]*len(res)
         df['Gyradium_Mean']  = [np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq:]),]*len(res)
         df['Gyradium_Std']  = [np.std(WTC_traj.Gyradium[WTC_traj.idx_eq:]),]*len(res)
-        df['Kd'] = [Kds[now_name],]*len(res)
+        df['Kd'] = [Kds['wtc'+ii],]*len(res)
 
         #3) salvo
 
@@ -221,7 +256,26 @@ for treshold in [9]:#range(6,13):
 
     
     DF = pd.concat([dfs[key] for key in dfs.keys()], ignore_index=True)
-    DF.to_json('../GROMACS/WTC_data_frame_{}ang.json'.format(str(treshold)))
-    DF.to_csv('../GROMACS/WTC_data_frame_{}ang.csv'.format(str(treshold)))
+    if red == True:
+        DF.to_json('../GROMACS/WTC_data_frame_{}ang_red.json'.format(str(treshold)))
+        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_red.csv'.format(str(treshold)))
+    
+    elif wtc7_7 == True:
+        DF.to_json('../GROMACS/WTC_data_frame_{}ang_7.json'.format(str(treshold)))
+        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_7.csv'.format(str(treshold)))
+
+    elif wtc7_8 == True:
+        DF.to_json('../GROMACS/WTC_data_frame_{}ang_8.json'.format(str(treshold)))
+        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_8.csv'.format(str(treshold)))
+    else:
+        DF.to_json('../GROMACS/WTC_data_frame_{}ang.json'.format(str(treshold)))
+        DF.to_csv('../GROMACS/WTC_data_frame_{}ang.csv'.format(str(treshold)))
+
 
     # %%
+WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7')
+
+#CHECK COVARIANZA
+print('stampo le medie delle covarianze per ogni dinamica')
+[np.mean(a) for a in [DF.z_Covariance_Mean_Prot_BS_12[DF.WTC_identifier == key] for key in WTC_identifier ]]
+# %%
