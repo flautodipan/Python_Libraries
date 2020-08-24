@@ -316,7 +316,7 @@ class Trajectory():
         setattr(self, RMSD, Parse_xvg_skip(xvg_filename, skip = skip, path = path)[1])
         print('lunghezza iniz = {}'.format(len(getattr(self, RMSD))))
         if equilibrium:
-            setattr(self, RMSD, getattr(self, RMSD)[self.idx_eq:])
+            setattr(self, RMSD, getattr(self, RMSD)[self.idx_eq_left:self.idx_eq_right+1])
         print('lunghezza fin = {}'.format(len(getattr(self, RMSD))))
 
         if getattr(self, n_frames) != getattr(self, RMSD).size:
@@ -352,12 +352,13 @@ class Trajectory():
     def Define_Equilibrium_by_RMSD(self, time_range_eq, path = './', scale = 'ps', **kwargs):
 
         self.time_range_eq = time_range_eq
-        self.idx_eq = int((time_range_eq[0] - self.initial_time)/self.timestep)
+        self.idx_eq_left = int((time_range_eq[0] - self.initial_time)/self.timestep)
+        self.idx_eq_right = int((time_range_eq[1] - self.initial_time)/self.timestep)
 
         if (time_range_eq[0] - self.initial_time)%self.timestep != 0:
             raise ValueError("tempo inserito  {} come iniziale non è multiplo del timetep {}".format(time_range_eq[0], self.timestep))
         
-        self.RMSD_eq = self.RMSD[self.idx_eq:]
+        self.RMSD_eq = self.RMSD[self.idx_eq_left:self.idx_eq_right+1]
         self.n_frames_eq = len(self.RMSD_eq)
 
         if 'fig' in kwargs:
@@ -384,7 +385,9 @@ class Trajectory():
 
         print("Selezionata zona di equilibrio da {} ps  a {} ps".format(time_range_eq[0], time_range_eq[1]))
         print('Pari a un numero di frame = {}'.format(self.n_frames_eq))
-        print("l'indice di riferimento da cui partire rispoetto all'array RMSD completo è  {}".format(self.idx_eq))
+        print("l'indice di riferimento da cui partire rispoetto all'array RMSD completo è  {}".format(self.idx_eq_left))
+        print("l'indice di riferimento a cui finire rispoetto all'array RMSD completo è  {}".format(self.idx_eq_right+1))
+
 
     def Acquire_Atoms_List(self, xvg_filename, what, path = './' , **kwargs):
 

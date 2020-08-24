@@ -17,37 +17,20 @@ warnings.filterwarnings("ignore")
 
 now_temp = '300 K'
 scale='ns'
+#WTC7_24
 
-<<<<<<< HEAD
-
-#WTC7
-now_path    =   '../GROMACS/WTC7/'
-now_name    =    'wtc7'
+now_path    =   '../GROMACS/WTC7_24/'
+now_name    =    'wtc7_24'
 n_frames = 10001
-#ps
 time_range = [0, 1000000]
-time_range_eq = [200000, 950000]
-color = 'firebrick'
-=======
-#WTC7_8
-
-now_path    =   '../GROMACS/WTC7_8/'
-now_name    =    'wtc7_8'
-n_frames = 3001
-time_range = [0, 300000]
-time_range_eq = time_range
+time_range_eq = [50000, 650000]
 color = 'black'
->>>>>>> passato
 darkcolor = 'darkred'
 brightcolor = 'limegreen'
 contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
-<<<<<<< HEAD
-=======
-
->>>>>>> passato
 
 """
 #WTC1_h
@@ -212,6 +195,38 @@ contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
+
+
+#WTC7_16
+
+now_path    =   '../GROMACS/WTC7_16/'
+now_name    =    'wtc7_16'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [250000, 1000000]
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
+
+#WTC7_24
+
+now_path    =   '../GROMACS/WTC7_24/'
+now_name    =    'wtc7_24'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [50000, 650000]
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
+
 """
 
 
@@ -225,7 +240,7 @@ gyrad_ylim = (1.1, 1.8)
 
 WTC_traj = BA.Trajectory(bio_name='{} in water (T = {})'.format(now_name, now_temp))
 WTC_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 )
-WTC_traj.Get_RMSD(xvg_filename = 'rmsd_md_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, scale = 'ns', ylim = ylim)
+WTC_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, scale = 'ns', ylim = ylim)
 WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.1, color = color, darkcolor = darkcolor, scale = 'ns', ylim = ylim)
 
 
@@ -238,14 +253,14 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_pa
 #1a) indentifico frame medio dell'RMSD equilibrio
 
 mean_RMSD , mean_frame_idx = Find_Nearest(WTC_traj.RMSD_eq, np.mean(WTC_traj.RMSD_eq)) 
-mean_frame_time = ((mean_frame_idx+WTC_traj.idx_eq)*WTC_traj.timestep) - WTC_traj.initial_time
-print('Ho trovato il "centroide" della distribuzione RMSD a equilibrio\nnel frame {}\ncorrispondente al tempo {} ps\ncon RMSD = {} nm'.format(mean_frame_idx+WTC_traj.idx_eq, mean_frame_time, mean_RMSD))
+mean_frame_time = ((mean_frame_idx+WTC_traj.idx_eq_left)*WTC_traj.timestep) - WTC_traj.initial_time
+print('Ho trovato il "centroide" della distribuzione RMSD a equilibrio\nnel frame {}\ncorrispondente al tempo {} ps\ncon RMSD = {} nm'.format(mean_frame_idx+WTC_traj.idx_eq_left, mean_frame_time, mean_RMSD))
 
 
 # %%
 #1b) prendo la BS di quel frame e te la stampo
 filename='BS_{}_make_ndx.txt'.format(now_name)
-pdb_filename = 'average_pdb.pdb'
+pdb_filename = 'average_pdb_'+now_name+'.pdb'
 treshold = 9
 
 TDP43   = BA.Protein(now_path+pdb_filename, model = False)
@@ -390,6 +405,7 @@ f.savefig(now_path+'RMSF_res_'+now_name+'.pdf', format = 'pdf', bbox_inches = 't
 #GYRADIUM
 WTC_traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA.xvg', now_path, fig = now_name+'_gyradium', ylim = gyrad_ylim, alpha = 0.2, color = color, darkcolor = darkcolor, skip_lines= 27 )
 
+
 # %%
 # COVARIANCE ANALYSIS
 
@@ -405,7 +421,7 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 #%%
 # MATRICE COVARIANZA ATOMICA
-skip_cov = False
+skip_cov = True
 if not skip_cov:
     N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
     cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
@@ -445,7 +461,7 @@ print("RMSD BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.m
 print("RMSF totale medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.mean(RMSF_res), np.std(RMSF_res)))
 print("RMSF RNA medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.mean(RMSF_res[idx_RNA_start:]), np.std(RMSF_res[idx_RNA_start:])))
 print("RMSF BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.mean(RMSF_res[idx_BS]), np.std(RMSF_res[idx_BS])))
-print("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq:]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq:])))
+print("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right])))
 
 with open(now_path+now_name+'_finals.txt', 'w') as f:
 
@@ -458,7 +474,7 @@ with open(now_path+now_name+'_finals.txt', 'w') as f:
     f.write("RMSF totale medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res), np.std(RMSF_res)))
     f.write("RMSF RNA medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res[idx_RNA_start:]), np.std(RMSF_res[idx_RNA_start:])))
     f.write("RMSF BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res[idx_BS]), np.std(RMSF_res[idx_BS])))
-    f.write("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}\n".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq:]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq:])))
+    f.write("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}\n".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right])))
 200    # %%
 
 

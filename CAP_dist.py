@@ -24,9 +24,11 @@ Kds_errs = [0.9, 0.9, 600, 135, 150, 350, 400, 10]
 WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6', 'wtc7')
 
 #seven reduced
-red = False
-wtc7_7 = True
-wtc7_8 = False
+red     = False
+wtc7_7  = False
+wtc7_8  = False
+wtc7_16 = False
+wtc7_24 = True
 
 #inizializzo dataframe
 
@@ -37,22 +39,12 @@ df = pd.DataFrame()
 
 
 #%%
-<<<<<<< HEAD
-for treshold in [9]:#[9, 11]:#range(8,13):
-=======
 for treshold in [9]:#range(8,13):
->>>>>>> passato
 
-    for ii in ['7']:#['1', '1_h', '2', '3', '4', '5', '6', '7']:
+    for ii in ['7']:# ['1', '1_h', '2', '3', '4', '5', '6', '7']:
 
         print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
 
-<<<<<<< HEAD
-        now_name    =    'wtc'+ii
-        now_path = '../GROMACS/WTC'+ii+'/eq_frame_'+now_name+'/'
-
-
-=======
         if ii == '1_h':
 
             #WTC1_h
@@ -136,6 +128,22 @@ for treshold in [9]:#range(8,13):
                 time_range = [0, 230000]
                 time_range_eq = time_range
 
+            elif wtc7_16 == True:
+
+                now_path    =   '../GROMACS/WTC7_16/'
+                now_name    =    'wtc7_16'
+                n_frames = 2001
+                time_range = [0, 200000]
+                time_range_eq = time_range
+            
+            elif wtc7_24 == True:
+
+                now_path    =   '../GROMACS/WTC7_24/'
+                now_name    =    'wtc7_24'
+                n_frames = 2001
+                time_range = [0, 200000]
+                time_range_eq = time_range
+
             else:
             
                 #WTC7
@@ -146,7 +154,6 @@ for treshold in [9]:#range(8,13):
                 time_range_eq = time_range
 
         now_path+='eq_frame_'+now_name+'/'
->>>>>>> passato
         min_CAP_dist = []
 
         for frame in os.listdir(now_path):
@@ -182,9 +189,8 @@ for treshold in [9]:#range(8,13):
         plt.show()
 
         descriptor[now_name] = (np.mean(min_CAP_dist))
-
-    df[str(treshold)+' ang'] = [descriptor[key] for key in WTC_identifier]
-
+    #df[str(treshold)+' ang'] = [descriptor[key] for key in WTC_identifier]
+    df['9 ang'] = [descriptor['wtc7_24']]
 
 if red:
 
@@ -192,81 +198,38 @@ if red:
 
 elif wtc7_7:
 
-<<<<<<< HEAD
-#%%
-# FITTING and PLOTTING
-import scipy.odr as odr
-def f_lin(A, x):
-    return A[0]*x+A[1]
-=======
+    df_ = pd.read_json('../GROMACS/df_CAPdist_new.json')
+    df_ = df_.drop(7)
+    df = df_.append(df, ignore_index = True)
     df.to_json('../GROMACS/df_CAPdist_new_7.json')
->>>>>>> passato
 
 
 elif wtc7_8:
 
+
+    df_ = pd.read_json('../GROMACS/df_CAPdist_new.json')
+    df_ = df_.drop(7)
+    df = df_.append(df, ignore_index = True)
     df.to_json('../GROMACS/df_CAPdist_new_8.json')
+
+elif wtc7_16:
+
+
+    df_ = pd.read_json('../GROMACS/df_CAPdist_new.json')
+    df_ = df_.drop(7)
+    df = df_.append(df, ignore_index = True)
+    df.to_json('../GROMACS/df_CAPdist_new_16_all.json')
+
+elif wtc7_24:
+
+    df_ = pd.read_json('../GROMACS/df_CAPdist_new.json')
+    df_ = df_.drop(7)
+    df = df_.append(df, ignore_index = True)
+    df.to_json('../GROMACS/df_CAPdist_new_24_all.json')
 
 else:
 
-    df.to_json('../GROMACS/df_CAPdist_new_red.json')
-
-
-
-<<<<<<< HEAD
-    fig, ax = plt.subplots()
-    x = np.linspace(np.min(Kds_new), np.max(np.array(Kds_new)+np.array(Kds_errs)), 1000)
-    
-    
-    ax.set_title(r'$\bf{y = mx + q}$ fit '+r' $C_\alpha$ - $P$ average min distance vs Kd'+'\nBS treshold = {} $\AA$\npearson = {:3.2f} p-value = {:3.2f}'.format(treshold[:2], *pearsonr(Kds_new[1:],[df[treshold][key] for key in WTC_identifier][1:])))
-    ax.set_ylim(7., 8.1)
-    ax.set_xlabel('Kd (nM)')
-    ax.set_ylabel('Prot BS z Covariance with Prot BS ')
-    ax.errorbar(Kds_new[1:], [df[treshold][key] for key in WTC_identifier][1:], xerr = Kds_errs[1:], markeredgewidth = 1, capsize = 5, capthick = 5, yerr = err/2, fmt = 'o',  color = 'k', ecolor = 'firebrick',mew = 0.1, label = 'simulated data')
-
-    ax.plot(x,f_lin(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
-    # now calculate confidence intervals for new test x-series
-
-    
-    """
-    y_1 = f_lin([myoutput.beta[0] + myoutput.sd_beta[0] , myoutput.beta[1]] , x)
-    y_2 = f_lin([myoutput.beta[0] - myoutput.sd_beta[0] , myoutput.beta[1]] , x)
-    y_3 = f_lin([myoutput.beta[0],  myoutput.beta[1]+ myoutput.sd_beta[1]] , x)
-    y_4 = f_lin([myoutput.beta[0],  myoutput.beta[1]- myoutput.sd_beta[1]] , x)
-    ax.plot(x,f_lin([myoutput.beta[0] + myoutput.sd_beta[0] , myoutput.beta[1] + myoutput.sd_beta[1]] , x), color = 'yellow',)
-    ax.plot(x,f_lin([myoutput.beta[0] - myoutput.sd_beta[0] , myoutput.beta[1] + myoutput.sd_beta[1]] , x), color = 'yellow',)
-    ax.plot(x,f_lin([myoutput.beta[0] - myoutput.sd_beta[0] , myoutput.beta[1] - myoutput.sd_beta[1]] , x), color = 'yellow',)
-    ax.plot(x,f_lin([myoutput.beta[0] + myoutput.sd_beta[0] , myoutput.beta[1] - myoutput.sd_beta[1]] , x), color = 'yellow',)
-
-    ax.plot(x,f_lin([myoutput.beta[0] - myoutput.sd_beta[0] , myoutput.beta[1]] , x), color = 'yellow',)
-    ax.plot(x,f_lin([myoutput.beta[0] + myoutput.sd_beta[0] , myoutput.beta[1]] , x), color = 'yellow',)
-    ax.plot(x,f_lin([myoutput.beta[0]  , myoutput.beta[1] - myoutput.sd_beta[1]] , x), color = 'yellow',)
-    ax.plot(x,f_lin([myoutput.beta[0]  , myoutput.beta[1] + myoutput.sd_beta[1]] , x), color = 'yellow',)
-    
-
-    ax.plot(x, y_1, c = 'y')
-    ax.plot(x, y_2, c = 'y')
-    ax.plot(x, y_3, c = 'y')
-    ax.plot(x, y_4, c = 'y')
-    """
-
-    ax.legend(title = 'm = {:3.2e} $\pm$ {:3.2e}\nq = {:3.2e} $\pm$ {:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
-    
-    plt.tight_layout()
-    plt.savefig('../GROMACS/final_fit_CAP.pdf', format= 'pdf')
-    plt.show()
-=======
-
->>>>>>> passato
-
-#%%
-x = Kds_new[1:]
-n = len(Kds_new[1:])
-df = n - 2
-mean_x = np.mean(x)
-
-def se():
-    
+    df.to_json('../GROMACS/df_CAPdist_new_red.json')   
 
 
 

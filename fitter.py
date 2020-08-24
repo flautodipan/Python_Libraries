@@ -38,7 +38,8 @@ print('\n\n\nStiamo procedendo con {} dinamiche\n\n\n'.format(len(Kds)))
 red = False
 wtc7_7 = False
 wtc7_8 = False
-
+wtc7_16 = False
+wtc7_24 = True
 
 #%%
 # 1)            CORRELAZIONE
@@ -57,6 +58,14 @@ elif wtc7_8:
     wtc7=8
     print('Sto aprendo il 8')
     DF = pd.read_json(now_path+'WTC_data_frame_{}ang_8.json'.format(str(treshold)))
+elif wtc7_16:
+    wtc7=16
+    print('Sto aprendo il 16')
+    DF = pd.read_json(now_path+'WTC_data_frame_{}ang_16_all.json'.format(str(treshold)))
+elif wtc7_24:
+    wtc7=24
+    print('Sto aprendo il 24')
+    DF = pd.read_json(now_path+'WTC_data_frame_{}ang_24_all.json'.format(str(treshold)))
 else: 
     wtc7='tot'
     print('Sto aprendo il tot')
@@ -118,7 +127,7 @@ ax.set_xlabel('Kd (nM)')
 ax.set_ylabel('Prot BS z Covariance with Prot BS ')
 #ax.vlines(np.mean([Kds[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'firebrick', label = 'max error bar', linewidths = 2.)
 ax.legend()
-fig.savefig(save_path+'corr_plot'+str(wtc7)+'.pdf', format = 'pdf')
+fig.savefig(save_path+'corr_plot'+str(wtc7)+'_all.pdf', format = 'pdf')
 plt.show()
 
 
@@ -138,7 +147,7 @@ ax.plot(x,f(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
 ax.legend(title = 'm = {:3.2e} $\pm$ {:3.2e}\nq = {:3.2e} $\pm$ {:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
 ax.set_ylim(0, 7)
 plt.show()
-fig.savefig(save_path+'corr_fit'+str(wtc7)+'.pdf', format = 'pdf')
+fig.savefig(save_path+'corr_fit'+str(wtc7)+'_all.pdf', format = 'pdf')
 
 
 
@@ -154,19 +163,23 @@ linear = odr.Model(f_lin)
 
 
 
-df = pd.read_json('../GROMACS/df_CAPdist_new.json')
-
 if red:
-    pd.read_json('../GROMACS/df_CAPdist_new_red.json')
+    df = pd.read_json('../GROMACS/df_CAPdist_new_red.json')
 elif wtc7_7:
     wtc7=7
-    pd.read_json('../GROMACS/df_CAPdist_new_7.json')
+    df = pd.read_json('../GROMACS/df_CAPdist_new_7.json')
 elif wtc7_8:
     wtc7=8
-    pd.read_json('../GROMACS/df_CAPdist_new_8.json')
+    df = pd.read_json('../GROMACS/df_CAPdist_new_8.json')
+elif wtc7_16:
+    wtc7=16
+    df = pd.read_json('../GROMACS/df_CAPdist_new_16_all.json')
+elif wtc7_24:
+    wtc7=24
+    df = pd.read_json('../GROMACS/df_CAPdist_new_24_all.json')
 else:
     wtc7='tot'
-    pd.read_json('../GROMACS/df_CAPdist_new.json')
+    df = pd.read_json('../GROMACS/df_CAPdist_new.json')
 
 
 df = df.rename(index = { old : new for old, new in zip(range(8), WTC_identifier)})
@@ -184,26 +197,26 @@ for to_exclude in [[3,4]]:#, [2,5]]:
 
     f, ax = plt.subplots()
     ax.set_title(r'$C_\alpha$ - $P$ average min distance vs Kd'+'\nBS treshold = {} $\AA$\npearson = {:3.2f} p-value = {:3.2f}'.format(treshold[:2], *pearsonr(Kds_new[1:], [df[treshold][key]for key in WTC_identifier][1:] )))
-    ax.errorbar(Kds_new[1:], [df[treshold][key] for key in WTC_identifier][1:], xerr = Kds_errs[1:], fmt = 'o',  color = 'green', ecolor = 'magenta',mew = 0.1, label = 'simulated data')
+    ax.errorbar(Kds_new[1:], [df[treshold][key] for key in WTC_identifier][1:], yerr = err/2, xerr = Kds_errs[1:], fmt = 'o',  color = 'green', ecolor = 'firebrick',mew = 0.1, label = 'simulated data')
     #ax.errorbar(Kds_new[0], [df[treshold][key] for key in WTC_identifier][0], xerr = Kds_errs[0], fmt = 'o',  color = 'magenta', ecolor = 'green', label = 'NMR', mew = 0.1)
     #ax.vlines(np.mean([Kds_new[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'yellowgreen', label = 'max error bar', linewidths = 2.)
     for x, key in zip(Kds_new, WTC_identifier):
         y = df[treshold][key]
         if key in ['wtc1_h']:
             key = 'wtc1'
-            plt.annotate(key, (x,y), xytext = (5, -12), textcoords = 'offset points', )
+            plt.annotate(key, (x,y), xytext = (5, 12), textcoords = 'offset points', )
         elif key == 'wtc1': continue
         elif key in ['wtc3', 'wtc6']:plt.annotate(key, (x,y), xytext = (-25, -15), textcoords = 'offset points', )
         elif key == 'wtc7': 
                 key = 'wtc7_'+str(wtc7)
-                plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points', )
+                plt.annotate(key, (x,y), xytext = (5, -10), textcoords = 'offset points', )
 
 
         else: plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points')
     ax.legend()
     ax.set_xlabel('Kd (nM)')
     ax.set_ylabel('CA-P Mean Dist (Ang)')
-    fig.savefig(save_path+'CAP_dist_plot'+str(wtc7)+'.pdf', format = 'pdf')
+    f.savefig(save_path+'CAP_dist_plot_'+str(wtc7)+'_all.pdf', format = 'pdf')
 
 
     mydata = odr.RealData(Kds_new[1:], [df[treshold][key] for key in WTC_identifier][1:], sy = err/2, sx = Kds_errs[1:])

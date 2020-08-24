@@ -10,11 +10,7 @@ import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
 #exp data 
-<<<<<<< HEAD
-Kds_sort  = [4., 4., 70, 700., 1320., 1350., 1360., 1800.]
-=======
 Kds_sort  = [4., 4., 700., 1320., 1350., 1360., 1800.]
->>>>>>> passato
 Kds_ = [4., 4., 1360., 1350, 700, 1320, 1800, 70]
 Kds = {'wtc{}'.format(n): kd for (n, kd) in zip(['1', '1_h', '2', '3', '4', '5', '6', '7'], Kds_)}
 
@@ -26,17 +22,15 @@ now_temp = '300 K'
 scale='ns'
 
 #seven reduced
-red = False
-wtc7_7 = False
-wtc7_8 = True
+red     = False
+wtc7_7  = False
+wtc7_8  = False
+wtc7_16 = True
+wtc7_24 = False
 
 for treshold in [9]:#range(6,13):
 
-<<<<<<< HEAD
-    for ii in ['1', '1_h', '2', '3', '4', '5', '6', '7']:
-=======
     for ii in ['1_h', '1','2', '3', '4', '5', '6', '7']:
->>>>>>> passato
 
         print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
 
@@ -93,14 +87,6 @@ for treshold in [9]:#range(6,13):
             time_range_eq = [400000, 1000000]
 
         elif ii == '7':
-<<<<<<< HEAD
-            #WTC7
-            now_path    =   '../GROMACS/WTC7/'
-            now_name    =    'wtc7'
-            n_frames = 10001
-            time_range = [0, 1000000]
-            time_range_eq = [200000, 950000]
-=======
             
             if red == True:
                 #WTC7
@@ -128,6 +114,22 @@ for treshold in [9]:#range(6,13):
                 time_range = [0, 230000]
                 time_range_eq = time_range
 
+            elif wtc7_16 == True:
+
+                now_path    =   '../GROMACS/WTC7_16/'
+                now_name    =    'wtc7_16'
+                n_frames = 10001
+                time_range = [0, 1000000]
+                time_range_eq = [250000, 1000000]
+            
+            elif wtc7_24 == True:
+
+                now_path    =   '../GROMACS/WTC7_24/'
+                now_name    =    'wtc7_24'
+                n_frames = 10001
+                time_range = [0, 1000000]
+                time_range_eq = [50000, 650000]
+
             else:
             
                 #WTC7
@@ -136,7 +138,6 @@ for treshold in [9]:#range(6,13):
                 n_frames = 1251
                 time_range = [175000, 300000]
                 time_range_eq = time_range
->>>>>>> passato
 
         #WTC analyzer senza figure
 
@@ -261,8 +262,8 @@ for treshold in [9]:#range(6,13):
 
         df['RMSD_Mean'] = [np.mean(WTC_traj.RMSD_eq), ]* len(res)
         df['RMSD_Std'] = [np.std(WTC_traj.RMSD_eq), ]*len(res)
-        df['Gyradium_Mean']  = [np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq:]),]*len(res)
-        df['Gyradium_Std']  = [np.std(WTC_traj.Gyradium[WTC_traj.idx_eq:]),]*len(res)
+        df['Gyradium_Mean']  = [np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]),]*len(res)
+        df['Gyradium_Std']  = [np.std(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]),]*len(res)
         df['Kd'] = [Kds['wtc'+ii],]*len(res)
 
         #3) salvo
@@ -284,6 +285,13 @@ for treshold in [9]:#range(6,13):
     elif wtc7_8 == True:
         DF.to_json('../GROMACS/WTC_data_frame_{}ang_8.json'.format(str(treshold)))
         DF.to_csv('../GROMACS/WTC_data_frame_{}ang_8.csv'.format(str(treshold)))
+    elif wtc7_16:
+        DF.to_json('../GROMACS/WTC_data_frame_{}ang_16_all.json'.format(str(treshold)))
+        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_16_all.csv'.format(str(treshold)))
+    elif wtc7_24:
+        DF.to_json('../GROMACS/WTC_data_frame_{}ang_24_all.json'.format(str(treshold)))
+        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_24_all.csv'.format(str(treshold)))
+
     else:
         DF.to_json('../GROMACS/WTC_data_frame_{}ang.json'.format(str(treshold)))
         DF.to_csv('../GROMACS/WTC_data_frame_{}ang.csv'.format(str(treshold)))
