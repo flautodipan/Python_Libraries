@@ -27,6 +27,7 @@ wtc7_7  = False
 wtc7_8  = False
 wtc7_16 = True
 wtc7_24 = False
+wtc7_24_1 = False
 
 for treshold in [9]:#range(6,13):
 
@@ -129,6 +130,15 @@ for treshold in [9]:#range(6,13):
                 n_frames = 10001
                 time_range = [0, 1000000]
                 time_range_eq = [50000, 650000]
+
+                        
+            elif wtc7_24_1 == True:
+
+                now_path    =   '../GROMACS/WTC7_24_1/'
+                now_name    =    'wtc7_24'
+                n_frames = 10001
+                time_range = [0, 1000000]
+                time_range_eq = [750000, 1000000]
 
             else:
             
@@ -292,6 +302,11 @@ for treshold in [9]:#range(6,13):
         DF.to_json('../GROMACS/WTC_data_frame_{}ang_24_all.json'.format(str(treshold)))
         DF.to_csv('../GROMACS/WTC_data_frame_{}ang_24_all.csv'.format(str(treshold)))
 
+    elif wtc7_24_1:
+
+        DF.to_json('../GROMACS/WTC_data_frame_{}ang_24_1_all.json'.format(str(treshold)))
+        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_24_1_all.csv'.format(str(treshold)))
+
     else:
         DF.to_json('../GROMACS/WTC_data_frame_{}ang.json'.format(str(treshold)))
         DF.to_csv('../GROMACS/WTC_data_frame_{}ang.csv'.format(str(treshold)))
@@ -304,3 +319,4 @@ WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc
 print('stampo le medie delle covarianze per ogni dinamica')
 [np.mean(a) for a in [DF.z_Covariance_Mean_Prot_BS_12[DF.WTC_identifier == key] for key in WTC_identifier ]]
 # %%
+

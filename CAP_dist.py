@@ -27,8 +27,9 @@ WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6', 'wt
 red     = False
 wtc7_7  = False
 wtc7_8  = False
-wtc7_16 = False
-wtc7_24 = True
+wtc7_16 = True
+wtc7_24 = False
+wtc7_24_1 = False
 
 #inizializzo dataframe
 
@@ -41,7 +42,7 @@ df = pd.DataFrame()
 #%%
 for treshold in [9]:#range(8,13):
 
-    for ii in ['7']:# ['1', '1_h', '2', '3', '4', '5', '6', '7']:
+    for ii in ['7']:#['1', '1_h', '2', '3', '4', '5', '6', '7']:
 
         print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
 
@@ -132,17 +133,26 @@ for treshold in [9]:#range(8,13):
 
                 now_path    =   '../GROMACS/WTC7_16/'
                 now_name    =    'wtc7_16'
-                n_frames = 2001
-                time_range = [0, 200000]
-                time_range_eq = time_range
+                n_frames = 10001
+                time_range = [0, 1000000]
+                time_range_eq = [250000, 1000000]
             
             elif wtc7_24 == True:
 
                 now_path    =   '../GROMACS/WTC7_24/'
                 now_name    =    'wtc7_24'
-                n_frames = 2001
-                time_range = [0, 200000]
-                time_range_eq = time_range
+                n_frames = 10001
+                time_range = [0, 1000000]
+                time_range_eq = [50000, 650000]
+
+                        
+            elif wtc7_24_1 == True:
+
+                now_path    =   '../GROMACS/WTC7_24_1/'
+                now_name    =    'wtc7_24'
+                n_frames = 10001
+                time_range = [0, 1000000]
+                time_range_eq = [750000, 1000000]
 
             else:
             
@@ -226,6 +236,13 @@ elif wtc7_24:
     df_ = df_.drop(7)
     df = df_.append(df, ignore_index = True)
     df.to_json('../GROMACS/df_CAPdist_new_24_all.json')
+
+elif wtc7_24_1:
+
+    df_ = pd.read_json('../GROMACS/df_CAPdist_new.json')
+    df_ = df_.drop(7)
+    df = df_.append(df, ignore_index = True)
+    df.to_json('../GROMACS/df_CAPdist_new_24_1_all.json')
 
 else:
 

@@ -38,8 +38,9 @@ print('\n\n\nStiamo procedendo con {} dinamiche\n\n\n'.format(len(Kds)))
 red = False
 wtc7_7 = False
 wtc7_8 = False
-wtc7_16 = False
-wtc7_24 = True
+wtc7_16 = True
+wtc7_24 = False
+wtc7_24_1 = False
 
 #%%
 # 1)            CORRELAZIONE
@@ -66,6 +67,10 @@ elif wtc7_24:
     wtc7=24
     print('Sto aprendo il 24')
     DF = pd.read_json(now_path+'WTC_data_frame_{}ang_24_all.json'.format(str(treshold)))
+elif wtc7_24_1:
+    wtc7=25
+    print('Sto aprendo il 24_1')
+    DF = pd.read_json(now_path+'WTC_data_frame_{}ang_24_1_all.json'.format(str(treshold)))
 else: 
     wtc7='tot'
     print('Sto aprendo il tot')
@@ -177,6 +182,9 @@ elif wtc7_16:
 elif wtc7_24:
     wtc7=24
     df = pd.read_json('../GROMACS/df_CAPdist_new_24_all.json')
+elif wtc7_24_1:
+    wtc7=25
+    df = pd.read_json('../GROMACS/df_CAPdist_new_24_1_all.json')
 else:
     wtc7='tot'
     df = pd.read_json('../GROMACS/df_CAPdist_new.json')
@@ -233,5 +241,123 @@ for to_exclude in [[3,4]]:#, [2,5]]:
     ax.plot(x,f_lin(myoutput.beta, x), color = 'yellowgreen', label = 'linear fit')
     ax.legend(title = 'm = {:3.2e} $\pm$ {:3.2e}\nq = {:3.2e} $\pm$ {:3.2e}'.format(myoutput.beta[0], myoutput.sd_beta[0], myoutput.beta[1], myoutput.sd_beta[1]))
     plt.show()
+
+# %%
+# SALVO DATI    
+
+
+
+covars = correlators[1:]
+dists = [df[treshold][key] for key in WTC_identifier][1:]
+
+df_cov = pd.DataFrame(index=WTC_identifier[1:])
+df_cov['Kd'] = [Kd for Kd in Kds_new[1:]]
+df_cov['Kd_errs'] = [Kd_err for Kd_err in Kds_errs[1:]]
+df_cov['Cov'] = [cov for cov in covars]
+df_cov['cov_errs'] = [err_max]*len(covars)
+df_cov['dist'] = [dist for dist in dists]
+df_cov['dist_errs'] = [err/2]*len(covars)
+
+if red:
+    df_cov.to_csv('../GROMACS/df_final.csv')
+elif wtc7_7:
+    wtc7=7
+    df_cov.to_csv('../GROMACS/df_final_7.csv')
+elif wtc7_8:
+    wtc7=8
+    df_cov.to_csv('../GROMACS/df_final_8.csv')
+elif wtc7_16:
+    wtc7=16
+    df_cov.to_csv('../GROMACS/df_final_16_all.csv')
+elif wtc7_24:
+    wtc7=24
+    df_cov.to_csv('../GROMACS/df_final_24_all.csv')
+elif wtc7_24_1:
+    wtc7=25
+    df_cov.to_csv('../GROMACS/df_final_24_1_all.csv')
+else:
+    wtc7='tot'
+    df_cov.to_csv('../GROMACS/df_final.csv')
+
+#%%
+# FACCIO UN GRAFICO UNICO a distribuzione normalizzate
+
+
+z_covars = (covars - np.mean(covars))/np.std(covars)
+f, ax = plt.subplots()
+ax.set_title('Normalized Cov vs Kd'+'\nBS treshold = {} $\AA$\npearson = {:3.2f} p-value = {:3.2f}'.format(treshold[:2], *pearsonr(Kds_new[1:], z_covars )))
+ax.errorbar(Kds_new[1:], z_covars, fmt = 'o',  color = 'black', ecolor = 'firebrick',mew = 0.1, label = 'simulated data')
+
+for x, key, ii in zip(Kds_new[1:], WTC_identifier[1:], range(len(Kds_new[1:]))):
+    y = z_covars[ii]
+    if key in ['wtc1_h']:
+        key = 'wtc1'
+        plt.annotate(key, (x,y), xytext = (5, 12), textcoords = 'offset points', )
+    elif key == 'wtc1': continue
+    elif key in ['wtc3', 'wtc6']:plt.annotate(key, (x,y), xytext = (-25, -15), textcoords = 'offset points', )
+    elif key == 'wtc7': 
+            key = 'wtc7_'+str(wtc7)
+            plt.annotate(key, (x,y), xytext = (5, -10), textcoords = 'offset points', )
+
+
+    else: plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points')
+ax.legend()
+ax.set_xlabel('Kd (nM)')
+ax.set_ylabel('z_score covariance')
+plt.tight_layout()
+
+# %%
+
+z_dists = (dists - np.mean(dists))/np.std(dists)
+
+f, ax = plt.subplots()
+ax.set_title('Normalized Ca-P dist vs Kd'+'\nBS treshold = {} $\AA$\npearson = {:3.2f} p-value = {:3.2f}'.format(treshold[:2], *pearsonr(Kds_new[1:], z_dists)))
+ax.errorbar(Kds_new[1:], z_dists, fmt = 'o',  color = 'green', ecolor = 'firebrick',mew = 0.1, label = 'simulated data')
+
+for x, key, ii in zip(Kds_new[1:], WTC_identifier[1:], range(len(Kds_new[1:]))):
+    y = z_dists[ii]
+    if key in ['wtc1_h']:
+        key = 'wtc1'
+        plt.annotate(key, (x,y), xytext = (5, 12), textcoords = 'offset points', )
+    elif key == 'wtc1': continue
+    elif key in ['wtc3', 'wtc6']:plt.annotate(key, (x,y), xytext = (-25, -15), textcoords = 'offset points', )
+    elif key == 'wtc7': 
+            key = 'wtc7_'+str(wtc7)
+            plt.annotate(key, (x,y), xytext = (5, -10), textcoords = 'offset points', )
+
+
+    else: plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points')
+ax.legend()
+ax.set_xlabel('Kd (nM)')
+ax.set_ylabel('z_score dist')
+plt.tight_layout()
+
+
+#%%
+mean_overall = (z_covars + z_dists)/2
+
+f, ax = plt.subplots()
+ax.set_title('Covariance and Ca-P Dist Normalized Mean vs Kd'+'\nBS treshold = {} $\AA$\npearson = {:3.2f} p-value = {:3.2f}'.format(treshold[:2], *pearsonr(Kds_new[1:], mean_overall)))
+ax.errorbar(Kds_new[1:], mean_overall, fmt = 'o',  color = 'firebrick', ecolor = 'firebrick',mew = 0.1, label = 'simulated data')
+
+for x, key, ii in zip(Kds_new[1:], WTC_identifier[1:], range(len(Kds_new[1:]))):
+    y = mean_overall[ii]
+    if key in ['wtc1_h']:
+        key = 'wtc1'
+        plt.annotate(key, (x,y), xytext = (5, 12), textcoords = 'offset points', )
+    elif key == 'wtc1': continue
+    elif key in ['wtc3', 'wtc6']:plt.annotate(key, (x,y), xytext = (-25, -15), textcoords = 'offset points', )
+    elif key == 'wtc7': 
+            key = 'wtc7_'+str(wtc7)
+            plt.annotate(key, (x,y), xytext = (5, -10), textcoords = 'offset points', )
+
+
+    else: plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points')
+ax.legend()
+ax.set_xlabel('Kd (nM)')
+ax.set_ylabel('z_dist and z_cov mean')
+plt.tight_layout()
+
+
 
 # %%

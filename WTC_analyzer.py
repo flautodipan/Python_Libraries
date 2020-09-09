@@ -17,6 +17,7 @@ warnings.filterwarnings("ignore")
 
 now_temp = '300 K'
 scale='ns'
+
 #WTC7_24
 
 now_path    =   '../GROMACS/WTC7_24/'
@@ -30,7 +31,7 @@ brightcolor = 'limegreen'
 contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
-gyrad_ylim = (1.1, 1.8)
+gyrad_ylim = (0.5, 1.5)
 
 """
 #WTC1_h
@@ -227,6 +228,22 @@ darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
 
+#WTC7_24_1
+
+now_path    =   '../GROMACS/WTC7_24_1/'
+now_name    =    'wtc7_24'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [750000, 1000000]
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.8)
+
+
 """
 
 
@@ -421,7 +438,7 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 #%%
 # MATRICE COVARIANZA ATOMICA
-skip_cov = True
+skip_cov = False
 if not skip_cov:
     N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
     cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
