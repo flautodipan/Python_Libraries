@@ -55,8 +55,6 @@ for key in WTC_identifier:
         BS      = BA.Print_Protein_BS_old(Bonds, TDP43.lenght,prot_initial=TDP43.initial, RNA_initial= RNA.initial)
         
         contacts.append(BS['Prot'])
-
-        break
     counts = np.zeros(res.size)
     for r, ii in zip(res, range(len(res))):
         how_many = 0
