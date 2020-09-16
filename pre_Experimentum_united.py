@@ -16,6 +16,8 @@ import      os
 spectra_filename    =   'ARS_10_02'
 now_path            =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
 VIPA_filename       =   'ARS_10_02_VIPA1.tif'
+
+
 log_file            =   'log_'+spectra_filename
 
 #operatives
@@ -33,8 +35,8 @@ syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
 
 #import dati spettro
 transpose = False
-pre_cut = False
-pre_cut_range = (0,180)
+pre_cut = True
+pre_cut_range = (30,210)
 dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
@@ -226,7 +228,6 @@ for (s, what) in zip(stats, ('Picco 1 height', 'Picco 2 height', 'Picco 3 height
 #aggiuntine a mano
 bad_idx= list(np.where(np.array(height_second) < 10)[0])
 
-
 count = 0
 to_plot = []
 for (ii,jj) in four:
@@ -322,7 +323,7 @@ poi si fa un ciclo sui more_than_four per avere quale (ii,jj)
 
 count = 0
 for (ii,jj) in four:
-    if (count == 3989):
+    if (count == 8557):
         print(str((ii,jj)))
         
     count+=1

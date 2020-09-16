@@ -1573,7 +1573,7 @@ def Save_cost_tot(matrix, fitted, out_filename = 'cost_tot.txt', path = './'):
         for (ii,jj) in fitted:
             f_out.write(np.array2string(matrix[ii][jj].cost_tot, max_line_width = 10000)+'\n')
 
-def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, peaks = False):
+def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, peaks = False, x_range = (), y_range = ()):
 
     if pix:
 
@@ -1603,6 +1603,11 @@ def Plot_Elements_Spectrum(matrix, elements_iterable, fit = False, pix = False, 
             #anche se non funziona con x_freq i picchi, o forse sì?
             plt.plot(getattr(matrix[ii][jj], attribute)[matrix[ii][jj].peaks['idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['idx']], '+', label = 'peaks')
         
+        
+        if x_range:
+            plt.xlim(x_range[0], x_range[1])
+        if y_range:
+            plt.ylim(y_range[0], y_range[1])
         plt.title(str((ii,jj)))
         plt.legend()
         plt.show()
@@ -1710,33 +1715,6 @@ def Get_Good_Elements(matrix, iterable, treshold, fit ):
     print('I found {} good elements out of {}\n'.format(len(too_good), len(iterable)))
     return too_good
 
-def Zoom_Plot(matrix, elements_iterable, x_range = (), y_range = (), pix = False, peaks = False, fit = False):
-
-    if pix:
-
-        x = 'x'
-        
-    else:
-        x = 'x_freq'
-
-    if fit == 'markov':
-        attr = 'y_markov_fit'
-    elif fit == 'tot':
-        attr = 'y_fit'
-
-    for(ii,jj) in elements_iterable:
-        plt.figure()
-        plt.title(str((ii,jj)))
-        plt.plot(getattr(matrix[ii][jj], x), matrix[ii][jj].y, '+', label = 'data')
-        if peaks:
-            plt.plot(getattr(matrix[ii][jj], x)[matrix[ii][jj].peaks['idx']], matrix[ii][jj].y[matrix[ii][jj].peaks['idx']], '*', label = 'peaks', markersize = 10)
-
-        if fit:
-            plt.plot(getattr(matrix[ii][jj], x), getattr(matrix[ii][jj], attr), label = fit+' fit')
-        plt.xlim(x_range[0], x_range[1])
-        plt.ylim(y_range[0], y_range[1])
-        plt.legend()
-        plt.show()
 
     
 def Get_p0_by_Neighbours(matrix, ii_0, jj_0, n_rows, n_cols):
