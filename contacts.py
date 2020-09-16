@@ -29,6 +29,7 @@ else:
 
 res = np.arange(96, 270, 1)
 how_many_contacts = {}
+numbers = {}
 df = pd.DataFrame(index=res)
 
 
@@ -37,6 +38,8 @@ for key in WTC_identifier:
     contacts = []
     
     now_path = path+key.upper()+'/eq_frame_'+key+'/' if key != 'wtc1_h' else '../GROMACS/WTC1_h/eq_frame_wtc1_h/'
+    numbers[key] = len(os.listdir(now_path))
+    print('Tot number of equilibrium frame for {} is {}'.format(key, len(os.listdir(now_path))))
 
     for frame in os.listdir(now_path):
 
@@ -64,8 +67,15 @@ for key in WTC_identifier:
         counts[ii] = how_many
         
     how_many_contacts[key] = counts
-    df[key] = how_many_contacts[key]
+    df[key] = how_many_contacts[key]/numbers[key]
 
 df.to_json(path+'df_contacts_9ang_16.json')
 df.to_csv(path+'df_contacts_9ang_16.csv')
 # %%
+f, ax = plt.subplots(1,1)
+for key in WTC_identifier:
+    ax.plot(res, df[key], color = 'firebrick' if '7' in key else 'gray', label = key if '7' in key else None)
+ax.set_xlabel('Chain element')
+ax.set_ylabel('Contact frequency')
+ax.set_title('Comparison of contact frequency')
+plt.legend()

@@ -16,6 +16,7 @@ def second_print():
 
 window = tk.Tk()
 in_put = tk.Entry(window, width = 20)
+window.iconbitmap('/home/tesista/Desktop/preview.jpg')
 in_put.grid(row = 1, column = 0)
 window.geometry('600x500')
 window.title('PorcoDio!')

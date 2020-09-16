@@ -239,6 +239,61 @@ ax.legend(loc = 'upper left')
 plt.tight_layout()
 
 f.savefig(path+'Kd_spreading_plot.pdf', format = 'pdf')
+#%%
+
+# new SPREADING PLOT - progetto COV
+Kds = np.array([4, 5.4, 6.9, 22.6, 64.0, 115, 220, 440, 650, 1500, ])
+names = ['4bs2_tart', '3aev', '4cio', '4bs2', '4mdx', '5eni', '4csf', '5dno', '3nmr', '2rra', ]
+f, ax = plt.subplots()
+md_idx = np.array([0, 7, 8], dtype=int)
+
+idx=np.arange(0,len(Kds), dtype=int)
+
+
+ax.bar(idx, Kds,  color = 'yellowgreen', capsize = 3, alpha = 0.7)
+#ax.bar(md_idx, Kds[list(md_idx)], color = 'firebrick', alpha = 0.7, label = 'runned in MD')
+#ax.scatter(idx, Kds, c = colormap[np.array(colors, dtype=int)],)
+#ax.set_ylim(-50, 2500)
+ax.set_xticks(idx)
+ax.set_xticklabels(names)
+plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+         rotation_mode="anchor")
+ax.set_ylabel('$K_d$ (nM)')
+ax.set_title("RNA Aptamers dissociation constant $K_d$", fontsize=12.5, pad = 10)
+ax.legend(loc = 'upper left')
+plt.tight_layout()
+
+f.savefig(path+'new_Kd_spreading_plot.pdf', format = 'pdf')
+
+#%%
+
+# new SPREADING PLOT - progetto COV - comparison con dati WTC tesi
+
+
+Kds = np.array([4, 5.4, 6.9, 22.6, 64.0, 115, 220, 440, 650, 1500, ])
+names = ['4bs2_tart', '3aev', '4cio', '4bs2', '4mdx', '5eni', '4csf', '5dno', '3nmr', '2rra', ]
+f, ax = plt.subplots()
+md_idx = np.array([0, 7, 8], dtype=int)
+
+idx=np.arange(0,len(Kds), dtype=int)
+
+
+ax.bar(idx, Kds,  color = 'yellowgreen', capsize = 3, alpha = 0.7)
+#ax.bar(md_idx, Kds[list(md_idx)], color = 'firebrick', alpha = 0.7, label = 'runned in MD')
+#ax.scatter(idx, Kds, c = colormap[np.array(colors, dtype=int)],)
+#ax.set_ylim(-50, 2500)
+ax.set_xticks(idx)
+ax.set_xticklabels(names)
+plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+         rotation_mode="anchor")
+ax.set_ylabel('$K_d$ (nM)')
+ax.set_title("RNA Aptamers dissociation constant $K_d$", fontsize=12.5, pad = 10)
+ax.legend(loc = 'upper left')
+plt.tight_layout()
+
+f.savefig(path+'new_Kd_spreading_plot.pdf', format = 'pdf')
+
+
 
 # %%
 
@@ -260,7 +315,7 @@ ax.plot(RMSD_comp[0]/1000, RMSD_comp[1], label = 'WTC1 vs NMR mean', color = 'fi
 ax.plot(RMSD_NMR[0][1:]/1000, RMSD_NMR[1][1:], label = 'NMR vs NMR initial', color = 'goldenrod', alpha = 0.8)
 ax.plot(RMSD_test[0][2:]/1000, RMSD_test[1][2:], label = 'WTC1 vs WTC1 initial', color = 'green', alpha = 0.8)
 
-ax.set_xlim(0,1000)
+#ax.set_xlim(0,1000)
 ax.set_ylim(ax.get_ylim()[0], 1.8)
 ax.set_xlabel('Time (ns)')
 ax.set_ylabel('RMSD (nm)')
