@@ -18,7 +18,9 @@ import      numpy               as      np
 import      matplotlib.pyplot   as      plt
 from        lib_Experimentum    import  *
 from        Alessandria         import  *
+
 import      time
+from        datetime            import date
 import      os
 import      configparser
 import      sys
@@ -55,11 +57,25 @@ if sys.argv[1] != '-f':
 elif sys.argv[1] == '-f': 
 
     print('Sto in modalità interattiva')
-    spectra_filename = 'ARS_11_02'
+    spectra_filename = 'ARS_10_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-    analysis_name = 'dabuttare'
-    if not os.path.exists(now_path +analysis_name+'/'):
-        os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+    analysis_name = 'prova_{}'.format(date.today().strftime("%d_%m_%Y"))
+
+    copy = 0
+    backup = analysis_name
+    
+    while True:
+
+        if not os.path.exists(now_path +analysis_name+'/'):
+            os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+            break
+
+        else: 
+            copy += 1
+            analysis_name = backup
+            analysis_name += ('_' + str(copy))
+        
+
     analysis_path = now_path + analysis_name +'/'
 
 
@@ -127,8 +143,8 @@ if sys.argv[1] != '-f':
 else:
     log_file            =   'inter_log_'+spectra_filename
     recover_markov = False
-    skip_tot = False
-    exclude_delta = False
+    skip_tot = True
+    exclude_delta = True
     initial = initial
     method = 'trf'
     print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
@@ -146,11 +162,11 @@ inputs.set('Markov', 'method', method)
 
 
 #import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y_all', transpose = transpose)
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(0,0,3,3)
-matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+matrix, rows, cols = Initialize_Matrix(0,0,3,3)
+#matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
 inputs.set('I/O','n_cols', str(len(cols)))
