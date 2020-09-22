@@ -18,22 +18,69 @@ warnings.filterwarnings("ignore")
 now_temp = '300 K'
 scale='ns'
 
-#WTC7_24
 
-now_path    =   '../GROMACS/WTC7_24/'
-now_name    =    'wtc7_24'
-n_frames = 10001
-time_range = [0, 1000000]
-time_range_eq = [50000, 650000]
+#WTC3
+now_path    =   '../GROMACS/WTC3/'
+now_name    =    'wtc3'
+n_frames = 20001
+time_range = [0, 2000000]
+time_range_eq = [600000, 2000000]
+color       =   'goldenrod'
+darkcolor   =   'darkgoldenrod'
+brightcolor = 'mediumslateblue'
+contrastcolor = 'indianred'
+darkcontrastcolor = 'darkred'
+ylim = (0,1.4)
+gyrad_ylim = (1.65, 2.3)
+
+"""
+
+#COV1
+
+now_path    =   '../GROMACS/COV1/'
+now_name    =    'cov1'
+n_frames = 2001
+time_range = [0, 200000]
+time_range_eq = time_range
 color = 'black'
 darkcolor = 'darkred'
 brightcolor = 'limegreen'
 contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
-gyrad_ylim = (0.5, 1.5)
+gyrad_ylim = (1.4, 2.)
 
-"""
+#COV2
+
+now_path    =   '../GROMACS/COV2/'
+now_name    =    'cov2'
+n_frames = 2001
+time_range = [0, 200000]
+time_range_eq = time_range
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (0.9, 1.4)
+
+
+#COV3
+
+now_path    =   '../GROMACS/COV3/'
+now_name    =    'cov3'
+n_frames = 2001
+time_range = [0, 200000]
+time_range_eq = time_range
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (1.1, 1.6)
+
 #WTC1_h
 now_path    =   '../GROMACS/WTC1_h/'
 now_name    =    'wtc1_h'
@@ -260,7 +307,13 @@ WTC_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 
 WTC_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, scale = 'ns', ylim = ylim)
 WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.1, color = color, darkcolor = darkcolor, scale = 'ns', ylim = ylim)
 
+# RMSF perché sì
 
+res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path, skip_lines= 17)
+res = np.array(res, dtype=int)
+#scambio RNA e PROT per coerenza con altre figure 
+idx_RNA_start = np.where( res == 1.)[0][0]
+res[idx_RNA_start:] += res[idx_RNA_start-1]
 #%%
 
 #1) Stampa per gmx make_ndx i residui del binding site
@@ -297,8 +350,8 @@ Dist    = BA.Dist_Matrix(Coord)
 Cont    = BA.Contacts_Matrix(Dist, treshold)
 Bonds   = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA.lenght), ("TDP43", "RNA"), first=  ('RNA', 1), second = ('Proteina', TDP43.initial))
 
-BS      = BA.Print_Protein_BS_old(Bonds, TDP43.lenght, prot_initial=TDP43.initial, RNA_initial=RNA.initial)['Prot']
-BS_RNA  = BA.Print_Protein_BS_old(Bonds, TDP43.lenght, prot_initial=TDP43.initial, RNA_initial=RNA.initial)['RNA']
+BS      = BA.Print_Protein_BS_old(res, Bonds, TDP43.lenght, prot_initial=TDP43.initial, RNA_initial=RNA.initial)['Prot']
+BS_RNA  = BA.Print_Protein_BS_old(res, Bonds, TDP43.lenght, prot_initial=TDP43.initial, RNA_initial=RNA.initial)['RNA']
 
 with open  (now_path+filename, 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues\n")
@@ -346,11 +399,7 @@ WTC_traj.Get_RMSF(xvg_filename='rmsf_'+now_name+'.xvg', path = now_path, fig = n
 #RMSF for residues
 text_size = 7
 
-res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path)
-res = np.array(res, dtype=int)
-#scambio RNA e PROT per coerenza con altre figure 
-idx_RNA_start = np.where( res == 1.)[0][0]
-res[idx_RNA_start:] += res[idx_RNA_start-1]
+
 idx_BS = np.zeros(len(BS), dtype = int)
 for (ii,bs) in zip(range(len(BS)), BS):
     idx_BS[ii] = np.where(res == bs)[0]
@@ -438,7 +487,7 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 #%%
 # MATRICE COVARIANZA ATOMICA
-skip_cov = False
+skip_cov = True
 if not skip_cov:
     N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
     cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
@@ -446,8 +495,8 @@ if not skip_cov:
 # MATRICE COVARIANZA CAP
 #%%
 # prendo gli indici atomici dei CA e P
-CA_idx = TDP43.CA['atom_number'].values -1
-P_idx = RNA.P['atom_number'].values -1 
+CA_idx = TDP43.CA['atom_number'].values - 1
+P_idx = RNA.P['atom_number'].values - 1 
 idx = np.concatenate((CA_idx, P_idx))
 if not skip_cov:
 
@@ -492,7 +541,7 @@ with open(now_path+now_name+'_finals.txt', 'w') as f:
     f.write("RMSF RNA medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res[idx_RNA_start:]), np.std(RMSF_res[idx_RNA_start:])))
     f.write("RMSF BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res[idx_BS]), np.std(RMSF_res[idx_BS])))
     f.write("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}\n".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right])))
-200    # %%
+
 
 
 # %%

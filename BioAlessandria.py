@@ -1107,13 +1107,43 @@ def CAP_Cov_Matrix(cov_matrix, idx, save_filename, save_path = './'):
 
 def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first = ('Proteina', 0), second = ('RNA', 0), fig = False, verbose = False):
 
-    #1) estrarre matrice dei contatti nella parte che interessa 
-    # per ora a due poi servirà giocare meglio su sizes e numero strutture
-    # o forse fare un ciclo nel main
-    # first = 'RNA' stampa per ogni res di RNA quali res di proteina a distanza data
-    # first = 'Proteina' viceversa
-    # i secondi argomenti delle tuple first e secondo sono gli initial : es nel pdb 4bs2 la proteina è risolta
-    # solo per i domini centrail -> initial = 96
+    """
+    Funzione che analizza i legami tra i residui di recettore (proteina) e ligando (RNA) nel dettaglio a 
+    partire dalla matrice dei contatti.
+
+    Prende: 
+        - Cont_Matrix, matrice (N+M*)x(N+M*) dove N è il numero di res della proteina, M* = M -1 dove
+          M è il numero di residui dell'RNA (-1 uno per il problema del P)
+        - Structure_sizes è una tupla dim = 2 che contiene il numero totale di residui di Proteina e RNA (conmpreso il +1)
+        - structure_names è una tupla dim = 2 con due stringhe identificativive, ma attualmente inutile sarebbe 
+          utile se poi si riuscisse a generalizzare il codice per altre biomolecole
+        - first e second sono due tuple (<nome>, initial), dove initial è il residuo di partenza della struttura <nome>
+          nel pdb. In base a questo l'output è diverso:
+          first = 'RNA' stampa per ogni res di RNA quali res di 'proteina' a distanza data e viceversa
+
+    Oss sul funzionamento:(assumendo first = 'rna')
+        1) mi creo una matrice Asym_Cont dim = M* x N con i contatti tra residui RNA (righe) e residui Proteina (colonne)
+           e mi creo una tupla Bonds che sarà della dim del numero di nucleotidi RNA
+        2) NonZero è una tupla che contiene gli indici degli elementi zero
+            es.
+
+            NonZero = Asym_Cont.nonzero()
+            (array([0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 3, 4, 5, 5, 5, 6, 6, 6, 6,
+                    6, 8, 8, 8]),
+            array([ 82,  83,  84,  85, 162, 163, 164,  47,  48, 100, 133,  47,  48,
+                    49,  14,  14,  76,  77,  14,  16,  75,  76,  77,  16,  17,  18]))
+
+            vuol dire che per la riga 0 della matrice Asym ho un elemento di contatto all'indice 82, 83, etc.
+            per questo nel secondo array della tupla ricomincia, perché scende di riga
+        3) a questo punto grazie a cont_prev, cont_next e la funzione count_nonzero di numpy che mi permettono di scorrere la complessa struttura
+           di NonZero, faccio un ciclo sul numero dei nucleotidi RNA (range(Asym_Cont.shape[0])) e creo una tupla Bond_i
+           con il numero identificativo del residuo in contatto con l'i-esimo residuo di RNA
+           OSS: questo è il VERO numero del residuo in quanto tramite operazione Bond_i = Bond_i + (int(NonZero[1][j]+second[1]),)
+                sto aggiungendo la lunghezza totale della proteina (second) includendo l'1 di scarto dell'indice
+                (ho controllato su pymol l'effettiva vicinanza maggiore del residuo che esce fuori)
+            Alla fine del ciclo, questa tupla Bond_i diventa un elemento della tupla finale Bonds che sarà poi ritornata al main
+
+    """
 
 
     Asym_Cont = Cont_Matrix[structure_sizes[0]:, :structure_sizes[0]]
@@ -1127,11 +1157,6 @@ def Analyze_Bond_Residues (Cont_Matrix, structure_sizes, structure_names, first 
         plt.title("Asym_Cont Matrix of "+structure_names[0]+" + "+structure_names[1])
         plt.savefig(structure_names[0]+"+"+structure_names[1]+"_Asym_Cont_Matrix")
         plt.show()
-
-    #2) estraggo informazioni dalla tupla di array ritornata da np.nonzero()
-    
-    #numero da aggiungere a indice per ottenere numero residuo reale, ma 
-    # per adesso deve essere 2 in quanto non ho atomi di fosforo in primo res RNA
 
     if (first == 'Proteina') & (second == 'RNA'):
 
@@ -1174,25 +1199,33 @@ def Print_Bonds_HDOCK (Bonds, filename, distance, initial):
     
     f.close()
 
-def Print_Protein_BS_old (Bonds, size, filename = 'BS.txt', prot_initial = 0, RNA_initial = 0):
+def Print_Protein_BS_old (res, Bonds, size, filename = 'BS.txt', prot_initial = 0, RNA_initial = 0):
 
     """
     stampa residui proteina coinvolti nel legame
 
+    Dato che potrebbero esserci buchi nel file, è necessario avere un indice dei residui, così da fare match
+
+    Il problema col residuo di RNA che manca non si verifica perché siamo prima 
     """
     Binding_Site = ()
     Binding_Site_RNA = ()
 
     count = 0
+    idxs = []
 
     for kk in range(size):
         for Bond in Bonds:
             if (((kk+1+prot_initial) in Bond) & ((kk+1+prot_initial) not in Binding_Site)):
 
                 Binding_Site = Binding_Site + (kk+1+prot_initial,)
+                idxs = idxs + [kk+1,]
                 count += 1
         
     Binding_Site = np.sort(Binding_Site)
+    print(Binding_Site)
+    Binding_Site = res[idxs]
+    print(Binding_Site)
 
     for ii in range(len(Bonds)):
           if len(Bonds[ii]) != 0:

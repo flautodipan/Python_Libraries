@@ -29,7 +29,7 @@ wtc7_16 = True
 wtc7_24 = False
 wtc7_24_1 = False
 
-for treshold in [9]:#range(6,13):
+for treshold in [9]:
 
     for ii in ['1_h', '1','2', '3', '4', '5', '6', '7']:
 
@@ -155,9 +155,15 @@ for treshold in [9]:#range(6,13):
         WTC_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 )
         WTC_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', path = now_path)
         WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
+
+
+        res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path,)
+        res = np.array(res, dtype=int)
+        idx_RNA_start = np.where( res == 1.)[0][0]
+        res[idx_RNA_start:] += res[idx_RNA_start-1]
+
         filename='BS_{}_make_ndx.txt'.format(now_name)
         pdb_filename = 'average_pdb_'+now_name+'.pdb'
-        #treshold = 10
 
         TDP43   = BA.Protein(now_path+pdb_filename, model = False)
         TDP43.Get_CA_Coord(atom_name='CA')
@@ -169,7 +175,7 @@ for treshold in [9]:#range(6,13):
         Dist    = BA.Dist_Matrix(Coord)
         Cont    = BA.Contacts_Matrix(Dist, treshold)
         Bonds   = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA.lenght), ("TDP43", "RNA"), first=  ('RNA', 1), second = ('Proteina', TDP43.initial))
-        BS      = BA.Print_Protein_BS_old(Bonds, TDP43.lenght,prot_initial=TDP43.initial, RNA_initial= RNA.initial)
+        BS      = BA.Print_Protein_BS_old(res, Bonds, TDP43.lenght,prot_initial=TDP43.initial, RNA_initial= RNA.initial)
         print(BS)
 
 
@@ -181,11 +187,6 @@ for treshold in [9]:#range(6,13):
         WTC_traj.Acquire_Atoms_List('rmsf_BS_'+now_name+'.xvg', 'BS', path = now_path, skip_lines = 17)
         WTC_traj.Get_RMSF(xvg_filename='rmsf_'+now_name+'.xvg', path = now_path,)
 
-
-        res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path)
-        res = np.array(res, dtype=int)
-        idx_RNA_start = np.where( res == 1.)[0][0]
-        res[idx_RNA_start:] += res[idx_RNA_start-1]
 
         """
         idx_BS = np.zeros(len(BS['Prot']), dtype = int)
@@ -278,11 +279,11 @@ for treshold in [9]:#range(6,13):
 
         #3) salvo
 
-        df.to_json(now_path+now_name+'_df.json')
+        #df.to_json(now_path+now_name+'_df.json')
         dfs[now_name] = df
 
 
-    
+    """
     DF = pd.concat([dfs[key] for key in dfs.keys()], ignore_index=True)
     if red == True:
         DF.to_json('../GROMACS/WTC_data_frame_{}ang_red.json'.format(str(treshold)))
@@ -311,7 +312,7 @@ for treshold in [9]:#range(6,13):
         DF.to_json('../GROMACS/WTC_data_frame_{}ang.json'.format(str(treshold)))
         DF.to_csv('../GROMACS/WTC_data_frame_{}ang.csv'.format(str(treshold)))
 
-
+    """
     # %%
 WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7')
 
