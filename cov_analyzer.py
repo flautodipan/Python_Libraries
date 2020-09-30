@@ -9,15 +9,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")#inizializzo dataframe
 
-Kds_ = [5.4, 1500, 115, ]
-Kds = {'cov{}'.format(n): kd for (n, kd) in zip(['1', '2', '3',], Kds_)}
+Kds_ = [5.4, 1500, 115, 6.9 ]
+Kds = {'cov{}'.format(n): kd for (n, kd) in zip(['1', '2', '3', '4'], Kds_)}
 
 dfs = {}
 
 now_temp = '300 K'
 scale='ns'
 
-for ii in ['1', '2', '3']:
+dodici = 12
+
+for ii in ['1', '2', '3', '4']:
     
     if ii == '1':
 
@@ -26,7 +28,12 @@ for ii in ['1', '2', '3']:
         n_frames = 2001
         time_range = [0, 200000]
         time_range_eq = time_range
-        treshold = 9
+
+        if dodici == 12:
+
+            treshold = 12
+        else:
+            treshold = 9
 
     elif ii == '2':
 
@@ -44,6 +51,20 @@ for ii in ['1', '2', '3']:
         time_range = [0, 200000]
         time_range_eq = time_range
         treshold = 12
+    
+    elif ii == '4':
+
+        #COV4
+
+        now_path    =   '../GROMACS/COV4/'
+        now_name    =    'cov4'
+        n_frames = 5001
+        time_range = [0, 500000]
+        time_range_eq = [180000, 500000]
+
+        if dodici == 12 : treshold = 12
+        else : treshold = 9
+
 
     
     print('\n\n\nDinamica  cov{} treshold = {}\n\n\n'.format(ii,treshold))
@@ -66,7 +87,7 @@ for ii in ['1', '2', '3']:
     TDP43   = BA.Protein(now_path+pdb_filename, model = False)
     TDP43.Get_CA_Coord(atom_name='CA')
     RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B', model = False, initial=TDP43.initial+TDP43.CA.shape[0])
-    RNA.Get_P_Coord(atom_name="P")
+    RNA.Get_P_Coord(atom_name="05'")
     print('Ok, acquisito correttamente pdb')
 
     Coord   = np.concatenate((TDP43.CA_Coord, RNA.P_Coord))
@@ -121,25 +142,25 @@ for ii in ['1', '2', '3']:
 
     for kk in range(len(res)):
         Covariance_Mean_Prot_BS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in list(np.array(BS['Prot']) - df.Residue_number[0])]))
-        Covariance_Mean_Prot_noBS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
+        #Covariance_Mean_Prot_noBS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
         Covariance_Mean_RNA_BS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in list(np.array(BS['RNA']) - df.Residue_number[0])]))
-        Covariance_Mean_RNA_noBS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
+        #Covariance_Mean_RNA_noBS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
 
         Pearson_Mean_Prot_BS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in list(np.array(BS['Prot']) - df.Residue_number[0])]))
-        Pearson_Mean_Prot_noBS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
+        #Pearson_Mean_Prot_noBS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS['Prot'], BS['RNA']))]]))
         Pearson_Mean_RNA_BS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in list(np.array(BS['RNA']) - df.Residue_number[0])]))
-        Pearson_Mean_RNA_noBS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
+        #Pearson_Mean_RNA_noBS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS['RNA']]]))
 
 
     df['Covariance_Mean_Prot_BS'] = Covariance_Mean_Prot_BS
-    df['Covariance_Mean_Prot_noBS'] = Covariance_Mean_Prot_noBS
+    #df['Covariance_Mean_Prot_noBS'] = Covariance_Mean_Prot_noBS
 
 
     mean_12 = 1.5320026220697674e-05
     std_12 = 8.303982395321321e-05
 
     df['Covariance_Mean_RNA_BS'] = Covariance_Mean_RNA_BS
-    df['Covariance_Mean_RNA_noBS'] = Covariance_Mean_RNA_noBS
+    #df['Covariance_Mean_RNA_noBS'] = Covariance_Mean_RNA_noBS
     
     #zscore
     df['z_Covariance_Mean'] = (df['Covariance_Mean'] - np.mean(df['Covariance_Mean']))/(np.std(df['Covariance_Mean']))
@@ -152,10 +173,10 @@ for ii in ['1', '2', '3']:
 
 
     df['Pearson_Mean_Prot_BS'] = Pearson_Mean_Prot_BS
-    df['Pearson_Mean_Prot_noBS'] = Pearson_Mean_Prot_noBS
+    #df['Pearson_Mean_Prot_noBS'] = Pearson_Mean_Prot_noBS
     
     df['Pearson_Mean_RNA_BS'] = Pearson_Mean_RNA_BS
-    df['Pearson_Mean_RNA_noBS'] = Pearson_Mean_RNA_noBS
+    #df['Pearson_Mean_RNA_noBS'] = Pearson_Mean_RNA_noBS
     
 
     df['RMSD_Mean'] = [np.mean(WTC_traj.RMSD_eq), ]* len(res)
@@ -172,8 +193,8 @@ for ii in ['1', '2', '3']:
 
 
 DF = pd.concat([dfs[key] for key in dfs.keys()], ignore_index=True)
-DF.to_json('../GROMACS/cov_data_frame.json'.format(str(treshold)))
-DF.to_csv('../GROMACS/cov_data_frame.csv'.format(str(treshold)))
+DF.to_json('../GROMACS/cov_data_frame_{}.json'.format(str(dodici)))
+DF.to_csv('../GROMACS/cov_data_frame_{}.csv'.format(str(dodici)))
 
 
 # %%

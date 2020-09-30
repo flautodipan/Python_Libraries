@@ -112,16 +112,19 @@ correlations = z_covave_rmsf_BS_BS_correlations_12
 
 fig, ax = plt.subplots()
 ax.set_title('Protein BS Covariance with Protein BS  vs Kd\ncorrelation = {:3.2f} p-value = {:3.2f}'.format(*pearsonr(Kds[1:], correlators[1:])))
-ax.errorbar(Kds[1:] , correlators[1:], fmt = 'o', xerr = Kds_errs[1:], yerr= err_max, color = 'k', ecolor = 'orange', label = 'simulated data', mew = 0.1)
-#ax.errorbar(Kds[0] , correlators[0], fmt = 'o', xerr = Kds_errs[0], color = 'orange', ecolor = 'k', label = 'NMR data', mew = 0.1)
+ax.errorbar(Kds[1:], correlators[1:], fmt = 'o', xerr = Kds_errs[1:], yerr= err_max, color = 'k' , ecolor = 'orange', label = 'simulated data', mew = 0.1)
+ax.errorbar(Kds[0] , correlators[0], fmt = 'o', xerr = Kds_errs[0], color = 'orange', ecolor = 'k', label = 'NMR data', mew = 0.1)
 
-for x,y, key in zip(Kds[1:] , correlators[1:], ('wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7')):
+for x,y, key in zip(Kds , correlators, ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7')):
 
     if key in ['wtc1_h']:
         key = 'wtc1'
         plt.annotate(key, (x,y), xytext = (5, -12), textcoords = 'offset points', )
+    elif key == 'wtc1': 
+        key = 'NMR'
+        plt.annotate(key, (x,y), xytext = (5, -12), textcoords = 'offset points', )
+
     elif key == 'wtc3': plt.annotate(key, (x,y), xytext = (-22, -15), textcoords = 'offset points', )
-    elif key == 'wtc1': continue
     elif key == 'wtc7': 
         key = 'wtc7_'+str(wtc7)
         plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points', )

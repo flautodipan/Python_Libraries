@@ -19,19 +19,21 @@ now_temp = '300 K'
 scale='ns'
 
 
-#WTC3
-now_path    =   '../GROMACS/WTC3/'
-now_name    =    'wtc3'
-n_frames = 20001
-time_range = [0, 2000000]
-time_range_eq = [600000, 2000000]
-color       =   'goldenrod'
-darkcolor   =   'darkgoldenrod'
-brightcolor = 'mediumslateblue'
-contrastcolor = 'indianred'
-darkcontrastcolor = 'darkred'
-ylim = (0,1.4)
-gyrad_ylim = (1.65, 2.3)
+
+#WTC1
+now_path    =   '../GROMACS/WTC1/'
+now_name    =    'wtc1'
+n_frames = 9700
+time_range  =   [30060, 999960]
+time_range_eq = [400060, 999960]
+color = 'royalblue'
+darkcolor = 'navy'
+brightcolor = 'magenta'
+contrastcolor='orange'
+darkcontrastcolor='orangered'
+ylim = (0,1)
+gyrad_ylim = (1.4, 2.2)
+cov_clim = (-0.005, 0.005)
 
 """
 
@@ -66,6 +68,7 @@ ylim = (0,1)
 gyrad_ylim = (0.9, 1.4)
 
 
+
 #COV3
 
 now_path    =   '../GROMACS/COV3/'
@@ -80,6 +83,26 @@ contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.6)
+cov_clim = (-0.005, 0.005)
+
+
+
+#COV4
+
+now_path    =   '../GROMACS/COV4/'
+now_name    =    'cov4'
+n_frames = 5001
+time_range = [0, 500000]
+time_range_eq = [180000, 500000]
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1)
+gyrad_ylim = (0.7, 1.5)
+cov_clim = (-0.005, 0.005)
+
 
 #WTC1_h
 now_path    =   '../GROMACS/WTC1_h/'
@@ -94,6 +117,8 @@ contrastcolor = 'orange'
 darkcontrastcolor = 'orangered'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
+cov_clim = (-0.005, 0.005)
+
 
 #WTC1
 now_path    =   '../GROMACS/WTC1/'
@@ -108,6 +133,7 @@ contrastcolor='orange'
 darkcontrastcolor='orangered'
 ylim = (0,1)
 gyrad_ylim = (1.4, 2.2)
+cov_clim = (-0.005, 0.005)
 
 
 #WTC2
@@ -123,6 +149,7 @@ contrastcolor = 'crimson'
 darkcontrastcolor = 'darkred'
 ylim = (0,1)
 gyrad_ylim = (1.3, 1.9)
+cov_clim = (-0.005, 0.005)
 
 
 #WTC3
@@ -138,6 +165,7 @@ contrastcolor = 'indianred'
 darkcontrastcolor = 'darkred'
 ylim = (0,1.4)
 gyrad_ylim = (1.65, 2.3)
+cov_clim = (-0.005, 0.005)
 
 
 #WTC4
@@ -153,6 +181,8 @@ contrastcolor = 'darkorchid'
 darkcontrastcolor = 'darkslateblue'
 ylim = (0,1.2)
 gyrad_ylim = (0.8, 1.5))
+cov_clim = (-0.005, 0.005)
+
 
 #WTC5
 now_path    =   '../GROMACS/WTC5/'
@@ -167,6 +197,7 @@ contrastcolor = 'chartreuse'
 darkcontrastcolor = 'yellowgreen'
 ylim = (0,2)
 gyrad_ylim = (1.1, 1.7)
+cov_clim = (-0.005, 0.005)
 
 
 #WTC6
@@ -182,6 +213,8 @@ contrastcolor='gold'
 darkcontrastclor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
+cov_clim = (-0.005, 0.005)
+
 
 
 #WTC7
@@ -199,20 +232,6 @@ darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
 
-#WTC7_red
-
-now_path    =   '../GROMACS/WTC7_red/'
-now_name    =    'wtc7_red'
-n_frames = 1251
-time_range = [175000, 300000]
-time_range_eq = time_range
-color = 'black'
-darkcolor = 'darkred'
-brightcolor = 'limegreen'
-contrastcolor='gold'
-darkcontrastcolor = 'darkgoldenrod'
-ylim = (0,1)
-gyrad_ylim = (1.1, 1.8)
 
 #WTC7_7
 
@@ -259,6 +278,8 @@ contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
+cov_clim = (-0.005, 0.005)
+
 
 #WTC7_24
 
@@ -302,6 +323,7 @@ gyrad_ylim = (1.1, 1.8)
 
 
 
+
 WTC_traj = BA.Trajectory(bio_name='{} in water (T = {})'.format(now_name, now_temp))
 WTC_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 )
 WTC_traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, scale = 'ns', ylim = ylim)
@@ -331,7 +353,7 @@ print('Ho trovato il "centroide" della distribuzione RMSD a equilibrio\nnel fram
 #1b) prendo la BS di quel frame e te la stampo
 filename='BS_{}_make_ndx.txt'.format(now_name)
 pdb_filename = 'average_pdb_'+now_name+'.pdb'
-treshold = 9
+treshold = 12
 
 TDP43   = BA.Protein(now_path+pdb_filename, model = False)
 RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B', model = False)
@@ -342,7 +364,7 @@ print('Ok, acquisito correttamente pdb')
 #stampa
 
 TDP43.Get_CA_Coord()
-RNA.Get_P_Coord()
+RNA.Get_P_Coord(atom_name="O5'")
 
 Coord   = np.concatenate((TDP43.CA_Coord, RNA.P_Coord))
 Dist    = BA.Dist_Matrix(Coord)
@@ -491,7 +513,8 @@ skip_cov = True
 if not skip_cov:
     N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
     cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
-    BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS, res, path = now_path, clim = (-0.005, 0.005))
+    BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS, res, path = now_path, clim = cov_clim)
+
 # MATRICE COVARIANZA CAP
 #%%
 # prendo gli indici atomici dei CA e P
@@ -505,7 +528,7 @@ else:
     cov_matrix_CAP = np.genfromtxt(now_path+now_name+'CAP_cov_matrix.txt')  
 
 
-BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = (-0.1, 0.1))
+BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CA', BS, res, text = True, path = now_path, clim = cov_clim)
 
 #%%
 #trasformo in matrice di pearson
@@ -528,6 +551,7 @@ print("RMSF totale medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(
 print("RMSF RNA medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.mean(RMSF_res[idx_RNA_start:]), np.std(RMSF_res[idx_RNA_start:])))
 print("RMSF BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.mean(RMSF_res[idx_BS]), np.std(RMSF_res[idx_BS])))
 print("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right])))
+print('La BS della porteina consta di {} residui'.format(len(BS)))
 
 with open(now_path+now_name+'_finals.txt', 'w') as f:
 
@@ -541,7 +565,7 @@ with open(now_path+now_name+'_finals.txt', 'w') as f:
     f.write("RMSF RNA medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res[idx_RNA_start:]), np.std(RMSF_res[idx_RNA_start:])))
     f.write("RMSF BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res[idx_BS]), np.std(RMSF_res[idx_BS])))
     f.write("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}\n".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right])))
-
+    f.write('La BS della porteina consta di {} residui'.format(len(BS)))
 
 
 # %%

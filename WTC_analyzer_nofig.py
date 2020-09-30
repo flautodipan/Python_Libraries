@@ -21,6 +21,12 @@ dfs = {}
 now_temp = '300 K'
 scale='ns'
 
+
+#riferimento per lo z-score dato da studio wtc7_16
+
+mean_12 = 8.552536674490916e-06
+std_12 = 7.437340840337174e-05
+
 #seven reduced
 red     = False
 wtc7_7  = False
@@ -157,7 +163,7 @@ for treshold in [9]:
         WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 
-        res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path,)
+        res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path, skip_lines= 17)
         res = np.array(res, dtype=int)
         idx_RNA_start = np.where( res == 1.)[0][0]
         res[idx_RNA_start:] += res[idx_RNA_start-1]
@@ -210,6 +216,7 @@ for treshold in [9]:
         df['WTC_identifier'] = ['wtc'+ii,]*len(res)
         df['Is_Prot'] = [True if ii < idx_RNA_start else False for ii in range(len(res))]
         df['Is_BS'] = [True if (r in BS['Prot']) | (r in BS['RNA']) else False for r in res]
+        df['size(Prot_BS)'] = [len(BS['Prot'])]*len(res)
         df['RMSF'] = RMSF_res
 
 
@@ -246,11 +253,6 @@ for treshold in [9]:
         df['Covariance_Mean_Prot_BS'] = Covariance_Mean_Prot_BS
         df['Covariance_Mean_Prot_noBS'] = Covariance_Mean_Prot_noBS
 
-        if ii == '1_h':
-
-            mean_12 = np.mean(df['Covariance_Mean'][df.WTC_identifier == 'wtc1_h'])
-            std_12 = np.std(df['Covariance_Mean'][df.WTC_identifier == 'wtc1_h'])
-
         df['Covariance_Mean_RNA_BS'] = Covariance_Mean_RNA_BS
         df['Covariance_Mean_RNA_noBS'] = Covariance_Mean_RNA_noBS
         
@@ -283,13 +285,10 @@ for treshold in [9]:
         dfs[now_name] = df
 
 
-    """
-    DF = pd.concat([dfs[key] for key in dfs.keys()], ignore_index=True)
-    if red == True:
-        DF.to_json('../GROMACS/WTC_data_frame_{}ang_red.json'.format(str(treshold)))
-        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_red.csv'.format(str(treshold)))
     
-    elif wtc7_7 == True:
+    DF = pd.concat([dfs[key] for key in dfs.keys()], ignore_index=True)
+
+    if wtc7_7 == True:
         DF.to_json('../GROMACS/WTC_data_frame_{}ang_7.json'.format(str(treshold)))
         DF.to_csv('../GROMACS/WTC_data_frame_{}ang_7.csv'.format(str(treshold)))
 
@@ -312,7 +311,7 @@ for treshold in [9]:
         DF.to_json('../GROMACS/WTC_data_frame_{}ang.json'.format(str(treshold)))
         DF.to_csv('../GROMACS/WTC_data_frame_{}ang.csv'.format(str(treshold)))
 
-    """
+    
     # %%
 WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7')
 
