@@ -307,7 +307,7 @@ config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_
         9.58287799e-02,  2.65541107e-01,  3.21314854e-08, -9.62281912e+00,
         1.58244543e+01, -7.21776390e-02,  9.61758585e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
 
-config['Tot'] = {'skip_tot' : True, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)}
+config['Tot'] = {'skip_tot' : True, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 'inf')}
 
 
 #check
