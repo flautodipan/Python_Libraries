@@ -24,8 +24,6 @@ scale='ns'
 
 #riferimento per lo z-score dato da studio wtc7_16
 
-mean_12 = 8.552536674490916e-06
-std_12 = 7.437340840337174e-05
 
 #seven reduced
 red     = False

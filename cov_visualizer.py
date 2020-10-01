@@ -36,15 +36,17 @@ z_covave_rmsf_BS_BS_correlations_12 = pearsonr(Kds, z_covave_rmsf_BS_BS_correlat
 
 correlators = z_covave_rmsf_BS_BS_correlators_12
 correlations = z_covave_rmsf_BS_BS_correlations_12
+normalizers = [np.mean(DF.RMSF[DF.cov_identifier == key][DF.Is_Prot == True][DF.Is_BS==True])  for key in cov_identifier]
+
 
 
 fig, ax = plt.subplots()
 ax.set_title('Protein BS Covariance with Protein BS  vs Kd')
-ax.errorbar(Kds , correlators, fmt = 'o', color = 'k', ecolor = 'orange', label = 'simulated data', mew = 0.1)
+ax.errorbar(Kds , correlators/np.array(normalizers), fmt = 'o', color = 'k', ecolor = 'orange', label = 'simulated data', mew = 0.1)
 #ax.errorbar(Kds[0] , correlators[0], fmt = 'o', xerr = Kds_errs[0], color = 'orange', ecolor = 'k', label = 'NMR data', mew = 0.1)
 
 for x, key, ll in zip(Kds, cov_identifier, range(len(cov_identifier))):
-        y = correlators[ll]
+        y = correlators[ll]/float(normalizers[ll])
         if '2' in key:
                 plt.annotate(key, (x,y), xytext = (-10, -10), textcoords = 'offset points')
         else:
@@ -85,21 +87,58 @@ z_covave_rmsf_BS_BS_correlations_12_1 = pearsonr(Kds_new, z_covave_rmsf_BS_BS_co
 correlators_1 = z_covave_rmsf_BS_BS_correlators_12_1
 correlations_1 = z_covave_rmsf_BS_BS_correlations_12_1
 
+normalizers_1 = [np.mean(DF_1.RMSF[DF_1.WTC_identifier == key][DF_1.Is_Prot == True][DF_1.Is_BS==True])  for key in WTC_identifier]
 
 
 
-#STAMPO I PUNTI
+#STAMPO I PUNTI normalizzati con rmsf medio della BS di ogni dinamica
+all_correlators = correlators_1+correlators
+fig, ax = plt.subplots()
+ax.set_title('Protein BS Covariance with Protein BS  vs Kd')
+ax.errorbar(Kds_new[1:] , correlators_1[1:]/np.array(normalizers_1[1:]), fmt = 'o', color = 'k', ecolor = 'orange', label = 'thesis data', mew = 0.1)
+ax.errorbar(Kds_new[0] , correlators_1[0]/np.array(normalizers_1[0]), fmt = 'o', color = 'orange', ecolor = 'k', label = 'NMR data', mew = 0.1)
+ax.errorbar(Kds , correlators/np.array(normalizers), fmt = 'o', color = 'g', ecolor = 'orange', label = 'new data', mew = 0.1)
+for x, key, ll, norm in zip(Kds_new + Kds, WTC_identifier+cov_identifier, range(len(WTC_identifier+cov_identifier)), normalizers_1 + normalizers):
+        y = all_correlators[ll]/float(norm)
+        if key in ['wtc1_h']:
+            key = 'wtc1'
+            plt.annotate(key, (x,y), xytext = (5, -10), textcoords = 'offset points', )
+        elif key == 'wtc1': 
+                key = 'NMR'
+                plt.annotate(key, (x,y), xytext = (-10, 10), textcoords = 'offset points', )
+        elif '5' in key:
+                plt.annotate(key, (x,y), xytext = (-10, -10), textcoords = 'offset points', )
+
+        elif key in ['wtc3', 'wtc6']:plt.annotate(key, (x,y), xytext = (-25, -15), textcoords = 'offset points', )
+        elif key == 'wtc7': 
+                plt.annotate(key, (x,y), xytext = (5, -10), textcoords = 'offset points', )
+        elif key in ['cov1', 'cov4']:
+                plt.annotate(key, (x,y), xytext = (10, 0), textcoords = 'offset points', )
+
+
+
+
+        else: plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points')
+
+ax.set_xlabel('Kd (nM)')
+ax.set_ylabel('Prot BS z Covariance with Prot BS / < RMSF > ')
+#ax.vlines(np.mean([Kds[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'firebrick', label = 'max error bar', linewidths = 2.)
+ax.legend()
+plt.show()
+
+
+#STAMPO I PUNTI NON normalizzati 
 all_correlators = correlators_1+correlators
 fig, ax = plt.subplots()
 ax.set_title('Protein BS Covariance with Protein BS  vs Kd')
 ax.errorbar(Kds_new[1:] , correlators_1[1:], fmt = 'o', color = 'k', ecolor = 'orange', label = 'thesis data', mew = 0.1)
 ax.errorbar(Kds_new[0] , correlators_1[0], fmt = 'o', color = 'orange', ecolor = 'k', label = 'NMR data', mew = 0.1)
 ax.errorbar(Kds , correlators, fmt = 'o', color = 'g', ecolor = 'orange', label = 'new data', mew = 0.1)
-for x, key, ll in zip(Kds_new + Kds, WTC_identifier+cov_identifier, range(len(WTC_identifier+cov_identifier))):
+for x, key, ll, norm in zip(Kds_new + Kds, WTC_identifier+cov_identifier, range(len(WTC_identifier+cov_identifier)), normalizers_1 + normalizers):
         y = all_correlators[ll]
         if key in ['wtc1_h']:
             key = 'wtc1'
-            plt.annotate(key, (x,y), xytext = (5, 10), textcoords = 'offset points', )
+            plt.annotate(key, (x,y), xytext = (5, -10), textcoords = 'offset points', )
         elif key == 'wtc1': 
                 key = 'NMR'
                 plt.annotate(key, (x,y), xytext = (-10, 10), textcoords = 'offset points', )
@@ -119,6 +158,5 @@ ax.set_ylabel('Prot BS z Covariance with Prot BS ')
 #ax.vlines(np.mean([Kds[kk] for kk in to_exclude]), min_err, max_err, linestyles = 'dashed', color = 'firebrick', label = 'max error bar', linewidths = 2.)
 ax.legend()
 plt.show()
-
 
 # %%

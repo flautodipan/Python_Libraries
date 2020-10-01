@@ -17,23 +17,22 @@ warnings.filterwarnings("ignore")
 
 now_temp = '300 K'
 scale='ns'
+#COV1
 
-
-
-#WTC1
-now_path    =   '../GROMACS/WTC1/'
-now_name    =    'wtc1'
-n_frames = 9700
-time_range  =   [30060, 999960]
-time_range_eq = [400060, 999960]
-color = 'royalblue'
-darkcolor = 'navy'
-brightcolor = 'magenta'
-contrastcolor='orange'
-darkcontrastcolor='orangered'
+now_path    =   '../GROMACS/COV1/'
+now_name    =    'cov1'
+n_frames = 2001
+time_range = [0, 200000]
+time_range_eq = time_range
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
-gyrad_ylim = (1.4, 2.2)
+gyrad_ylim = (1.4, 2.)
 cov_clim = (-0.005, 0.005)
+
 
 """
 
@@ -51,6 +50,8 @@ contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.4, 2.)
+cov_clim = (-0.005, 0.005)
+
 
 #COV2
 
@@ -66,6 +67,7 @@ contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (0.9, 1.4)
+cov_clim = (-0.005, 0.005)
 
 
 
@@ -262,6 +264,7 @@ contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
+cov_clim = (-0.005, 0.005)
 
 
 #WTC7_16
@@ -379,7 +382,13 @@ with open  (now_path+filename, 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues\n")
         for bs in BS:
             f.write('r {} | '.format(bs))
-      
+
+# me lo salvo
+np.save(now_path+'BS.npy', BS)
+np.save(now_path+'BS_RNA.npy', BS)
+
+# %%
+
 #%%
 #2) Acquisisco gli altri RMSD generati 
 

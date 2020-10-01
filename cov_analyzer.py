@@ -17,6 +17,10 @@ dfs = {}
 now_temp = '300 K'
 scale='ns'
 
+# studio da wtc7_16
+mean_12 = 8.552536674490916e-06
+std_12 = 7.437340840337174e-05
+
 dodici = 12
 
 for ii in ['1', '2', '3', '4']:
@@ -80,21 +84,9 @@ for ii in ['1', '2', '3', '4']:
     idx_RNA_start = np.where( res == 1.)[0][0]
     res[idx_RNA_start:] += res[idx_RNA_start-1]
 
-    filename='BS_{}_make_ndx.txt'.format(now_name)
-    pdb_filename = 'average_pdb_'+now_name+'.pdb'
-
-
-    TDP43   = BA.Protein(now_path+pdb_filename, model = False)
-    TDP43.Get_CA_Coord(atom_name='CA')
-    RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B', model = False, initial=TDP43.initial+TDP43.CA.shape[0])
-    RNA.Get_P_Coord(atom_name="05'")
-    print('Ok, acquisito correttamente pdb')
-
-    Coord   = np.concatenate((TDP43.CA_Coord, RNA.P_Coord))
-    Dist    = BA.Dist_Matrix(Coord)
-    Cont    = BA.Contacts_Matrix(Dist, treshold)
-    Bonds   = BA.Analyze_Bond_Residues(Cont, (TDP43.lenght, RNA.lenght), ("TDP43", "RNA"), first=  ('RNA', 1), second = ('Proteina', TDP43.initial))
-    BS      = BA.Print_Protein_BS_old(res, Bonds, TDP43.lenght,prot_initial=TDP43.initial, RNA_initial= RNA.initial,)
+    BS = {}
+    BS['Prot'] = np.load(now_path+'BS.npy')
+    BS['RNA'] = np.load(now_path+'BS_RNA.npy')
     print(BS)               
 
     WTC_traj.Acquire_Atoms_List('rmsf_RNA_'+now_name+'.xvg', 'RNA', path = now_path, skip_lines=17 )
@@ -154,10 +146,6 @@ for ii in ['1', '2', '3', '4']:
 
     df['Covariance_Mean_Prot_BS'] = Covariance_Mean_Prot_BS
     #df['Covariance_Mean_Prot_noBS'] = Covariance_Mean_Prot_noBS
-
-
-    mean_12 = 1.5320026220697674e-05
-    std_12 = 8.303982395321321e-05
 
     df['Covariance_Mean_RNA_BS'] = Covariance_Mean_RNA_BS
     #df['Covariance_Mean_RNA_noBS'] = Covariance_Mean_RNA_noBS

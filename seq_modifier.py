@@ -13,7 +13,7 @@ import os
 pdb_path = '../GROMACS/'
 pdb_filename = 'TDP43.pdb'
 
-now_name = 'MTC1'
+now_name = 'MTC2'
 
 
 #check: già esiste 
@@ -45,8 +45,8 @@ low_sequence = up_sequence.lower()
 # %%
 # effettuo le mutazioni in sequenza 
 
-residues_to_mutate= [171, 174]
-old_residues = ['r',  'd']
+residues_to_mutate= [176, 179]
+old_residues = ['k',  'n']
 mutations = ['a', 'a']
 
 new_sequence = low_sequence
@@ -94,6 +94,6 @@ for ii in range(len(low_sequence)):
 # lancio il programma Scwrl4 
 
 
-os.system('cd {} && Scwrl4 -i ../TDP43.pdb -o {}.pdb -s seq_modified_{}.txt'.format(now_path, now_name, now_name))
+os.system('cd {} && Scwrl4 -i ../TDP43.pdb -o TDP43_{}.pdb -s seq_modified_{}.txt'.format(now_path, now_name, now_name))
 
 #%%
