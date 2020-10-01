@@ -146,7 +146,7 @@ else:
     skip_tot = True
     exclude_delta = True
     initial = initial
-    method = 'trf'
+    method = 'lm'
     print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
 
 inputs.set('Markov', 'method', method)
@@ -340,22 +340,33 @@ if recover_markov == False:
 
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
 
+            if (exclude_delta) & ((ii,jj) not in almost_height):
+                columns = cols_mark_nodelta
+                rules_bounds = rules_markov_bounds[0:3]+rules_markov_bounds[6:]
+                if len(p0_normal) != len(rules_bounds):
+                    p0_normal = np.concatenate([p0_normal[0:3], p0_normal[6:]])
+
+            else:
+                columns = cols_mark
+                rules_bounds = rules_markov_bounds
+
             matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
-            p0s = Get_p0_by_Neighbours(matrix, ii, jj, len(rows), len(cols))
+
+            p0s = Get_p0_by_Neighbours(matrix, columns, ii, jj, len(rows), len(cols))
         
             if (ii,jj) in almost_height:
+
                 p0s.append(p0_almost)
 
             else:#normals
                 p0s.append(p0_normal)
 
-            matrix[ii][jj].Get_Best_p0(p0s, cols_mark)
-
-            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(cols_mark)].values[0], cols_mark)
+            matrix[ii][jj].Get_Best_p0(p0s, columns)
+            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(columns)].values[0], columns)
             print('Cost before fitting = {:3.2f}'.format(matrix[ii][jj].cost_markov))
-            matrix[ii][jj].Get_Fit_Bounds(rules_markov_bounds, cols_mark)
-            fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(cols_mark, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
-            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], cols_mark)
+            matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
+            fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
+            matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], columns)
             print('Cost after fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_markov))
 
             if (ii,jj) in almost_height:
@@ -366,6 +377,10 @@ if recover_markov == False:
 
 
             del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].y_markov_convolution
+
+        else:
+            fit += ((0, (ii, jj)), )
+
 
         #afterfit
 
@@ -437,15 +452,25 @@ if not skip_tot:
         if (ii,jj) in boni:
 
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+
+
+            if 'delta_position' not in matrix[ii][jj].Markov_Fit_Params.keys():
+                columns = cols_real_nodelta
+                rules_bounds = rules_tot_bounds[0:5]+rules_tot_bounds[8:]
+            else:
+                columns = cols_real
+                rules_bounds = rules_tot_bounds
+
+
             p_gauss = matrix[ii][jj].Markov_Fit_Params[list(cols_gauss)].values[0]
             kernel   = matrix[ii][jj].VIPA_w_j/(p_gauss[0]*(np.exp(-((matrix[ii][jj].w_j_VIPA-p_gauss[1])**2)/(2*(p_gauss[2]**2)))))
 
             matrix[ii][jj].Initials_Parameters_from_Markov()
-            matrix[ii][jj].Get_Fit_Bounds(rules_tot_bounds, columns = cols_real)
-            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss, kernel)
+            matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns = columns)
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss, kernel, columns)
             print('\nCost before fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_tot))
             fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
-            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss, kernel)
+            matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss, kernel, columns)
             print('\nCost after fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_tot))
             #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds
 

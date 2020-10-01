@@ -300,14 +300,20 @@ config['syg_kwargs'] = { 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'wid
 config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 
-config['Operatives'] = {'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'exclude_delta' : False, 'initial' : 'right','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
-config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 6.09453018e-03,  7.46774482e+00,  1.31712795e-01,  2.39136196e-01,
-        1.13936085e-05,  2.78947527e-01,  4.71958556e+03, -9.62281912e+00,
-        1.58244543e+01,  1.21533037e-01,  3.25842410e+00], 'first_almost': first_almost, 'p0_almost' :[ 4.45785324e-03,  7.40442712e+00,  8.07935070e-02,  3.96812954e-02,
+config['Operatives'] = {'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'exclude_delta' : True, 'initial' : 'left','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
+config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 3.52454829e-03,  7.45105518e+00,  2.16956145e-02,  7.42988778e+02,
+       -1.02423051e+01,  8.40997763e+00, -6.29425334e-02,  4.78215564e-01], 
+'first_almost': first_almost, 'p0_almost' :[ 4.45785324e-03,  7.40442712e+00,  8.07935070e-02,  3.96812954e-02,
         9.58287799e-02,  2.65541107e-01,  3.21314854e-08, -9.62281912e+00,
         1.58244543e+01, -7.21776390e-02,  9.61758585e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
 
-config['Tot'] = {'skip_tot' : False, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)}
+config['Tot'] = {'skip_tot' : True, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)}
+
+
+#check
+p0_normal           = np.array(eval(config['Markov']['p0_normal']))
+if ((config.getboolean('Operatives', 'exclude_delta') == True) & (len(p0_normal) != len(cols_mark_nodelta))):
+    raise ValueError(' Be careful with that axe, Eugene! Se escludi la delta dai normal, p0_normal deve essere lungo {}'.format(len(cols_mark_nodelta)))
 
 with open(now_path+'config.ini', 'w') as fin:
     config.write(fin)

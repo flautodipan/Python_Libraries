@@ -20,7 +20,9 @@ free_spectral_range =   29.9702547 #GHz
 
 cols      = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols_real_nodelta =  ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
 cols_smart  =  ('Co', 'Omega', 'Gamma', 'delta_position',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 
@@ -530,19 +532,25 @@ class Spectrum  :
 
     def Get_cost_markov(self, p0, columns):
         
-        if columns == cols_smart:
-            attribute = 'Residuals_Markov_Smart'
+        if columns == cols_mark_nodelta:
+            attribute = 'Residuals_Markov_nodelta'
         elif columns == cols_mark:
             attribute = 'Residuals_Markov'
         else : raise ValueError('Choose columns for cost')
 
         self.cost_markov        =   0.5*np.sum(getattr(self, attribute)(p0, self.y)**2)
 
-    def Get_cost_tot(self, p0, p_gauss, kernel):
-        # senza le gauss
-    
-        self.cost_tot           =   0.5*np.sum(self.Residuals_NoGauss(p0, self.y, p_gauss, kernel)**2)
+    def Get_cost_tot(self, p0, p_gauss, kernel, columns):
 
+        if columns == cols_real_nodelta:
+            attribute = 'Residuals_NoGauss_nodelta'
+        elif columns == cols_real:
+            attribute = 'Residuals_NoGauss'
+        else : raise ValueError('Choose columns for fit')
+
+        self.cost_tot           =   0.5*np.sum(getattr(self, attribute)(p0, self.y, p_gauss, kernel)**2)
+    
+    
     def Get_p0_by_Markov(self, p0, treshold, **kwargs):
 
         """
@@ -831,6 +839,35 @@ class Spectrum  :
 
         return              interpolate
 
+
+    def Gauss_Convolve_Markovian_Response_Fast_nodelta (self, p):
+
+        """
+        Versione veloce della funzione Gauss_Convolve_Markovian
+        Funziona con modello Markov --> 8 parametri
+        """
+        self.y_markov_convolution      =       np.zeros(self.x_freq.size)
+
+        if hasattr(self, 'Delta_w_j_VIPA'):
+
+            kernel                  =       self.VIPA_w_j*self.Delta_w_j_VIPA/(p[3]*(np.exp(-((self.w_j_VIPA-p[4])**2)/(2*(p[5]**2)))))
+
+        else:
+
+            kernel                  =       self.VIPA_w_j/(p[3]*(np.exp(-((self.w_j_VIPA-p[4])**2)/(2*(p[5]**2)))))
+
+
+        for  ii in range(len(self.x_freq)):
+
+            delta_w                 =   self.x_freq[ii] -   self.w_j_VIPA
+            theor                   =   S_Dynamical_Form_Factor_0_nodelta(delta_w-p[6], *p[0:3])
+            self.y_markov_convolution[ii]  =   np.sum(theor*kernel)
+ 
+        self.y_Gauss_markov_convolution   =   p[7] + self.y_markov_convolution*p[3]*np.exp(-((self.x_freq - p[4])**2)/(2*(p[5]**2)))
+
+        return self.y_Gauss_markov_convolution 
+
+
     def Gauss_Convolve_Markovian_Response_Fast (self, p):
 
         """
@@ -939,6 +976,11 @@ class Spectrum  :
     def Residuals_Markov_Smart(self, p, y):
 
         return (self.Gauss_Convolve_Markovian_Response_Smart_Fast(p) - y)/self.y_err
+
+    
+    def Residuals_Markov_nodelta(self, p, y):
+        
+        return (self.Gauss_Convolve_Markovian_Response_Fast_nodelta(p) - y)/self.y_err
 
     def Residuals_NoGauss(self, p, y, p_gauss, kernel):
         
@@ -1050,8 +1092,15 @@ class Spectrum  :
 
     
     def Non_Linear_Least_Squares_Markov (self, columns, p0 = 'auto', fig = False, zoom = False, **kwargs):
+        
+        
+        if columns == cols_mark_nodelta:
 
-        attribute = 'Residuals_Markov'
+            attribute = 'Residuals_Markov_nodelta'
+        elif columns == cols_mark:
+            attribute = 'Residuals_Markov'
+
+        else : raise ValueError('Choose columns for fit')
 
         start            =    time.process_time()
 
@@ -1717,13 +1766,19 @@ def Get_Good_Elements(matrix, iterable, treshold, fit ):
 
 
     
-def Get_p0_by_Neighbours(matrix, ii_0, jj_0, n_rows, n_cols):
+def Get_p0_by_Neighbours(matrix, columns, ii_0, jj_0, n_rows, n_cols):
 
     p0s = []
     neigh = Get_Neighbours2D(ii_0, jj_0, n_rows, n_cols)
     for (ii,jj) in neigh:
         if hasattr(matrix[ii][jj], 'Markov_Fit_Params'):
-            p0s.append(matrix[ii][jj].Markov_Fit_Params.values[0])
+            if True not in np.isnan(matrix[ii][jj].Markov_Fit_Params.T['StdErrs'].values):
+                condition_delta = ('delta_position' in getattr(matrix[ii][jj], 'Markov_Fit_Params').keys())
+                if (columns == cols_mark_nodelta) | ((columns == cols_mark) & condition_delta) :
+                    p0s.append(matrix[ii][jj].Markov_Fit_Params.T['Values'][list(columns)])
+                else: continue
+            else: continue
+
     return p0s
 
 def serpentine_range(n_rows, n_cols, start):
