@@ -13,9 +13,9 @@ import      os
 
 
 #I/O 
-spectra_filename    =   'ARS_10_02'
+spectra_filename    =   'ARS_13_02'
 now_path            =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-VIPA_filename       =   'ARS_10_02_VIPA1.tif'
+VIPA_filename       =   'ARS_13_02_VIPA_not_sat.tif'
 
 
 log_file            =   'log_'+spectra_filename
@@ -37,7 +37,7 @@ syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
 transpose = False
 pre_cut = True
 pre_cut_range = (30,210)
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y', transpose = transpose)
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
@@ -70,7 +70,7 @@ for ii in range(len(rows)):
 
 
 # tolgo i saturati
-not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols))
+not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = 50000)
 
 #varie aggiunte a mano
 excluded = (saturated + to_add)
@@ -260,7 +260,8 @@ print('Ti suggerisco di usare come dist di syg_kwargs quella minore tra brilloui
 syg_kwargs_brill_height = np.min([np.min(height_first), np.min(height_fourth)])
 print('Ti suggerisco di usare come height di syg_kwargs_brill quella minore tra i due picchi elastici: {}\n'.format(syg_kwargs_brill_height))
 
-syg_kwargs_width = np.min([np.min(width_first), np.min(width_fourth)])
+syg_kwargs_width = np.min([np.min(width_first), np.min(width_fourth), np.min(width_second), np.min(width_third)])
+
 print('Ti suggerisco di usare come width di syg_kwargs, quella minore tra i due picchi elastici: {}\n'.format(syg_kwargs_width))
 
 print('Ti suggerisco di usare come medie distanze da elastici per taglio sulle x_freq:\n {:3.2} per 01\n{:3.2} per 23\n'.format(np.mean(dist_01), np.mean(dist_23)))
@@ -301,8 +302,9 @@ config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.0
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 
 config['Operatives'] = {'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'exclude_delta' : True, 'initial' : 'left','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
-config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 3.52454829e-03,  7.45105518e+00,  2.16956145e-02,  7.42988778e+02,
-       -1.02423051e+01,  8.40997763e+00, -6.29425334e-02,  4.78215564e-01], 
+config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 4.47878847e-03,  7.44602179e+00,  1.19372730e-01, -5.41093640e-03,
+        5.68669007e-02,  7.13459150e-02,  7.16867979e+03, -6.28367498e+00,
+        1.39048357e+01, -2.34364951e-02, -6.55254330e-01], 
 'first_almost': first_almost, 'p0_almost' :[ 4.45785324e-03,  7.40442712e+00,  8.07935070e-02,  3.96812954e-02,
         9.58287799e-02,  2.65541107e-01,  3.21314854e-08, -9.62281912e+00,
         1.58244543e+01, -7.21776390e-02,  9.61758585e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
@@ -313,7 +315,7 @@ config['Tot'] = {'skip_tot' : True, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'posi
 #check
 p0_normal           = np.array(eval(config['Markov']['p0_normal']))
 if ((config.getboolean('Operatives', 'exclude_delta') == True) & (len(p0_normal) != len(cols_mark_nodelta))):
-    raise ValueError(' Be careful with that axe, Eugene! Se escludi la delta dai normal, p0_normal deve essere lungo {}'.format(len(cols_mark_nodelta)))
+    print(' Be careful with that axe, Eugene! Se escludi la delta dai normal, p0_normal deve essere lungo {}'.format(len(cols_mark_nodelta)))
 
 with open(now_path+'config.ini', 'w') as fin:
     config.write(fin)

@@ -194,7 +194,7 @@ for (ii, ii_true) in zip(range(len(rows)), rows):
         
         matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
-
+        
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
         matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
 
