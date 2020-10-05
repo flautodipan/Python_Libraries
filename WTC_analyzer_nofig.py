@@ -278,6 +278,7 @@ for treshold in [9]:
         df['Gyradium_Mean']  = [np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]),]*len(res)
         df['Gyradium_Std']  = [np.std(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]),]*len(res)
         df['Kd'] = [Kds['wtc'+ii],]*len(res)
+        
 
         #3) salvo
 

@@ -15,7 +15,7 @@ Kds = {'cov{}'.format(n): kd for (n, kd) in zip(['1', '2', '3', '4'], Kds_)}
 dfs = {}
 
 now_temp = '300 K'
-scale='ns'
+scale='ns'200
 
 # studio da wtc7_16
 mean_12 = 8.552536674490916e-06

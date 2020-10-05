@@ -349,7 +349,7 @@ class Trajectory():
             plt.savefig(path+kwargs['histo']+'.pdf', format = 'pdf')
             plt.show()
 
-    def Define_Equilibrium_by_RMSD(self, time_range_eq, path = './', scale = 'ps', **kwargs):
+    def Define_Equilibrium_by_RMSD(self, time_range_eq, path = './', scale = 'ns', **kwargs):
 
         self.time_range_eq = time_range_eq
         self.idx_eq_left = int((time_range_eq[0] - self.initial_time)/self.timestep)
