@@ -17,24 +17,47 @@ warnings.filterwarnings("ignore")
 
 now_temp = '300 K'
 scale='ns'
-#COV1
+skip_cov = True
 
-now_path    =   '../GROMACS/COV1/'
-now_name    =    'cov1'
-n_frames = 2001
-time_range = [0, 200000]
-time_range_eq = time_range
+
+
+
+#WTC7_16
+
+now_path    =   '../GROMACS/WTC7_16/'
+now_name    =    'wtc7_16'
+n_frames = 10001
+time_range = [0, 1000000]
+time_range_eq = [250000, 1000000]
 color = 'black'
 darkcolor = 'darkred'
 brightcolor = 'limegreen'
 contrastcolor='gold'
 darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
-gyrad_ylim = (1.4, 2.)
+gyrad_ylim = (1.1, 1.8)
 cov_clim = (-0.005, 0.005)
 
 
+
 """
+
+#MTC1
+
+now_path = '../GROMACS/MTC1/'
+now_name = 'MTC1'
+n_frames = 7043
+time_range = [0, 704200]
+time_range_eq = [200000, 704200]
+color = 'black'
+darkcolor = 'darkred'
+brightcolor = 'limegreen'
+contrastcolor='gold'
+darkcontrastcolor = 'darkgoldenrod'
+ylim = (0,1.3)
+gyrad_ylim = (1.4, 2.)
+cov_clim = (-0.005, 0.005)
+
 
 #COV1
 
@@ -122,6 +145,22 @@ gyrad_ylim = (1.1, 1.8)
 cov_clim = (-0.005, 0.005)
 
 
+#WTC1_h_new
+
+now_path    =   '../GROMACS/WTC1_h_new/'
+now_name    =    'wtc1_h_new'
+n_frames = 5001
+time_range = [0, 500000]
+time_range_eq = [100000, 500000]
+color = 'cornflowerblue'
+darkcolor = 'midnightblue'
+brightcolor='magenta'
+contrastcolor = 'orange'
+darkcontrastcolor = 'orangered'
+ylim = (0,1)
+gyrad_ylim = (1.4, 2.)
+cov_clim = (-0.005, 0.005)
+
 #WTC1
 now_path    =   '../GROMACS/WTC1/'
 now_name    =    'wtc1'
@@ -182,7 +221,7 @@ brightcolor = 'yellowgreen'
 contrastcolor = 'darkorchid'
 darkcontrastcolor = 'darkslateblue'
 ylim = (0,1.2)
-gyrad_ylim = (0.8, 1.5))
+gyrad_ylim = (0.8, 1.5)
 cov_clim = (-0.005, 0.005)
 
 
@@ -202,6 +241,8 @@ gyrad_ylim = (1.1, 1.7)
 cov_clim = (-0.005, 0.005)
 
 
+
+
 #WTC6
 now_path    =   '../GROMACS/WTC6/'
 now_name    =    'wtc6'
@@ -212,10 +253,11 @@ color = 'firebrick'
 darkcolor = 'darkred'
 brightcolor = 'limegreen'
 contrastcolor='gold'
-darkcontrastclor = 'darkgoldenrod'
+darkcontrastcolor = 'darkgoldenrod'
 ylim = (0,1)
 gyrad_ylim = (1.1, 1.8)
 cov_clim = (-0.005, 0.005)
+
 
 
 
@@ -356,7 +398,7 @@ print('Ho trovato il "centroide" della distribuzione RMSD a equilibrio\nnel fram
 #1b) prendo la BS di quel frame e te la stampo
 filename='BS_{}_make_ndx.txt'.format(now_name)
 pdb_filename = 'average_pdb_'+now_name+'.pdb'
-treshold = 12
+treshold = 9
 
 TDP43   = BA.Protein(now_path+pdb_filename, model = False)
 RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B', model = False)
@@ -385,7 +427,7 @@ with open  (now_path+filename, 'w') as f:
 
 # me lo salvo
 np.save(now_path+'BS.npy', BS)
-np.save(now_path+'BS_RNA.npy', BS)
+np.save(now_path+'BS_RNA.npy', BS_RNA)
 
 # %%
 
@@ -518,7 +560,6 @@ WTC_traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq)
 
 #%%
 # MATRICE COVARIANZA ATOMICA
-skip_cov = True
 if not skip_cov:
     N = TDP43.atoms['atom_number'].size + RNA.atoms['atom_number'].size
     cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
@@ -575,6 +616,9 @@ with open(now_path+now_name+'_finals.txt', 'w') as f:
     f.write("RMSF BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}\n".format(np.mean(RMSF_res[idx_BS]), np.std(RMSF_res[idx_BS])))
     f.write("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}\n".format(np.mean(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right]), np.std(WTC_traj.Gyradium[WTC_traj.idx_eq_left:WTC_traj.idx_eq_right])))
     f.write('La BS della porteina consta di {} residui'.format(len(BS)))
+
+
+# %%
 
 
 # %%

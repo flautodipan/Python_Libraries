@@ -24,7 +24,7 @@ save_path = now_path+'CORRELATIONS_postLM/'
 treshold = 9
 print('\n\n\nTreshold = 9 Angstrom, chosen as the best one\n\n\n')
 
-WTC_identifier = ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7')
+WTC_identifier = ('wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7')
 Kds = [4, 4, 1360, 650, 750, 1320, 1800, 70]
 Kds_errs = [0.9, 0.9, 600, 135, 150, 350, 400, 50]
 
@@ -115,9 +115,9 @@ ax.set_title('Protein BS Covariance with Protein BS  vs Kd\ncorrelation = {:3.2f
 ax.errorbar(Kds[1:], correlators[1:], fmt = 'o', xerr = Kds_errs[1:], yerr= err_max, color = 'k' , ecolor = 'orange', label = 'simulated data', mew = 0.1)
 ax.errorbar(Kds[0] , correlators[0], fmt = 'o', xerr = Kds_errs[0], color = 'orange', ecolor = 'k', label = 'NMR data', mew = 0.1)
 
-for x,y, key in zip(Kds , correlators, ('wtc1', 'wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7')):
+for x,y, key in zip(Kds , correlators, WTC_identifier):
 
-    if key in ['wtc1_h']:
+    if key in ['wtc1_h_new']:
         key = 'wtc1'
         plt.annotate(key, (x,y), xytext = (5, -12), textcoords = 'offset points', )
     elif key == 'wtc1': 

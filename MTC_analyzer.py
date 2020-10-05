@@ -10,160 +10,36 @@ import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore")
 
 
-#exp data for WTC
-Kds_sort  = [4., 4., 700., 1320., 1350., 1360., 1800.]
-Kds_ = [4., 4., 1360., 1350, 700, 1320, 1800, 70]
-Kds = {'wtc{}'.format(n): kd for (n, kd) in zip(['1', '1_h_new', '2', '3', '4', '5', '6', '7'], Kds_)}
+#exp data for MTC
 
+Kds_= [529.1,]
+Kds = {'MTC{}'.format(n): kd for (n, kd) in zip(['1'], Kds)}
+
+#inizializzo dataframe
 
 dfs = {}
-now_temp = '300K'
 
 # studio da wtc7_16
 mean_12 = 8.552536674490916e-06
 std_12 = 7.437340840337174e-05
 
+now_temp = '300 K'
+scale='ns'
 
-#riferimento per lo z-score dato da studio wtc7_16
 
+for ii in ['1', ]:
 
-#seven reduced
-red     = False
-wtc7_7  = False
-wtc7_8  = False
-wtc7_16 = True
-wtc7_24 = False
-wtc7_24_1 = False
+    print('\n\nDinamica MTC{}\n\n'.format(ii))
 
-for treshold in [9]:
+    if ii == '1':
 
-    for ii in ['1_h_new', '1','2', '3', '4', '5', '6', '7']:
+        now_path = '../GROMACS/MTC1/'
+        now_name = 'MTC1'
+        n_frames = 7043
+        time_range = [0, 704200]
+        time_range_eq = [200000, 704200]
 
-        print('\n\n\nDinamica  wtc{} treshold = {}\n\n\n'.format(ii,treshold))
-
-        if ii == '1_h':
-
-            #WTC1_h
-            now_path    =   '../GROMACS/WTC1_h/'
-            now_name    =    'wtc1_h'
-            n_frames = 20001
-            time_range  =   [0, 2000000]
-            time_range_eq = [1000000, 2000000]
-        
-        elif ii == '1_h_new':
-
-            now_path    =   '../GROMACS/WTC1_h_new/'
-            now_name    =    'wtc1_h_new'
-            n_frames = 5001
-            time_range = [0, 500000]
-            time_range_eq = [100000, 500000]
-
-        elif ii == '1':
-            #WTC1
-            now_path    =   '../GROMACS/WTC1/'
-            now_name    =    'wtc1'
-            n_frames = 9700
-            time_range  =   [30060, 999960]
-            time_range_eq = [400060, 999960]
-        elif ii == '2':
-            #WTC2
-            now_path    =   '../GROMACS/WTC2/'
-            now_name    =    'wtc2'
-            n_frames = 10001
-            time_range = [0, 1000000]
-            time_range_eq = [400000, 1000000]
-        elif ii == '3':
-            #WTC3
-            now_path    =   '../GROMACS/WTC3/'
-            now_name    =    'wtc3'
-            n_frames = 20001
-            time_range = [0, 2000000]
-            time_range_eq = [600000, 2000000]
-        elif ii == '4':
-            #WTC4
-            now_path    =   '../GROMACS/WTC4/'
-            now_name    =    'wtc4'
-            n_frames = 10001
-            time_range = [0, 1000000]
-            time_range_eq = [400000, 1000000]
-        elif ii == '5':
-            #WTC5
-            now_path    =   '../GROMACS/WTC5/'
-            now_name    =    'wtc5'
-            n_frames = 30001
-            time_range = [0, 3000000]
-            time_range_eq = [2100000, 3000000]
-        elif ii == '6':
-            #WTC6
-            now_path    =   '../GROMACS/WTC6/'
-            now_name    =    'wtc6'
-            n_frames = 10001
-            time_range = [0, 1000000]
-            time_range_eq = [400000, 1000000]
-
-        elif ii == '7':
-            
-            if red == True:
-                #WTC7
-                now_path    =   '../GROMACS/WTC7/'
-                now_name    =    'wtc7'
-                n_frames = 10001
-                #ps
-                time_range = [0, 1000000]
-                time_range_eq = [200000, 950000]
-
-            elif wtc7_8 == True:
-
-                now_path    =   '../GROMACS/WTC7_8/'
-                now_name    =    'wtc7_8'
-                n_frames = 3001
-                time_range = [0, 300000]
-                time_range_eq = time_range
-
-            
-            elif wtc7_7 == True:
-
-                now_path    =   '../GROMACS/WTC7_7/'
-                now_name    =    'wtc7_7'
-                n_frames = 2301
-                time_range = [0, 230000]
-                time_range_eq = time_range
-
-            elif wtc7_16 == True:
-
-                now_path    =   '../GROMACS/WTC7_16/'
-                now_name    =    'wtc7_16'
-                n_frames = 10001
-                time_range = [0, 1000000]
-                time_range_eq = [250000, 1000000]
-            
-            elif wtc7_24 == True:
-
-                now_path    =   '../GROMACS/WTC7_24/'
-                now_name    =    'wtc7_24'
-                n_frames = 10001
-                time_range = [0, 1000000]
-                time_range_eq = [50000, 650000]
-
-                        
-            elif wtc7_24_1 == True:
-
-                now_path    =   '../GROMACS/WTC7_24_1/'
-                now_name    =    'wtc7_24'
-                n_frames = 10001
-                time_range = [0, 1000000]
-                time_range_eq = [750000, 1000000]
-
-            else:
-            
-                #WTC7
-                now_path    =   '../GROMACS/WTC7_red/'
-                now_name    =    'wtc7'
-                n_frames = 1251
-                time_range = [175000, 300000]
-                time_range_eq = time_range
-
-        #WTC analyzer senza figure
+    #WTC analyzer senza figure
 
         WTC_traj = BA.Trajectory(bio_name='{} in water (T = {})'.format(now_name, now_temp))
         WTC_traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 )
@@ -181,8 +57,8 @@ for treshold in [9]:
         BS      = {}
         BS['Prot'] = np.load(now_path+'BS.npy')
         BS['RNA'] = np.load(now_path+'BS_RNA.npy')
-        
         print(BS)
+
 
 
         WTC_traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = True, mode = 'RNA', path = now_path )
@@ -213,7 +89,7 @@ for treshold in [9]:
 
         df = pd.DataFrame(res, columns=['Residue_number'])
 
-        df['WTC_identifier'] = ['wtc'+ii,]*len(res)
+        df['MTC_identifier'] = ['MTC'+ii,]*len(res)
         df['Is_Prot'] = [True if ii < idx_RNA_start else False for ii in range(len(res))]
         df['Is_BS'] = [True if (r in BS['Prot']) | (r in BS['RNA']) else False for r in res]
         df['size(Prot_BS)'] = [len(BS['Prot'])]*len(res)
@@ -285,38 +161,8 @@ for treshold in [9]:
         dfs[now_name] = df
 
 
-    
+
     DF = pd.concat([dfs[key] for key in dfs.keys()], ignore_index=True)
-
-    if wtc7_7 == True:
-        DF.to_json('../GROMACS/WTC_data_frame_{}ang_7.json'.format(str(treshold)))
-        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_7.csv'.format(str(treshold)))
-
-    elif wtc7_8 == True:
-        DF.to_json('../GROMACS/WTC_data_frame_{}ang_8.json'.format(str(treshold)))
-        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_8.csv'.format(str(treshold)))
-    elif wtc7_16:
-        DF.to_json('../GROMACS/WTC_data_frame_{}ang_16_all.json'.format(str(treshold)))
-        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_16_all.csv'.format(str(treshold)))
-    elif wtc7_24:
-        DF.to_json('../GROMACS/WTC_data_frame_{}ang_24_all.json'.format(str(treshold)))
-        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_24_all.csv'.format(str(treshold)))
-
-    elif wtc7_24_1:
-
-        DF.to_json('../GROMACS/WTC_data_frame_{}ang_24_1_all.json'.format(str(treshold)))
-        DF.to_csv('../GROMACS/WTC_data_frame_{}ang_24_1_all.csv'.format(str(treshold)))
-
-    else:
-        DF.to_json('../GROMACS/WTC_data_frame_{}ang.json'.format(str(treshold)))
-        DF.to_csv('../GROMACS/WTC_data_frame_{}ang.csv'.format(str(treshold)))
-
-    
-    # %%
-WTC_identifier = ('wtc1', 'wtc1_h_new', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7')
-
-#CHECK COVARIANZA
-print('stampo le medie delle covarianze per ogni dinamica')
-[np.mean(a) for a in [DF.z_Covariance_Mean_Prot_BS_12[DF.WTC_identifier == key] for key in WTC_identifier ]]
-# %%
+    DF.to_json('../GROMACS/MTC_data_frame.json')
+    DF.to_csv('../GROMACS/MTC_data_frame.csv')
 
