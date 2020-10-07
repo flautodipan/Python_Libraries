@@ -90,31 +90,26 @@ class Protein:
             self.initial=   self.atoms.residue_number[0]
             #self.terminus =  self.pdb.df['OTHERS']
          
-            
-    def Get_All_Coord (self):
         
-        pass
-        
-    def Get_CA_Coord(self, atom_name = 'CA'):      
-       
-        self.CA = self.atoms[self.pdb.df['ATOM']['atom_name']==atom_name]
-        
-        self.CA_xcoord = np.array(self.CA['x_coord'])
-        self.CA_ycoord = np.array(self.CA['y_coord'])
-        self.CA_zcoord = np.array(self.CA['z_coord'])
-        
+    def Get_Atom_Coord(self, atom_name): 
 
-        self.CA_Coord = np.matrix([(self.CA_xcoord), (self.CA_ycoord), (self.CA_zcoord)])
-        self.CA_Coord = np.matrix.transpose(self.CA_Coord)
-        
-        self.lenght   = self.CA_Coord.shape[0]
+        # assegno dinamicamente il nome dell'attributo in base al nome dell'atomo
 
-        if (self.lenght == len(self.CA_Coord)):
+        setattr(self, atom_name, self.atoms[self.pdb.df['ATOM']['atom_name']==atom_name]) 
+        setattr(self, atom_name+'_xcoord', np.array(getattr(self, atom_name)['x_coord']))
+        setattr(self, atom_name+'_ycoord', np.array(getattr(self, atom_name)['y_coord']) )
+        setattr(self, atom_name+'_zcoord', np.array(getattr(self, atom_name)['z_coord']) )
+        setattr(self, atom_name+'_Coord', np.matrix([(getattr(self,atom_name+'_xcoord')), (getattr(self,atom_name+'_ycoord')), (getattr(self,atom_name+'_zcoord'))]).T)
 
-            print('Tutto ok \n Selezionati %s atomi di Carbonio pari al numero di residui \n Salvate le coordinate cartesiane di ogni atomo CA\n\n' %len(self.CA_Coord))
+    def Get_lenght(self):
+
+        if hasattr(self, 'CA'):
+            setattr(self, 'lenght', len(getattr(self, 'CA_Coord')))
+        else: raise ValueError('Non so come stimare lunghezza Prot\n\n')
         
-        else:
-            raise ValueError ("Something went wrong in determining protein size\n\n")
+    def Get_Protein_Sequence(self):
+
+        setattr(self, 'sequence', self.pdb.amino3to1()[self.pdb.amino3to1().chain_id == 'A'].residue_name.values)
 
 class RNA:
 
@@ -193,26 +188,33 @@ class RNA:
             self.initial = self.atoms.residue_number.values[0]
 
         
-    def Get_P_Coord(self, atom_name = 'P'): 
+    def Get_Atom_Coord(self, atom_name): 
 
-       
-        self.P = self.atoms[self.pdb.df['ATOM']['atom_name']==atom_name]
-        
-        self.P_xcoord = np.array(self.P['x_coord'])
-        self.P_ycoord = np.array(self.P['y_coord'])
-        self.P_zcoord = np.array(self.P['z_coord'])
-        
+        # assegno dinamicamente il nome dell'attributo in base al nome dell'atomo
+        real_atom_name = atom_name
+        if atom_name == "O5'":
+            atom_name = 'O5'
+        setattr(self, atom_name, self.atoms[self.pdb.df['ATOM']['atom_name']==real_atom_name]) 
 
-        self.P_Coord = np.matrix([(self.P_xcoord), (self.P_ycoord), (self.P_zcoord)])
-        self.P_Coord = np.matrix.transpose(self.P_Coord)
+        setattr(self, atom_name+'_xcoord', np.array(getattr(self, atom_name)['x_coord']))
+        setattr(self, atom_name+'_ycoord', np.array(getattr(self, atom_name)['y_coord']) )
+        setattr(self, atom_name+'_zcoord', np.array(getattr(self, atom_name)['z_coord']) )
+        setattr(self, atom_name+'_Coord', np.matrix([(getattr(self,atom_name+'_xcoord')), (getattr(self,atom_name+'_ycoord')), (getattr(self,atom_name+'_zcoord'))]).T)
 
-        self.lenght   = self.P_Coord.shape[0] + 1 
-        #il primo residuo 5' dell'RNA non ha il gruppo fosfato
+    def Get_lenght(self):
 
-        if (self.lenght == (len(self.P_Coord)+1)):
-            print('Tutto ok \n Selezionati %s atomi di Fosforo pari al numero di residui -1\n Salvate le coordinate cartesiane di ogni atomo P\n\n' %len(self.P_Coord))
-        else:
-            raise ValueError("Something went wrong in determining size of RNA\n\n")
+        if hasattr(self, 'O5'):
+            setattr(self, 'lenght', len(getattr(self, 'O5_Coord')))
+        elif (not hasattr(self, 'O5')) & hasattr(self, 'P'):
+            setattr(self, 'lenght', len(getattr(self, 'P_Coord')+1))
+        else: raise ValueError('Non so come stimare lunghezza RNA\n\n')
+
+    def Get_RNA_Sequence(self, ):
+
+        if hasattr(self, 'O5'):
+            setattr(self, 'sequence', self.atoms.residue_name[self.atoms.atom_name == "O5'"].values)
+        else: raise ValueError('Non ho atomi O5 per capire, sequenza puoi prenderla solo dopo')
+
     
 class Trajectory():
 
@@ -291,7 +293,7 @@ class Trajectory():
             plt.show()
 
     
-    def Get_RMSD(self, xvg_filename, equilibrium = False, mode = 'tot', scale = 'ps', path='./', skip = False, **kwargs):
+    def Get_RMSD(self, xvg_filename, equilibrium = False, mode = 'tot', scale = 'ns', path='./', skip = False, **kwargs):
 
         if equilibrium:
             
@@ -1008,10 +1010,12 @@ def Get_Covariance_Matrix(N, filename, path = './',):
 
         init+= N
     
+    np.save(path+filename+'.npy', cov_matrix)
     return cov_matrix
 
-def Pearson_Matrix_from_Cov(cov_matrix, N):
+def Pearson_Matrix_from_Cov(cov_matrix):
 
+    N = cov_matrix.shape[0]
     pearson = np.zeros((N,N))
     for ii in range(N):
         for jj in range(N):
@@ -1024,10 +1028,10 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, pearson = False, text =
         
     if c_type == 'Atoms':
         ylabel = 'Atom number'
-    elif c_type == 'CA':
+    elif (c_type == 'CAP') | (c_type == 'CAO'):
         ylabel = 'Residue Number'
     else:
-        raise ValueError ('Select type of cov matrix\n Atoms or CA\n')
+        raise ValueError ('Select type of cov matrix\n Atoms or CAO\CAP \n')
     
     if text:
         text = []   
@@ -1051,7 +1055,7 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, pearson = False, text =
     
     cm = ax.imshow(c_matrix, cmap = 'jet')  
 
-    if c_type == 'CA':
+    if ((c_type == 'CAP') | (c_type == 'CAO')):
         ticks =  np.linspace(0, len(idx)-1, 8, dtype = int)
         tickslabels = idx[ticks]
         ax.set_xticks(ticks)
@@ -1076,9 +1080,9 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, pearson = False, text =
     plt.tight_layout()
     f.autolayout=True
     if not pearson:
-        f.savefig(path+name+'_'+c_type+'cov_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
+        f.savefig(path+name+'_'+c_type+'_cov_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
     else:
-        f.savefig(path+name+'_'+c_type+'pear_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
+        f.savefig(path+name+'_'+c_type+'_pear_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
 
 def CAP_Cov_Matrix(cov_matrix, idx, save_filename, save_path = './'):
 
@@ -1222,10 +1226,7 @@ def Print_Protein_BS_old (res, Bonds, size, filename = 'BS.txt', prot_initial = 
                 idxs = idxs + [kk+1,]
                 count += 1
         
-    Binding_Site = np.sort(Binding_Site)
-    print(Binding_Site)
     Binding_Site = res[idxs]
-    print(Binding_Site)
 
     for ii in range(len(Bonds)):
           if len(Bonds[ii]) != 0:

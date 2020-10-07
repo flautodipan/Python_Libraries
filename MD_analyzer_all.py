@@ -57,7 +57,18 @@ for now_name in wtc_keys+cov_keys[1:]+mtc_keys:
         BS = np.load(now_path+'BS.npy')
         BS_RNA = np.load(now_path+'BS_RNA.npy')
         print(BS)
-    else : raise ValueError('Non hai salvato Binding Site in cartella {}'.format(now_path))
+    else : 
+        print('Non hai salvato Binding Site in cartella {}'.format(now_path))
+        protein.Get_CA_Coord()
+        RNA.Get_P_Coord(atom_name="{}".format(RNA_main_res))
+        Coord   = np.concatenate((protein.CA_Coord, RNA.P_Coord))
+        Dist    = BA.Dist_Matrix(Coord)
+        Cont    = BA.Contacts_Matrix(Dist, now_exp_df.bs_treshold.values[0])
+        Bonds   = BA.Analyze_Bond_Residues(Cont, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
+        BS      = BA.Print_Protein_BS_old(res, Bonds, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
+        BS_RNA  = BA.Print_Protein_BS_old(res, Bonds, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
+        np.save(now_path+'BS.npy', BS)
+        np.save(now_path+'BS_RNA.npy', BS_RNA)
 
 
     traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = True, mode = 'RNA', path = now_path )
@@ -67,10 +78,25 @@ for now_name in wtc_keys+cov_keys[1:]+mtc_keys:
     traj.Get_RMSF(xvg_filename='rmsf_'+now_name+'.xvg', path = now_path,)
 
     # matrice di covarianza dei residui
-    cov_matrix_CAP = np.genfromtxt(now_path+now_name+'CAP_cov_matrix.txt')
-    print('Covarianza media di {} è {}\n\n\n'.format(now_name, np.mean(cov_matrix_CAP))) 
-    N = cov_matrix_CAP.shape[0]
-    pearson_matrix_CAP = BA.Pearson_Matrix_from_Cov(cov_matrix_CAP, N)
+    if RNA_main_res == 'O':
+            
+        cov_matrix_CAO = np.genfromtxt(now_path+now_name+'CAO_cov_matrix.txt')
+        print('Covarianza media di {} è {}\n\n\n'.format(now_name, np.mean(cov_matrix_CAO))) 
+        N = cov_matrix_CAO.shape[0]
+        pearson_matrix_CAO = BA.Pearson_Matrix_from_Cov(cov_matrix_CAO, N)
+
+    elif RNA_main_res == 'P':
+
+        N = protein.atoms['atom_number'].size + RNA.atoms['atom_number'].size
+        cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
+        # prendo gli indici atomici dei CA e P
+        CA_idx = protein.CA['atom_number'].values - 1
+        P_idx = RNA.P['atom_number'].values - 1 
+        idx = np.concatenate((CA_idx, P_idx))
+        cov_matrix_CAP = BA.CAP_Cov_Matrix(cov_matrix, idx, now_name+'CAP_cov_matrix.txt', now_path)
+        pearson_matrix_CAP = BA.Pearson_Matrix_from_Cov(cov_matrix_CAP, N-1)
+
+
     traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA.xvg', now_path, skip_lines= 27 )
 
     # Salvo dataframe in ogni cartella
@@ -86,10 +112,10 @@ for now_name in wtc_keys+cov_keys[1:]+mtc_keys:
     df['residue_name'] = sequence 
 
 
-    df['Pearson_Mean'] = [np.mean(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
-    df['Pearson_Std'] = [np.std(pearson_matrix_CAP[:, ii]) for ii in range(len(res))]
-    df['Covariance_Mean'] = [np.mean(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
-    df['Covariance_Std'] = [np.std(cov_matrix_CAP[:, ii]) for ii in range(len(res))]
+    df['Pearson_Mean'] = [np.mean(pearson_matrix_CAO[:, ii]) for ii in range(len(res))]
+    df['Pearson_Std'] = [np.std(pearson_matrix_CAO[:, ii]) for ii in range(len(res))]
+    df['Covariance_Mean'] = [np.mean(cov_matrix_CAO[:, ii]) for ii in range(len(res))]
+    df['Covariance_Std'] = [np.std(cov_matrix_CAO[:, ii]) for ii in range(len(res))]
 
     Covariance_Mean_Prot_BS = []
     Covariance_Mean_Prot_noBS = []
@@ -103,15 +129,15 @@ for now_name in wtc_keys+cov_keys[1:]+mtc_keys:
 
     for kk in range(len(res)):
 
-        Covariance_Mean_Prot_BS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in list(np.array(BS) - df.Residue_number[0])]))
-        Covariance_Mean_Prot_noBS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS, BS_RNA))]]))
-        Covariance_Mean_RNA_BS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in list(np.array(BS_RNA) - df.Residue_number[0])]))
-        Covariance_Mean_RNA_noBS.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS_RNA]]))
+        Covariance_Mean_Prot_BS.append(np.mean([cov_matrix_CAO[jj,kk] for jj in list(np.array(BS) - df.Residue_number[0])]))
+        Covariance_Mean_Prot_noBS.append(np.mean([cov_matrix_CAO[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS, BS_RNA))]]))
+        Covariance_Mean_RNA_BS.append(np.mean([cov_matrix_CAO[jj,kk] for jj in list(np.array(BS_RNA) - df.Residue_number[0])]))
+        Covariance_Mean_RNA_noBS.append(np.mean([cov_matrix_CAO[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS_RNA]]))
 
-        Pearson_Mean_Prot_BS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in list(np.array(BS) - df.Residue_number[0])]))
-        Pearson_Mean_Prot_noBS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS, BS_RNA))]]))
-        Pearson_Mean_RNA_BS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in list(np.array(BS_RNA) - df.Residue_number[0])]))
-        Pearson_Mean_RNA_noBS.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS_RNA]]))
+        Pearson_Mean_Prot_BS.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in list(np.array(BS) - df.Residue_number[0])]))
+        Pearson_Mean_Prot_noBS.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS, BS_RNA))]]))
+        Pearson_Mean_RNA_BS.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in list(np.array(BS_RNA) - df.Residue_number[0])]))
+        Pearson_Mean_RNA_noBS.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS_RNA]]))
 
 
     df['Covariance_Mean_Prot_BS'] = Covariance_Mean_Prot_BS
