@@ -70,7 +70,7 @@ DF_1 = pd.read_json(now_path+'WTC_data_frame_9ang_16_all.json')
 Kds_new =  [4, 4, 1360, 650, 750, 1320, 1800, 70]
 Kds_errs = [0.9, 0.9, 600, 135, 150, 350, 400, 10]
 
-WTC_identifier = ('wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6', 'wtc7')
+WTC_identifier = ('wtc1_h', 'wtc1', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6', 'wtc7')
 
 
 z_covave_rmsf_BS_BS_1 = {key : DF_1.z_Covariance_Mean_Prot_BS[DF_1.WTC_identifier == key][DF_1.Is_BS == True][DF_1.Is_Prot == True] for key in WTC_identifier }
