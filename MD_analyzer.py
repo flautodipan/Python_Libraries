@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import os
 
 now_path = '../GROMACS/'
-redo_cov = True
-
+redo_cov = False
+# variabile per introdurre diverse possibilità di equilibrio
 
 # %%
 # VERSIONE single ---> figure e tutto
@@ -21,14 +21,16 @@ redo_cov = True
 # prendo info sperimentali e di dinamica MD da file excel in 
 # ../GROMACS/MD_experimental_data.xlsx
 
-now_name = 'mtc1'
+now_name = 'wtc1_h_new'
+eq       = '_eq1'
+
 exp_df = pd.read_excel(now_path+'MD_experimental_data.xlsx')
 exp_df = exp_df[exp_df.identifier == now_name]
 
 now_path        += now_name.upper() +'/'
 n_frames        = int(exp_df.n_frames.values[0])
 time_range      = eval(exp_df.time_range.values[0])
-time_range_eq   = eval(exp_df.time_range_eq.values[0])
+time_range_eq   = eval(exp_df.time_range_eq.values[0]) if eq == '_eq' else eval(exp_df.time_range_eq1.values[0]) if eq == '_eq1' else eval(exp_df.time_range_eq2.values[0])
 
 #colori
 color           = exp_df.color.values[0]
@@ -45,10 +47,10 @@ traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 
 #RMSD 
 traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, ylim = (0,2))
 traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.1, color = color, darkcolor = darkcolor, ylim = (0,2) )
-
+#%%
 #RMSF
 #acquisisco indici residui proteina da file .xvg dato da GROMACS
-res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path, skip_lines= 17)
+res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+eq+'.xvg', now_path, skip_lines= 17)
 res = np.array(res, dtype=int)
 # faccio diventare indici dei residui RNA successivi a quelli proteina
 idx_RNA_start = np.where( res == 1.)[0][0]
@@ -68,13 +70,13 @@ print('Ho trovato il "centroide" della distribuzione RMSD a equilibrio\nnel fram
 # 2 b - ACQUISISCO PDB GENERATO da gmx trjconv e trovo BS
 #   
 filename='BS_{}_make_ndx'.format(now_name)
-pdb_filename = 'average_pdb_'+now_name+'.pdb'
+pdb_filename = 'average_pdb_'+now_name+eq+'.pdb'
 treshold = exp_df.bs_treshold.values[0]
 
 protein   = BA.Protein(now_path+pdb_filename, model = False)
 RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B', model = False)
 
-print('Ok, acquisito correttamente pdb di proteina e RNA per {}'.format(now_name))
+print('Ok, acquisito correttamente pdb di proteina e RNA per {} eq = {}'.format(now_name, eq))
 
 protein.Get_Atom_Coord(atom_name = 'CA')
 protein.Get_lenght()
@@ -93,9 +95,10 @@ Cont_O5   = BA.Contacts_Matrix(Dist_O5, treshold)
 Bonds_O5   = BA.Analyze_Bond_Residues(Cont_O5, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
 BS_O5      = BA.Print_Protein_BS_old(res, Bonds_O5, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
 BS_RNA_O5 = BA.Print_Protein_BS_old(res, Bonds_O5, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
-np.save(now_path+'BS_O5.npy', BS_O5)
-np.save(now_path+'BS_RNA_O5.npy', BS_RNA_O5)
-with open  (now_path+filename+'_O5.txt', 'w') as f:
+
+np.save(now_path+'BS_O5'+eq+'.npy', BS_O5)
+np.save(now_path+'BS_RNA_O5'+eq+'.npy', BS_RNA_O5)
+with open  (now_path+filename+'_O5'+eq+'.txt', 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues at {} Å treshold\n".format(treshold))
         for bs in BS_O5:
             f.write('r {} | '.format(bs))
@@ -106,9 +109,9 @@ Cont_P   = BA.Contacts_Matrix(Dist_P, treshold)
 Bonds_P   = BA.Analyze_Bond_Residues(Cont_P, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
 BS_P      = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
 BS_RNA_P = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
-np.save(now_path+'BS_P.npy', BS_P)
-np.save(now_path+'BS_RNA_P.npy', BS_RNA_P)
-with open  (now_path+filename+'_P.txt', 'w') as f:
+np.save(now_path+'BS_P.npy'+eq+'', BS_P)
+np.save(now_path+'BS_RNA_P.npy'+eq+'', BS_RNA_P)
+with open  (now_path+filename+'_P'+eq+'.txt', 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues at {} Å treshold\n".format(treshold))
         for bs in BS_P:
             f.write('r {} | '.format(bs))
@@ -119,11 +122,11 @@ with open  (now_path+filename+'_P.txt', 'w') as f:
 #2) Acquisisco gli altri RMSD generati 
 
 traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = False, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA_tot', color = color, scale = 'ns', ylim = (0,2))
-traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = False, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS_tot', color = color, scale = 'ns', ylim = (0,2))
+traj.Get_RMSD('rmsd_'+now_name+'_BS'+eq+'.xvg',  equilibrium = False, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS_tot'+eq, color = color, scale = 'ns', ylim = (0,2))
 
 
 traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = True, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA', color = color, scale = 'ns')
-traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = True, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS', color = color, scale = 'ns')
+traj.Get_RMSD('rmsd_'+now_name+'_BS'+eq+'.xvg',  equilibrium = True, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS'+eq, color = color, scale = 'ns')
 
 
 reduction = 50
@@ -138,14 +141,14 @@ plt.legend()
 plt.xlabel('Time (ns)')
 plt.ylabel('RMSD (nm)')
 plt.tight_layout()
-plt.savefig(now_path+'RMSD_comparison.pdf', format = 'pdf')
+plt.savefig(now_path+'RMSD_comparison'+eq+'.pdf', format = 'pdf')
 
 #%%
 # 4 ) Gli altri RMSF
 
-traj.Acquire_Atoms_List('rmsf_RNA_'+now_name+'.xvg', 'RNA', path = now_path, skip_lines=17 )
-traj.Acquire_Atoms_List('rmsf_BS_'+now_name+'.xvg', 'BS', path = now_path, skip_lines = 17)
-traj.Get_RMSF(xvg_filename='rmsf_'+now_name+'.xvg', path = now_path, fig = now_name+'_rmsf', color = color, darkcolor = contrastcolor, thirdcolor = brightcolor)
+traj.Acquire_Atoms_List('rmsf_RNA_'+now_name+eq+'.xvg', 'RNA', path = now_path, skip_lines=17 )
+traj.Acquire_Atoms_List('rmsf_BS_'+now_name+eq+'.xvg', 'BS', path = now_path, skip_lines = 17)
+traj.Get_RMSF(xvg_filename='rmsf_'+now_name+eq+'.xvg', path = now_path, fig = now_name+'_rmsf'+eq, color = color, darkcolor = contrastcolor, thirdcolor = brightcolor)
 
 #RMSF for residues
 text_size = 7
@@ -205,19 +208,19 @@ for BS, atom in zip([BS_O5, BS_P], ['O5', 'P']):
 
 
     ax.legend(title = 'RNA starts at res {}'.format(int(res[idx_RNA_start])))
-    ax.set_title('RMSF for {} residues\nBS with {} atoms'.format(now_name, atom), pad = 5)
+    ax.set_title('RMSF {} for {} residues\nBS with {} atoms'.format(now_name, atom, str(eq)[1:]), pad = 5)
     ax.set_xlabel('Residue number')
     ax.set_ylabel('RMSF (nm)')
 
     plt.tight_layout()
-    f.savefig(now_path+'RMSF_res_'+now_name+'_{}.pdf'.format(atom), format = 'pdf', bbox_inches = 'tight')
+    f.savefig(now_path+'RMSF'+eq+'_res_'+now_name+'_{}.pdf'.format(atom), format = 'pdf', bbox_inches = 'tight')
 
 
 
 # %%
 # 5 ) Gyration Radium
 
-traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA.xvg', now_path, fig = now_name+'_gyradium', ylim = (0,2), alpha = 0.2, color = color, darkcolor = darkcolor, skip_lines= 27 )
+traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA'+eq+'.xvg', now_path, fig = now_name+'_gyradium'+eq, ylim = (0,2), alpha = 0.2, color = color, darkcolor = darkcolor, skip_lines= 27 )
 
 
 # %%
@@ -227,11 +230,11 @@ traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA.xvg', now_path, fig = now_name+'
 #acquisisco matrice atomica
 N = protein.atoms['atom_number'].size + RNA.atoms['atom_number'].size
 
-if (os.path.exists(now_path+'cov_eq_'+now_name+'.npy') & redo_cov == False):
-    print('Sto prendendo una matrice covarianza già salvata in file .npy\n')
-    cov_matrix = np.load(now_path+'cov_eq_'+now_name+'.npy')
+if ((os.path.exists(now_path+'cov'+eq+'_'+now_name+'.npy')) & (redo_cov== False)):
+    print('Sto prendendo una matrice covarianza già salvata in file .npy\n Eq = {}'.format(eq))
+    cov_matrix = np.load(now_path+'cov'+eq+'_'+now_name+'.npy')
 else:
-    cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
+    cov_matrix = BA.Get_Covariance_Matrix(N, 'cov'+eq+'_'+now_name, now_path)
 
 BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS_O5, res, path = now_path, clim = (-0.005, 0.005))
 
@@ -239,15 +242,15 @@ BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS_O5, res, path = now_path
 CA_idx = protein.CA['atom_number'].values -1
 O5_idx = RNA.O5['atom_number'].values-1 
 idx_CAO = np.concatenate((CA_idx, O5_idx))
-cov_matrix_CAO = BA.CAP_Cov_Matrix(cov_matrix, idx_CAO, now_name+'_CAO_cov_matrix.txt', now_path)
-BA.Print_Cov_Matrix_BS(cov_matrix_CAO, now_name, 'CAO', BS_O5, res, text = True, path = now_path, clim = (-0.005, 0.005))
+cov_matrix_CAO = BA.CAP_Cov_Matrix(cov_matrix, idx_CAO, now_name+'_CAO_cov'+eq+'matrix.txt', now_path)
+BA.Print_Cov_Matrix_BS(cov_matrix_CAO, now_name+eq, 'CAO', BS_O5, res, text = True, path = now_path, clim = (-0.005, 0.005))
 
 #matrice covarianza residui (RNA con P)
 CA_idx = protein.CA['atom_number'].values-1
 P_idx = RNA.P['atom_number'].values-1 
 idx_CAP = np.concatenate((CA_idx, [O5_idx[0]], P_idx))
-cov_matrix_CAP = BA.CAP_Cov_Matrix(cov_matrix, idx_CAP, now_name+'_CAP_cov_matrix.txt', now_path)
-BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CAP', BS_P, res, text = True, path = now_path, clim = (-0.005, 0.005))
+cov_matrix_CAP = BA.CAP_Cov_Matrix(cov_matrix, idx_CAP, now_name+'_CAP_cov'+eq+'matrix.txt', now_path)
+BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name+eq, 'CAP', BS_P, res, text = True, path = now_path, clim = (-0.005, 0.005))
 
 """
 secondo me skip cov non serve più
@@ -261,7 +264,6 @@ else:
     BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CAP', BS_P, res, text = True, path = now_path, clim = (-0.005, 0.005))
 
 """
-
 #%%
 # FACCIO ANCHE LA MATRICE di PEARSON
 #N = idx.size
@@ -404,10 +406,16 @@ df['Gyradium_Std']  = [np.std(traj.Gyradium[traj.idx_eq_left:traj.idx_eq_right])
 df['Kd'] = [exp_df.Kd[exp_df.identifier == now_name].values[0]]*len(res)
 df['Kd_err'] = [exp_df.Kd_err[exp_df.identifier == now_name].values[0]]*len(res)
 
-df.to_json(now_path+now_name+'_df.json')
-df.to_csv(now_path+now_name+'_df.csv')
+df.to_json(now_path+now_name+'_df'+eq+'.json')
+df.to_csv(now_path+now_name+'_df'+eq+'.csv')
 
 
+
+
+# %%
+
+
+# %%
 
 
 # %%
