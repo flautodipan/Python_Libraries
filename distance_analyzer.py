@@ -14,18 +14,17 @@ wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc
 cov_keys = ['cov1', 'cov2', 'cov3', 'cov4']
 mtc_keys = ['mtc1', 'mtc2']
 exp_df = pd.read_excel(path+'MD_experimental_data.xlsx')
-eq = 'eq'
+eq = 'eq1'
 now_keys = cov_keys[1:]
+
 #%%
 
-for now_name in now_keys:
+for now_name in ['mtc3', ]:
 
     now_exp_df = exp_df[exp_df.identifier == now_name]
     now_path = path + now_name.upper()  + '/'
-    if now_name == 'wtc1_h_new':
-        eq_frame_path = now_path +'/'+eq+'_frame_'+now_name+'/'
-    else: 
-        eq_frame_path = now_path +'/eq_frame_'+now_name+'/'
+    eq_frame_path = now_path +'/'+eq+'_frame_'+now_name+'/'
+
     n_frames        = int(now_exp_df.n_frames.values[0])
     time_range      = eval(now_exp_df.time_range.values[0])
     time_range_eq   = eval(now_exp_df.time_range_eq.values[0])

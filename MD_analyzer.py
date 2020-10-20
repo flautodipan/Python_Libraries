@@ -21,8 +21,8 @@ redo_cov = False
 # prendo info sperimentali e di dinamica MD da file excel in 
 # ../GROMACS/MD_experimental_data.xlsx
 
-now_name = 'wtc1_h_new'
-eq       = '_eq1'
+now_name = 'cov4'
+eq       = '_eq'
 
 exp_df = pd.read_excel(now_path+'MD_experimental_data.xlsx')
 exp_df = exp_df[exp_df.identifier == now_name]
@@ -46,7 +46,7 @@ traj.Set_Time_Info(n_frames = n_frames, time_range = time_range, timestep = 100 
 
 #RMSD 
 traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, ylim = (0,2))
-traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.1, color = color, darkcolor = darkcolor, ylim = (0,2) )
+traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD'+eq, alpha = 0.1, color = color, darkcolor = darkcolor, ylim = (0,2) )
 #%%
 #RMSF
 #acquisisco indici residui proteina da file .xvg dato da GROMACS
@@ -98,6 +98,7 @@ BS_RNA_O5 = BA.Print_Protein_BS_old(res, Bonds_O5, protein.lenght, prot_initial=
 
 np.save(now_path+'BS_O5'+eq+'.npy', BS_O5)
 np.save(now_path+'BS_RNA_O5'+eq+'.npy', BS_RNA_O5)
+
 with open  (now_path+filename+'_O5'+eq+'.txt', 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues at {} Å treshold\n".format(treshold))
         for bs in BS_O5:
@@ -109,8 +110,11 @@ Cont_P   = BA.Contacts_Matrix(Dist_P, treshold)
 Bonds_P   = BA.Analyze_Bond_Residues(Cont_P, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
 BS_P      = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
 BS_RNA_P = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
-np.save(now_path+'BS_P.npy'+eq+'', BS_P)
-np.save(now_path+'BS_RNA_P.npy'+eq+'', BS_RNA_P)
+
+np.save(now_path+'BS_P'+eq+'.npy', BS_P)
+np.save(now_path+'BS_RNA_P'+eq+'.npy', BS_RNA_P)
+
+
 with open  (now_path+filename+'_P'+eq+'.txt', 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues at {} Å treshold\n".format(treshold))
         for bs in BS_P:
@@ -208,7 +212,7 @@ for BS, atom in zip([BS_O5, BS_P], ['O5', 'P']):
 
 
     ax.legend(title = 'RNA starts at res {}'.format(int(res[idx_RNA_start])))
-    ax.set_title('RMSF {} for {} residues\nBS with {} atoms'.format(now_name, atom, str(eq)[1:]), pad = 5)
+    ax.set_title('RMSF {} for {} residues\nBS with {} atoms'.format(str(eq)[1:], now_name, atom, str(eq)[1:]), pad = 5)
     ax.set_xlabel('Residue number')
     ax.set_ylabel('RMSF (nm)')
 
@@ -338,13 +342,15 @@ Covariance_Mean_Prot_noBS_O5 = []
 
 Covariance_Mean_Prot_BS_P = []
 Covariance_Mean_Prot_noBS_P= []
+Pearson_Mean_Prot_BS_P = []
+Pearson_Mean_Prot_BS_O5 = []
+
 """
 ROBA CHE PER ORA NON SERVE PIU    
 tutto quello che sotto è commentato non serve più
 
 Covariance_Mean_RNA_BS = []
 Covariance_Mean_RNA_noBS = []
-Pearson_Mean_Prot_BS = []
 Pearson_Mean_Prot_noBS = []
 Pearson_Mean_RNA_BS = []
 Pearson_Mean_RNA_noBS = []
@@ -357,12 +363,15 @@ for kk in range(size_O5):
     Covariance_Mean_Prot_BS_P.append(np.mean([cov_matrix_CAP[jj,kk] for jj in list(np.array(BS_P) - df.Residue_number[0])]))
     Covariance_Mean_Prot_noBS_P.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS_P, BS_RNA_P))]]))
 
+    Pearson_Mean_Prot_BS_O5.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in list(np.array(BS_O5) - df.Residue_number[0])]))
+    Pearson_Mean_Prot_BS_P.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in list(np.array(BS_P) - df.Residue_number[0])]))
+
+
     
     """
     Covariance_Mean_RNA_BS.append(np.mean([cov_matrix_CAO[jj,kk] for jj in list(np.array(BS_RNA) - df.Residue_number[0])]))
     Covariance_Mean_RNA_noBS.append(np.mean([cov_matrix_CAO[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS_RNA]]))
 
-    Pearson_Mean_Prot_BS.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in list(np.array(BS) - df.Residue_number[0])]))
     Pearson_Mean_Prot_noBS.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS, BS_RNA))]]))
     Pearson_Mean_RNA_BS.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in list(np.array(BS_RNA) - df.Residue_number[0])]))
     Pearson_Mean_RNA_noBS.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res[idx_RNA_start:] if no_BS not in  BS_RNA]]))
@@ -374,6 +383,11 @@ df['Covariance_Mean_Prot_noBS_O5'] = Covariance_Mean_Prot_noBS_O5
 
 df['Covariance_Mean_Prot_BS_P'] = Covariance_Mean_Prot_BS_P
 df['Covariance_Mean_Prot_noBS_P'] = Covariance_Mean_Prot_noBS_P
+
+df['Pearson_Mean_Prot_BS_O5'] = Pearson_Mean_Prot_BS_O5
+df['Pearson_Mean_Prot_BS_P'] = Pearson_Mean_Prot_BS_P
+
+
 
 """
 df['Covariance_Mean_RNA_BS'] = Covariance_Mean_RNA_BS
@@ -389,8 +403,6 @@ df['z_Covariance_Mean_Prot_BS'] = (df.Covariance_Mean_Prot_BS - np.mean(df.Covar
 
 df['z_Covariance_Mean_12'] = (df['Covariance_Mean'] - mean_12)/std_12
 df['z_Covariance_Mean_Prot_BS_12'] = (df.Covariance_Mean_Prot_BS - mean_12)/std_12
-
-df['Pearson_Mean_Prot_BS'] = Pearson_Mean_Prot_BS
 df['Pearson_Mean_Prot_noBS'] = Pearson_Mean_Prot_noBS
 df['Pearson_Mean_RNA_BS'] = Pearson_Mean_RNA_BS
 df['Pearson_Mean_RNA_noBS'] = Pearson_Mean_RNA_noBS

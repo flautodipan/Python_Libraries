@@ -13,11 +13,10 @@ path = '../GROMACS/'
 wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16']
 wtc_keys_red = [wtc_keys[1]] + wtc_keys[3:]
 cov_keys = ['cov2', 'cov3', 'cov4']
-mtc_keys = ['mtc1', 'mtc2']
+mtc_keys = ['mtc1', 'mtc2', 'mtc3']
 
 exp_df = pd.read_excel(path+'MD_experimental_data.xlsx')
 
-eq = 'eq1'
 
 #%%
 # inputs
@@ -26,16 +25,19 @@ correlators = []
 x_vals = []
 x_errs = []
 
-now_keys = wtc_keys_red+mtc_keys+cov_keys
+now_keys = wtc_keys_red+mtc_keys
+now_eqs1 = ['wtc1_h_new', ]#'mtc3']
+
+
 
 for now_name in now_keys:
     print(now_name)
     now_exp_df = exp_df[exp_df.identifier == now_name]
     now_path = path + now_name.upper()  + '/'
-    if eq=='eq':
-        correlators.append(np.mean(np.load(now_path+now_name+'_min_CAPdist_'+eq+'.npy')))
-    else:        
-        correlators.append(np.mean(np.load(now_path+now_name+'_min_CAPdist_'+eq+'.npy')) if now_name == 'wtc1_h_new' else np.mean(np.load(now_path+now_name+'_min_CAPdist_eq.npy')))
+    eq = '_eq1' if now_name in now_eqs1 else '_eq'
+
+    correlators.append(np.mean(np.load(now_path+now_name+'_min_CAPdist'+eq+'.npy')))
+    print('Acquisisco {} con eq = {}'.format(now_name, eq, ))
 
 
     x_vals.append(now_exp_df.Kd[now_exp_df.identifier == now_name])

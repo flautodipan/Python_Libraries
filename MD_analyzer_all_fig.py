@@ -19,6 +19,8 @@ mtc_keys = ['mtc1']
 all_keys = wtc_keys+cov_keys[1:]+mtc_keys
 
 exp_df = pd.read_excel(path+'MD_experimental_data.xlsx')
+now_eqs1 = ['wtc1_h_new', 'mtc2', 'mtc3']
+now_eqs2 = []
 
 for now_name in all_keys:
 
@@ -27,7 +29,9 @@ for now_name in all_keys:
     now_path        = path + now_name.upper() +'/'
     n_frames        = int(now_exp_df.n_frames.values[0])
     time_range      = eval(now_exp_df.time_range.values[0])
-    time_range_eq   = eval(now_exp_df.time_range_eq.values[0])
+    time_range_eq   = eval(now_exp_df.time_range_eq1.values[0]) if now_name in now_eqs1 else eval(now_exp_df.time_range_eq.values[0]) 
+    eq = '_eq1' if now_name in now_eqs1 else '_eq'
+
     #colori
     color           = now_exp_df.color.values[0]
     darkcolor           = now_exp_df.darkcolor.values[0]
@@ -42,11 +46,11 @@ for now_name in all_keys:
 
     #RMSD 
     traj.Get_RMSD(xvg_filename = 'rmsd_'+now_name+'.xvg', fig = now_name+'_RMSD', histo = now_name+'_RMSD_Histogram', bins = 50, path = now_path, color = color, ylim = (0,2))
-    traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD_eq', alpha = 0.1, color = color, darkcolor = darkcolor, ylim = (0,2) )
+    traj.Define_Equilibrium_by_RMSD(time_range_eq = time_range_eq, path = now_path, fig =  now_name+'_RMSD'+eq, alpha = 0.1, color = color, darkcolor = darkcolor, ylim = (0,2) )
 
     #RMSF
     #acquisisco indici residui proteina da file .xvg dato da GROMACS
-    res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path, skip_lines= 17)
+    res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+eq+'.xvg', now_path, skip_lines= 17)
     res = np.array(res, dtype=int)
     # faccio diventare indici dei residui RNA successivi a quelli proteina
     idx_RNA_start = np.where( res == 1.)[0][0]
@@ -63,7 +67,7 @@ for now_name in all_keys:
     # 2 b - ACQUISISCO PDB GENERATO da gmx trjconv e trovo BS
     #   
     filename='BS_{}_make_ndx'.format(now_name)
-    pdb_filename = 'average_pdb_'+now_name+'.pdb'
+    pdb_filename = 'average_pdb_'+now_name+eq+'.pdb'
     treshold = now_exp_df.bs_treshold.values[0]
 
     protein   = BA.Protein(now_path+pdb_filename, model = False)
@@ -112,11 +116,11 @@ for now_name in all_keys:
     #2) Acquisisco gli altri RMSD generati 
 
     traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = False, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA_tot', color = color, scale = 'ns', ylim = (0,2))
-    traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = False, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS_tot', color = color, scale = 'ns', ylim = (0,2))
+    traj.Get_RMSD('rmsd_'+now_name+'_BS'+eq+'.xvg',  equilibrium = False, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS_tot'+eq, color = color, scale = 'ns', ylim = (0,2))
 
 
     traj.Get_RMSD('rmsd_'+now_name+'_RNA.xvg', equilibrium = True, mode = 'RNA', path = now_path, fig = now_name+'_RMSD_RNA', color = color, scale = 'ns')
-    traj.Get_RMSD('rmsd_'+now_name+'_BS.xvg',  equilibrium = True, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS', color = color, scale = 'ns')
+    traj.Get_RMSD('rmsd_'+now_name+'_BS'+eq+'.xvg',  equilibrium = True, mode = 'BS', path = now_path, fig = now_name+'_RMSD_BS'+eq, color = color, scale = 'ns')
 
 
     reduction = 50
@@ -131,13 +135,14 @@ for now_name in all_keys:
     plt.xlabel('Time (ns)')
     plt.ylabel('RMSD (nm)')
     plt.tight_layout()
-    plt.savefig(now_path+'RMSD_comparison.pdf', format = 'pdf')
+    plt.savefig(now_path+'RMSD_comparison'+eq+'.pdf', format = 'pdf')
 
     # 4 ) Gli altri RMSF
 
-    traj.Acquire_Atoms_List('rmsf_RNA_'+now_name+'.xvg', 'RNA', path = now_path, skip_lines=17 )
-    traj.Acquire_Atoms_List('rmsf_BS_'+now_name+'.xvg', 'BS', path = now_path, skip_lines = 17)
-    traj.Get_RMSF(xvg_filename='rmsf_'+now_name+'.xvg', path = now_path, fig = now_name+'_rmsf', color = color, darkcolor = contrastcolor, thirdcolor = brightcolor)
+
+    traj.Acquire_Atoms_List('rmsf_RNA_'+now_name+eq+'.xvg', 'RNA', path = now_path, skip_lines=17 )
+    traj.Acquire_Atoms_List('rmsf_BS_'+now_name+eq+'.xvg', 'BS', path = now_path, skip_lines = 17)
+    traj.Get_RMSF(xvg_filename='rmsf_'+now_name+eq+'.xvg', path = now_path, fig = now_name+'_rmsf'+eq, color = color, darkcolor = contrastcolor, thirdcolor = brightcolor)
 
     #RMSF for residues
     text_size = 7
@@ -197,15 +202,15 @@ for now_name in all_keys:
 
 
         ax.legend(title = 'RNA starts at res {}'.format(int(res[idx_RNA_start])))
-        ax.set_title('RMSF for {} residues\nBS with {} atoms'.format(now_name, atom), pad = 5)
+        ax.set_title('RMSF {} for {} residues\nBS with {} atoms'.format(str(eq)[1:], now_name, atom), pad = 5)
         ax.set_xlabel('Residue number')
         ax.set_ylabel('RMSF (nm)')
 
         plt.tight_layout()
-        f.savefig(now_path+'RMSF_res_'+now_name+'_{}.pdf'.format(atom), format = 'pdf', bbox_inches = 'tight')
+        f.savefig(now_path+'RMSF'+eq+'_res_'+now_name+'_{}.pdf'.format(atom), format = 'pdf', bbox_inches = 'tight')
     
     # GYRADIUM
-    traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA.xvg', now_path, fig = now_name+'_gyradium', ylim = (0,2), alpha = 0.2, color = color, darkcolor = darkcolor, skip_lines= 27 )
+    traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA'+eq+'.xvg', now_path, fig = now_name+'_gyradium'+eq, ylim = (0,2), alpha = 0.2, color = color, darkcolor = darkcolor, skip_lines= 27 )
 
     # 6 ) COVARIANCE ANALYSIS
 
@@ -216,17 +221,19 @@ for now_name in all_keys:
 
         if os.path.exists(now_path+'cov_eq_'+now_name+'.npy'):
             print('Sto prendendo una matrice covarianza già salvata in file .npy\n')
-            cov_matrix = np.load(now_path+'cov_eq_'+now_name+'.npy')
+            cov_matrix = np.load(now_path+'cov'+eq+'_'+now_name+'.npy')
         else:
-            cov_matrix = BA.Get_Covariance_Matrix(N, 'cov_eq_'+now_name, now_path)
+            cov_matrix = BA.Get_Covariance_Matrix(N, 'cov'+eq+'_'+now_name, now_path)
+        
         BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS_O5, res, path = now_path, clim = (-0.005, 0.005))
+
 
         #matrice covarianza residui (RNA con O5)
         CA_idx = protein.CA['atom_number'].values -1
         O5_idx = RNA.O5['atom_number'].values-1 
         idx_CAO = np.concatenate((CA_idx, O5_idx))
-        cov_matrix_CAO = BA.CAP_Cov_Matrix(cov_matrix, idx_CAO, now_name+'_CAO_cov_matrix.txt', now_path)
-        BA.Print_Cov_Matrix_BS(cov_matrix_CAO, now_name, 'CAO', BS_O5, res, text = True, path = now_path, clim = (-0.005, 0.005))
+        cov_matrix_CAO = BA.CAP_Cov_Matrix(cov_matrix, idx_CAO, now_name+'_CAO_cov'+eq+'matrix.txt', now_path)
+        BA.Print_Cov_Matrix_BS(cov_matrix_CAO, now_name+eq, 'CAO', BS_O5, res, text = True, path = now_path, clim = (-0.005, 0.005))
 
         #matrice covarianza residui (RNA con P)
         P_idx = RNA.P['atom_number'].values-1 
@@ -235,13 +242,13 @@ for now_name in all_keys:
         # però al livello della mia analisi (che riguarda prot BS), non dovrebbe cambiare troppo
         # SIINE consapevole + CAPISCI se forse è il caso di fare il barbatrucco anche da prima
         # così da non andare a definire una BS a partire da un nucleotide RNA in meno
-        idx_CAP = np.concatenate((CA_idx, [O5_idx[0]],  P_idx))
-        cov_matrix_CAP = BA.CAP_Cov_Matrix(cov_matrix, idx_CAP, now_name+'_CAP_cov_matrix.txt', now_path)
-        BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name, 'CAP', BS_P, res, text = True, path = now_path, clim = (-0.005, 0.005))
+        idx_CAP = np.concatenate((CA_idx, [O5_idx[0]], P_idx))
+        cov_matrix_CAP = BA.CAP_Cov_Matrix(cov_matrix, idx_CAP, now_name+'_CAP_cov'+eq+'matrix.txt', now_path)
+        BA.Print_Cov_Matrix_BS(cov_matrix_CAP, now_name+eq, 'CAP', BS_P, res, text = True, path = now_path, clim = (-0.005, 0.005))
 
     else:
-        cov_matrix_CAO = np.genfromtxt(now_path+now_name+'_CAO_cov_matrix.txt')  
-        cov_matrix_CAP = np.genfromtxt(now_path+now_name+'_CAP_cov_matrix.txt')  
+        cov_matrix_CAO = np.genfromtxt(now_path+now_name+'_CAO_cov_'+eq+'matrix.txt')  
+        cov_matrix_CAP = np.genfromtxt(now_path+now_name+'_CAP_cov_'+eq+'matrix.txt')  
 
     # FACCIO ANCHE LA MATRICE di PEARSON
 
@@ -291,6 +298,9 @@ for now_name in all_keys:
 
     Covariance_Mean_Prot_BS_P = []
     Covariance_Mean_Prot_noBS_P= []
+    Pearson_Mean_Prot_BS_P = []
+    Pearson_Mean_Prot_BS_O5 = []
+
     """
     ROBA CHE PER ORA NON SERVE PIU    
     tutto quello che sotto è commentato non serve più
@@ -310,6 +320,9 @@ for now_name in all_keys:
         Covariance_Mean_Prot_BS_P.append(np.mean([cov_matrix_CAP[jj,kk] for jj in list(np.array(BS_P) - df.Residue_number[0])]))
         Covariance_Mean_Prot_noBS_P.append(np.mean([cov_matrix_CAP[jj,kk] for jj in [no_BS -df.Residue_number[0] for no_BS in res if no_BS not in np.concatenate((BS_P, BS_RNA_P))]]))
 
+        Pearson_Mean_Prot_BS_O5.append(np.mean([pearson_matrix_CAO[jj,kk] for jj in list(np.array(BS_O5) - df.Residue_number[0])]))
+        Pearson_Mean_Prot_BS_P.append(np.mean([pearson_matrix_CAP[jj,kk] for jj in list(np.array(BS_P) - df.Residue_number[0])]))
+
         
         """
         Covariance_Mean_RNA_BS.append(np.mean([cov_matrix_CAO[jj,kk] for jj in list(np.array(BS_RNA) - df.Residue_number[0])]))
@@ -327,6 +340,10 @@ for now_name in all_keys:
 
     df['Covariance_Mean_Prot_BS_P'] = Covariance_Mean_Prot_BS_P
     df['Covariance_Mean_Prot_noBS_P'] = Covariance_Mean_Prot_noBS_P
+
+    df['Pearson_Mean_Prot_BS_O5'] = Pearson_Mean_Prot_BS_O5
+    df['Pearson_Mean_Prot_BS_P'] = Pearson_Mean_Prot_BS_P
+
 
     """
     df['Covariance_Mean_RNA_BS'] = Covariance_Mean_RNA_BS
@@ -357,7 +374,8 @@ for now_name in all_keys:
     df['Kd'] = [now_exp_df.Kd[now_exp_df.identifier == now_name].values[0]]*len(res)
     df['Kd_err'] = [now_exp_df.Kd_err[now_exp_df.identifier == now_name].values[0]]*len(res)
 
-    df.to_json(now_path+now_name+'_df.json')
-    df.to_csv(now_path+now_name+'_df.csv')
+
+    df.to_json(now_path+now_name+'_df'+eq+'.json')
+    df.to_csv(now_path+now_name+'_df'+eq+'.csv')
 
 # %%
