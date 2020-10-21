@@ -13,9 +13,9 @@ import      os
 
 
 #I/O 
-spectra_filename    =   'ARS_10_02'
+spectra_filename    =   'ARS_13_02'
 now_path            =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-VIPA_filename       =   'ARS_10_02_VIPA1.tif'
+VIPA_filename       =   'ARS_13_02_VIPA_quasisat.tif'
 log_file            =   'log_'+spectra_filename
 
 #operatives
@@ -35,7 +35,7 @@ syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
 transpose = False
 pre_cut = False
 pre_cut_range = (0,180)
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y', transpose = transpose)
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
@@ -266,13 +266,13 @@ print('Ti suggerisco di usare come medie distanze da elastici per taglio sulle x
 
 
 #%%
-for ii,jj in serpentine_range(len(rows), len(cols), 'right'):
+for ii,jj in serpentine_range(len(rows), len(cols), 'left'):
 
     if matrix[ii][jj].y.max() > 15000:
         first_almost = str((ii,jj))
         break
 
-first_normal = str(serpentine_range(len(rows), len(cols), 'right')[0])
+first_normal = str(serpentine_range(len(rows), len(cols), 'left')[0])
 
 print(" Primo normale è {}, Primo almost è {}".format(first_normal, first_almost))
 
@@ -300,11 +300,11 @@ config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.0
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 
 config['Operatives'] = {'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'exclude_delta' : False, 'initial' : 'right','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
-config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 6.09453018e-03,  7.46774482e+00,  1.31712795e-01,  2.39136196e-01,
-        1.13936085e-05,  2.78947527e-01,  4.71958556e+03, -9.62281912e+00,
-        1.58244543e+01,  1.21533037e-01,  3.25842410e+00], 'first_almost': first_almost, 'p0_almost' :[ 4.45785324e-03,  7.40442712e+00,  8.07935070e-02,  3.96812954e-02,
-        9.58287799e-02,  2.65541107e-01,  3.21314854e-08, -9.62281912e+00,
-        1.58244543e+01, -7.21776390e-02,  9.61758585e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
+config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [  0.18546683,   7.47194053,   0.18393093,   0.15640265,
+         0.05526828,   0.69558107,   0.10482704, -11.46468839,
+        17.22493449,   0.21038819, -11.45826805], 'first_almost': first_almost, 'p0_almost' :[ 1.26162861e+00,  8.94869622e+00,  2.17418216e+00,  2.32282856e-01,
+        5.59026293e-02,  7.18315776e+00,  1.40337867e-07, -1.14646884e+01,
+        1.72594188e+01, -2.28176122e+00, -1.84690398e+02], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
 
 config['Tot'] = {'skip_tot' : False, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 0.5)}
 
