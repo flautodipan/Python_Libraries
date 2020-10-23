@@ -11,7 +11,7 @@ from    scipy.optimize      import curve_fit
 from    scipy.io            import loadmat
 import  json
 import  os
-
+from    os.path             import join
 from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate, S_Dynamical_Form_Factor_0, S_0_Generate, S_Dynamical_Form_Factor_0_nodelta, S_Dynamical_Form_Factor_2_nodelta     
 from    Alessandria         import *
 from    lmfit               import Model

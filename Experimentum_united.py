@@ -43,7 +43,9 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 
 #%%
 #ANALYSIS PATH 
-if sys.argv[1] != '-f':
+print(sys.argv[0])
+print(sys.argv[1])
+if ((sys.argv[1] != '-f') & (sys.argv[0] != 'ipykernel_launcher')):
 
     print('Sto in modalità terminale\n')
     spectra_filename = sys.argv[1]
@@ -52,7 +54,7 @@ if sys.argv[1] != '-f':
     
     analysis_path = Get_Analysis_Path_From_Terminal(now_path, spectra_filename)
 
-elif sys.argv[1] == '-f': 
+elif ((sys.argv[1] == '-f') | (sys.argv[0] == 'ipykernel_launcher')): 
 
     print('Sto in modalità interattiva')
     spectra_filename = 'ARS_13_02'
