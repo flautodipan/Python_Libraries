@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-now_path = '../GROMACS/'
+now_path = os.path.join('..','GROMACS')
 redo_cov = False
 # variabile per introdurre diverse possibilità di equilibrio
 
@@ -24,10 +24,10 @@ redo_cov = False
 now_name = 'mtc2'
 eq       = '_eq2'
 
-exp_df = pd.read_excel(now_path+'MD_experimental_data.xlsx')
+exp_df = pd.read_excel(os.path.join(now_path, 'MD_experimental_data.xlsx'))
 exp_df = exp_df[exp_df.identifier == now_name]
 
-now_path        += now_name.upper() +'/'
+now_path        = os.path.join(now_path, now_name.upper(), )
 n_frames        = int(exp_df.n_frames.values[0])
 time_range      = eval(exp_df.time_range.values[0])
 time_range_eq   = eval(exp_df.time_range_eq.values[0]) if eq == '_eq' else eval(exp_df.time_range_eq1.values[0]) if eq == '_eq1' else eval(exp_df.time_range_eq2.values[0])
@@ -73,8 +73,8 @@ filename='BS_{}_make_ndx'.format(now_name)
 pdb_filename = 'average_pdb_'+now_name+eq+'.pdb'
 treshold = exp_df.bs_treshold.values[0]
 
-protein   = BA.Protein(now_path+pdb_filename, model = False)
-RNA     =  BA.RNA(now_path+pdb_filename, chain_id='B', model = False)
+protein   = BA.Protein(os.path.join(now_path, pdb_filename), model = False)
+RNA     =  BA.RNA(os.path.join(now_path, pdb_filename), chain_id='B', model = False)
 
 print('Ok, acquisito correttamente pdb di proteina e RNA per {} eq = {}'.format(now_name, eq))
 
@@ -96,10 +96,10 @@ Bonds_O5   = BA.Analyze_Bond_Residues(Cont_O5, (protein.lenght, RNA.lenght), ("p
 BS_O5      = BA.Print_Protein_BS_old(res, Bonds_O5, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
 BS_RNA_O5 = BA.Print_Protein_BS_old(res, Bonds_O5, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
 
-np.save(now_path+'BS_O5'+eq+'.npy', BS_O5)
-np.save(now_path+'BS_RNA_O5'+eq+'.npy', BS_RNA_O5)
+np.save(os.path.join(now_path, 'BS_O5'+eq+'.npy'), BS_O5)
+np.save(os.path.join(now_path+'BS_RNA_O5'+eq+'.npy'), BS_RNA_O5)
 
-with open  (now_path+filename+'_O5'+eq+'.txt', 'w') as f:
+with open  (os.path.join(now_path, filename+'_O5'+eq+'.txt'), 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues at {} Å treshold\n".format(treshold))
         for bs in BS_O5:
             f.write('r {} | '.format(bs))
@@ -111,11 +111,11 @@ Bonds_P   = BA.Analyze_Bond_Residues(Cont_P, (protein.lenght, RNA.lenght), ("pro
 BS_P      = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
 BS_RNA_P = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
 
-np.save(now_path+'BS_P'+eq+'.npy', BS_P)
-np.save(now_path+'BS_RNA_P'+eq+'.npy', BS_RNA_P)
+np.save(os.path.join(now_path, 'BS_P'+eq+'.npy'), BS_P)
+np.save(os.path.join(now_path, 'BS_RNA_P'+eq+'.npy'), BS_RNA_P)
 
 
-with open  (now_path+filename+'_P'+eq+'.txt', 'w') as f:
+with open  (os.path.join(now_path, filename+'_P'+eq+'.txt'), 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues at {} Å treshold\n".format(treshold))
         for bs in BS_P:
             f.write('r {} | '.format(bs))
@@ -145,7 +145,7 @@ plt.legend()
 plt.xlabel('Time (ns)')
 plt.ylabel('RMSD (nm)')
 plt.tight_layout()
-plt.savefig(now_path+'RMSD_comparison'+eq+'.pdf', format = 'pdf')
+plt.savefig(os.path.join(now_path, 'RMSD_comparison'+eq+'.pdf'), format = 'pdf')
 
 #%%
 # 4 ) Gli altri RMSF
@@ -217,7 +217,7 @@ for BS, atom in zip([BS_O5, BS_P], ['O5', 'P']):
     ax.set_ylabel('RMSF (nm)')
 
     plt.tight_layout()
-    f.savefig(now_path+'RMSF'+eq+'_res_'+now_name+'_{}.pdf'.format(atom), format = 'pdf', bbox_inches = 'tight')
+    f.savefig(os.path.join(now_path, 'RMSF'+eq+'_res_'+now_name+'_{}.pdf'.format(atom)), format = 'pdf', bbox_inches = 'tight')
 
 
 
@@ -234,10 +234,11 @@ traj.Get_Gyradium('gyration_'+now_name+'_BS_RNA'+eq+'.xvg', now_path, fig = now_
 #acquisisco matrice atomica
 N = protein.atoms['atom_number'].size + RNA.atoms['atom_number'].size
 
-if ((os.path.exists(now_path+'cov'+eq+'_'+now_name+'.npy')) & (redo_cov== False)):
+if ((os.path.exists(os.path.join(now_path, 'cov'+eq+'_'+now_name+'.npy'))) & (redo_cov== False)):
     print('Sto prendendo una matrice covarianza già salvata in file .npy\n Eq = {}'.format(eq))
-    cov_matrix = np.load(now_path+'cov'+eq+'_'+now_name+'.npy')
+    cov_matrix = np.load(os.path.join(now_path, 'cov'+eq+'_'+now_name+'.npy'))
 else:
+    print('Sto prendendo matrice in .dat')
     cov_matrix = BA.Get_Covariance_Matrix(N, 'cov'+eq+'_'+now_name, now_path)
 
 BA.Print_Cov_Matrix_BS(cov_matrix, now_name,'Atoms', BS_O5, res, path = now_path, clim = (-0.005, 0.005))
@@ -290,7 +291,7 @@ print("RMSF BS medio all'equilibrio = {:3.2f}\n Con stdev = {:3.2f}".format(np.m
 print("Gyration radium medio a eq per BS-RNA = {:3.2f}\nstdev = {:3.2f}".format(np.mean(traj.Gyradium[traj.idx_eq_left:traj.idx_eq_right]), np.std(traj.Gyradium[traj.idx_eq_left:traj.idx_eq_right])))
 print('La BS della porteina consta\ndi {} residui se considero O5 per RNA\ndi {} se considero P'.format(len(BS_O5), len(BS_P)))
 
-with open(now_path+now_name+'_finals.txt', 'w') as f:
+with open(os.path.join(now_path, now_name+'_finals.txt'), 'w') as f:
 
     f.write(("caratteristiche per {}\n\n".format(now_name)))
     f.write("Tempo totale = {} ns\n0.80(0.02)".format(np.array(time_range)/1000))
@@ -418,8 +419,8 @@ df['Gyradium_Std']  = [np.std(traj.Gyradium[traj.idx_eq_left:traj.idx_eq_right])
 df['Kd'] = [exp_df.Kd[exp_df.identifier == now_name].values[0]]*len(res)
 df['Kd_err'] = [exp_df.Kd_err[exp_df.identifier == now_name].values[0]]*len(res)
 
-df.to_json(now_path+now_name+'_df'+eq+'.json')
-df.to_csv(now_path+now_name+'_df'+eq+'.csv')
+df.to_json(os.path.join(now_path, now_name+'_df'+eq+'.json'))
+df.to_csv(os.path.join(now_path, now_name+'_df'+eq+'.csv'))
 
 
 

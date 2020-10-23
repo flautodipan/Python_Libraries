@@ -14,6 +14,8 @@ from sklearn.metrics import silhouette_score
 
 from operator import methodcaller
 
+from os.path import join
+
 class Protein:
 
     def __init__(self, pdb_filename, chain_id = 'A', from_web = False, model = 1):
@@ -987,7 +989,7 @@ def Get_Covariance_Matrix(N, filename, path = './',):
 
     cov_matrix = np.zeros((3*N,3*N), dtype = float)
 
-    with open (path+filename+'.dat', 'r') as fin:
+    with open (join(path,filename+'.dat'), 'r') as fin:
         lines = fin.readlines()
     
 
@@ -1279,7 +1281,7 @@ def Parse_xvg_skip(filename, path='./', skip_lines = 18, skip = False):
 
     """
 
-    with open(path+filename, 'r') as f:
+    with open(join(path,filename), 'r') as f:
         parser    =  f.readlines()[skip_lines:]
     
     temp      =  np.zeros((len(parser),2))

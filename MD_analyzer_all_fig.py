@@ -11,7 +11,7 @@ import  os
 warnings.filterwarnings("ignore")
 
 skip_cov = False
-path = '../GROMACS/'
+path = os.path.join('..','/GROMACS/')
 wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16']
 cov_keys = ['cov1', 'cov2', 'cov3', 'cov4']
 mtc_keys = ['mtc1']
