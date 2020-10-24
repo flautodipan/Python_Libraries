@@ -57,7 +57,7 @@ if sys.argv[1] != '-f':
 elif sys.argv[1] == '-f': 
 
     print('Sto in modalità interattiva')
-    spectra_filename = 'ARS_10_02'
+    spectra_filename = 'ARS_13_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
     analysis_name = 'prova_{}'.format(date.today().strftime("%d_%m_%Y"))
 
@@ -161,8 +161,8 @@ inputs.set('Markov', 'method', method)
 #######   ||||  ||||
 
 
-#import dati spettro
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y', transpose = transpose)
+#import dati spettro 
+dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 #matrix, rows, cols = Initialize_Matrix(0,0,3,3)
