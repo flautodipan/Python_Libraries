@@ -14,12 +14,12 @@ wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc
 cov_keys = ['cov1', 'cov2', 'cov3', 'cov4']
 mtc_keys = ['mtc1', 'mtc2']
 exp_df = pd.read_excel(path+'MD_experimental_data.xlsx')
-eq = 'eq1'
+eq = 'eq'
 now_keys = cov_keys[1:]
 
 #%%
 
-for now_name in ['mtc3', ]:
+for now_name in ['wtc5_new', ]:
 
     now_exp_df = exp_df[exp_df.identifier == now_name]
     now_path = path + now_name.upper()  + '/'
@@ -38,7 +38,7 @@ for now_name in ['mtc3', ]:
 
         #RMSF
         #acquisisco indici residui proteina da file .xvg dato da GROMACS
-        res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'.xvg', now_path, skip_lines= 17)
+        res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+now_name+'_'+eq+'.xvg', now_path, skip_lines= 17)
         res = np.array(res, dtype=int)
         # faccio diventare indici dei residui RNA successivi a quelli proteina
         idx_RNA_start = np.where( res == 1.)[0][0]

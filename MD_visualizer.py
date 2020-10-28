@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 
 path = '../GROMACS/'
-wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16']
+wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc5_new',  'wtc6', 'wtc7_16']
 wtc_keys_red = [wtc_keys[1]]+wtc_keys[3:]
 cov_keys = ['cov2', 'cov3', 'cov4']
 mtc_keys = ['mtc1', 'mtc2', 'mtc3']
@@ -22,8 +22,8 @@ gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 
 #%%
 # FORMO IL DATAFRAME con i DATI CHE VOGLIO STAMPARE ORA
-now_keys = wtc_keys_red + mtc_keys+cov_keys
-now_eqs1 = ['wtc1_h_new', 'mtc3']
+now_keys = ['wtc1', 'wtc1_h_new'] + cov_keys
+now_eqs1 = ['wtc1_h_new', ]# 'mtc3']
 now_eqs2 = ['mtc2',]
 
 dfs = {}
@@ -140,33 +140,29 @@ plt.show()
 # covariance
 correlators_P = [np.mean(z_covave_rmsf_BS_BS_12_P[key]) for key in now_keys]
 
+"""
 same_phys = [('wtc1_h_new', 'wtc7_16',), ('wtc2','wtc5'), ('wtc3', 'wtc4'), ]
-
 errors = []
 for which in same_phys:
     now_delta = np.abs(np.mean(z_covave_rmsf_BS_BS_12_P[which[0]])- np.mean(z_covave_rmsf_BS_BS_12_P[which[1]]))
     print(now_delta)
     errors.append(now_delta)
 print(errors)
-
-y_err_P = np.mean(errors)/np.sqrt(2)
+"""
+y_err_P = 0.1#np.mean(errors)/np.sqrt(2)
 print('Media dello scarto in y su punti con stessa fisica (stessa x ) =\n{}\n'.format(y_err_P))
 
 fig, ax = plt.subplots()
 ax.set_title('Protein BS Covariance with Protein BS  vs Kd\nRNA by P atoms')
 
 for x,x_err, y, key in zip(x_vals, x_errs, correlators_P, now_keys):
-    ax.errorbar(x, y, yerr = y_err_P, xerr= x_err, fmt = 'o', ecolor = 'orange', mew = 0.1, color = 'black' if key in wtc_keys else 'green' if key in cov_keys else 'goldenrod', label = 'wtc_series' if key == wtc_keys[-1] else 'cov_series' if key == cov_keys[-1] else 'mtc series' if key == mtc_keys[-1] else None)
+    ax.errorbar(x, y, xerr= x_err, fmt = 'o', ecolor = 'orange', mew = 0.1, color = 'black' if key in wtc_keys else 'green' if key in cov_keys else 'goldenrod', label = 'wtc_series' if key == wtc_keys[-1] else 'cov_series' if key == cov_keys[-1] else 'mtc series' if key == mtc_keys[-1] else None)
     plt.annotate('NMR' if key == 'wtc1' else 'wtc1' if key == 'wtc1_h' else 'wtc1_new' if key == 'wtc1_h_new' else key, (x,y), xytext = (5, 10), textcoords = 'offset points')
 
 ax.set_xlabel('Kd (nM)')
 ax.set_ylabel('Prot BS z Covariance with Prot BS ')
 plt.legend()
 plt.show()
-
-
-
-
 
 
 

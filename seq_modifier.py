@@ -13,7 +13,7 @@ import os
 pdb_path = '../GROMACS/'
 pdb_filename = 'TDP43.pdb'
 
-now_name = 'MTC3'
+now_name = 'MTC4'
 
 
 #check: già esiste 
@@ -45,9 +45,9 @@ low_sequence = up_sequence.lower()
 # %%
 # effettuo le mutazioni in sequenza 
 
-residues_to_mutate= [258,]
-old_residues = ['s',]
-mutations = ['a',]
+residues_to_mutate= [105, 254]
+old_residues = ['d', 's']
+mutations = ['a', 'a']
 
 new_sequence = low_sequence
 

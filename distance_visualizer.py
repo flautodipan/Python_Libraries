@@ -10,7 +10,7 @@ from scipy.spatial.distance import euclidean
 from scipy.stats import pearsonr
 
 path = '../GROMACS/'
-wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16']
+wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc5_new', 'wtc6', 'wtc7_16']
 wtc_keys_red = [wtc_keys[1]] + wtc_keys[3:]
 cov_keys = ['cov2', 'cov3', 'cov4']
 mtc_keys = ['mtc1', 'mtc2', 'mtc3']

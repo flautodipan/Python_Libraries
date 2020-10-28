@@ -1274,6 +1274,7 @@ def Parse_xvg(filename, path='./', skip = False):
 
 def Parse_xvg_skip(filename, path='./', skip_lines = 18, skip = False):
 
+    print('Sto aprendo file da {}'.format(join(path,filename)))
     """Funzione che legge file xvg indicato da filename
     e ritorna i conseguenti  array
 
