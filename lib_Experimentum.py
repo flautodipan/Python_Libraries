@@ -1470,7 +1470,7 @@ def Print_Parameter_Map(p_map, inf, sup, parameter, fit, name, pix_scale, filena
     plt.gca().add_artist(bar)
 
     plt.tight_layout()
-    f.savefig(path+filename+'.pdf', format = 'pdf', bbox_to_inches = (0,0,1,1))
+    f.savefig(os.path.join(path, filename+'.pdf'), format = 'pdf', bbox_to_inches = (0,0,1,1))
 
     plt.show()
 
@@ -1687,7 +1687,7 @@ def Get_cost_map(matrix, fit, n_rows, n_cols, fig, inf = 0, sup = 1000, cmap = '
     plt.colorbar()
     plt.xlabel('Row Index')
     plt.ylabel('Col Idx')
-    plt.savefig(path + fig+'.pdf', format = 'pdf')
+    plt.savefig(os.path.join(path, fig+'.pdf'), format = 'pdf')
     plt.show()
 
     return cost_matrix
