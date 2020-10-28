@@ -47,18 +47,16 @@ class Spectrum  :
 
         return '{}'.format(self.name)
         
-    def Get_Spectrum(self, y, offset = 183., cut = False, cut_range = None, fig = False):
+    def Get_Spectrum(self, y, offset, cut = False, cut_range = None, fig = False):
 
         """
 
-        #  Acquisisce spettro : o tramite passaggio
-
-
+        #  Acquisisce spettro tramite passaggio dell'array delle ordinate
             'cut' = True è per gli spettri troppo lunghi e va associata a cut_range (min, max)
 
         """
 
-        self.x      =   np.arange(1, len(y)+1, 1)
+        self.x          =   np.arange(1, len(y)+1, 1)
         self.offset     =   offset     
         self.y          =   y - self.offset
 
@@ -71,7 +69,7 @@ class Spectrum  :
         if cut:
 
             self.x      =   self.x[cut_range[0]:cut_range[1]]
-            self.y          =   self.y[cut_range[0]:cut_range[1]]
+            self.y      =   self.y[cut_range[0]:cut_range[1]]
 
         self.y_err      =   np.sqrt(self.y)
 
@@ -184,11 +182,12 @@ class Spectrum  :
             plt.title('Funzione di trasferimento VIPA in pixel da %s' %(mat_filename))
             plt.savefig(fig+'.png')
 
-    def Get_VIPA_tif(self, tif_filename, path='', offset = 'same', **img_kwargs):
+    def Get_VIPA_tif(self, tif_filename, path='./', offset = 'same', **img_kwargs):
 
-        print ('ATTENZIONE funzione da aggiornare\n\n\n\nATTENZIONE guarda Get_VIPA_mat')
-
-        VIPA                =   Import_TIF(path+tif_filename)
+        """
+        Importo il VIPA direttamente dall'immagine .tiff
+        """
+        VIPA                =   Import_TIF(join(path,tif_filename+'.tif'))
         
         if (offset != 'same'):
 
@@ -204,7 +203,7 @@ class Spectrum  :
             plt.xlabel('Pixels')
             plt.ylabel('VIPA transfer function')
             plt.title('Funzione di trasferimento VIPA in pixel da '+tif_filename)
-            plt.savefig(img_kwargs['save_path']+img_kwargs['fig']+'.png')
+            plt.savefig(join(img_kwargs['save_path'],img_kwargs['fig']+'.png'))
             plt.show()
 
     def Check_Spectrum_Saturation(self, saturation_height = 40000, saturation_width = 15.):
@@ -1220,7 +1219,7 @@ def Initialize_Matrix(ii_0, jj_0, ii_stop, jj_stop):
             riga  = riga + (Spectrum('Element ('+str(ii)+','+str(jj)+')'),)
         matrix = matrix + (riga,)
 
-    print('Ho inizializzato una matrice %dx%d, per un totale di %d spettri'%(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])  ))
+    print('Initialized %dx%d matrix, for a total number of spectra %d'%(len(matrix), len(matrix[0]), len(matrix)*len(matrix[0])  ))
 
     return (matrix, rows, cols)
 

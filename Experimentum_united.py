@@ -22,6 +22,7 @@ from        Alessandria         import  *
 import      time
 from        datetime            import date
 import      os
+from        os.path             import join
 import      configparser
 import      sys
 
@@ -162,7 +163,7 @@ inputs.set('Markov', 'method', method)
 
 
 #import dati spettro 
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
+dati    =   Import_from_Matlab(spectra_filename, now_path, transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
 #matrix, rows, cols = Initialize_Matrix(0,0,3,3)

@@ -1,63 +1,72 @@
 #%%
 
-# 1) SETTINGS and INPUTS
+#####
+###### 1) SETTINGS and INPUTS
+#####
 
-#libraries
+### EXTERNAL PACKAGES
+
 import      numpy               as      np
 import      matplotlib.pyplot   as      plt
 from        lib_Experimentum    import  *
 from        Alessandria         import  *
 import      time
 import      os
+from        os.path             import  join
+import      configparser
 
 
-
+### MANUAL INPUTS
 
 #I/O 
-spectra_filename    =   'ARS_13_02'
-now_path            =   '../BRILLOUIN/TDP43/'+spectra_filename+'/'
-VIPA_filename       =   'ARS_13_02_VIPA_quasisat.tif'
-
-
+spectra_filename    =   'ARS_10_02'
+now_path            =   join('..', 'BRILLOUIN', 'TDP43', spectra_filename)
+VIPA_filename       =   'ARS_10_02_VIPA_notsat'
 log_file            =   'log_'+spectra_filename
 
 #operatives
-
-#esclusi a mano
-to_add              =   []
-syg_kwargs_test          =   {'height': 10, 'distance': 32, 'width': 2.1}
+syg_kwargs_test     =   {'height': 10, 'distance': 32, 'width': 2.1}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
-syg_kwargs_brill    =  {'height': 18, 'distance': 31, 'width': 2.1}
+syg_kwargs_brill    =   {'height': 18, 'distance': 31, 'width': 2.1}
+transpose           =   False
+data_offset         =   183.
+saturation_height   =   50000
+saturation_width    =   15.
+pre_cut             =   True
+pre_cut_range       =   (30,210) if pre_cut else None
+to_add              =   []
 
 
 # %%
-#2) Acquisisco dati e inizializzo oggetti Spectrum per ognuno su una matrice (n_rows, n_cols)
-#   e compio alcune operazioni di sistema utili per salvataggio dati
 
-#import dati spettro
-transpose = False
-pre_cut = True
-pre_cut_range = (30,210)
-dati    =   Import_from_Matlab(spectra_filename, now_path, var_name = 'y3', transpose = transpose)
-n_rows  =   len(dati)
-n_cols  =   len(dati[0])
-matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
-dim     =   len(rows)*len(cols)
+#####
+######  2)  DATA ACQUISITION AND OBJECTS INITIALIZATION
+#####
+
+dati                =   Import_from_Matlab(spectra_filename, now_path, transpose = transpose)
+n_rows              =   len(dati)
+n_cols              =   len(dati[0])
+matrix, rows, cols  =   Initialize_Matrix(0,0, n_rows, n_cols)
+dim                 =   len(rows)*len(cols)
 #%%
 
-four = []
-more_than_four = []
-less_than_four = []
-bizarre = []
+#####
+######  3A)  DATA CLASSIFICATION: FASE I
+#####
 
-#3) Riempio oggetti
+four            = []
+more_than_four  = []
+less_than_four  = []
+bizarre         = []
+
+# Riempio oggetti e classifico in chi ha 4 picchi, chi ne ha di più, chi di meno
 matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
 for ii in range(len(rows)):
     for jj in range(len(cols)):
-        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+        print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
         
-        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
+        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = data_offset, cut = pre_cut, cut_range = pre_cut_range)
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_test)
         matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
         matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
@@ -70,15 +79,20 @@ for ii in range(len(rows)):
             less_than_four.append((ii,jj))
 
 
-# tolgo i saturati
-not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = 50000)
+# classifico i saturati, in base all'input saturation_height
+not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = saturation_height, saturation_width=saturation_width)
 
-#varie aggiunte a mano
+# formo la categoria degli esclusi
 excluded = (saturated + to_add)
 
-print("Lunghezza di spettri con 4 picchi: {}".format(len(four)))
-print('Lunghezza di spettri con più di 4 picchi: {}'.format(len(more_than_four)))
-print('Lunghezza di spettri con meno di 4 picchi: {}'.format(len(less_than_four)))
+print("\n\nNumero di spettri con 4 picchi:\n{}".format(len(four)))
+print('Numero di spettri con più di 4 picchi:\n{}'.format(len(more_than_four)))
+print('Numero di spettri con meno di 4 picchi:\n{}'.format(len(less_than_four)))
+print('Numero di spettri non saturati:\n{}/{}'.format(len(not_saturated), dim))
+print('Numero di spettri saturati:\n{}/{}'.format(len(saturated), dim))
+print('Numero di spettri che saranno esclusi da analisi:\n{}/{}'.format(len(excluded), dim))
+
+
 
 #%%
 #VERIFICHIAMO IL VIPA
@@ -86,22 +100,20 @@ matrix[0][0].How_Many_Peaks_To_VIPA(treshold = 0, **syg_kwargs_VIPA, fig = True,
 
 
 #%%
-# Prendo per tutti 4 picchi
+#####
+######  3B)  DATA CLASSIFICATION: FASE II
+#####        tutti con 4 picchi
 
 lowest_height = ()
-print('Lunghezza iniziale four = {}'.format(len(four)))
-print('Lunghezza iniziale less_than_four = {}'.format(len(less_than_four)))
-print('Lunghezza iniziale more_than_four = {}'.format(len(more_than_four)))
 
 for ii in range(len(rows)):
     for jj in range(len(cols)):
-        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+        print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
 
         if (ii,jj) in excluded:
             if (ii,jj) in more_than_four :  more_than_four.remove((ii,jj))
             elif (ii,jj) in less_than_four: less_than_four.remove((ii,jj))
             elif (ii,jj) in four: four.remove((ii,jj))
-
         
         else:
             if ((ii,jj) in more_than_four):
@@ -146,8 +158,9 @@ if len(four) != (dim -len(excluded)):
 Plot_Elements_Spectrum(matrix, bizarre, peaks = True, pix = True)
 to_add += bizarre
 #%%
-# STATSTICHE:     costruisco variabili che mi permettono di studiare le posizioni relative
-#                 e le altezze dei vari picchi -> individuo gli anomali e i parametri operativi
+#####
+###### 4) STATS:  costruisco variabili che mi permettono di studiare le posizioni relative
+#####             e le altezze dei vari picchi -> individuo gli anomali e i parametri operativi
 #                 syg_kwargs
 #                 il senso è che (ipotizzando posizioni elastic, brill_stockes, brill_anti, elastic)
 #                 syg_kwargs['height'] = min(min(height_second), min(height_third)) 
@@ -178,8 +191,6 @@ dist_23        = ()
 
 
 for (ii,jj) in four:
-
-        
 
         height_first  += (matrix[ii][jj].peaks['heights'][0],)
         height_second += (matrix[ii][jj].peaks['heights'][1],)
@@ -226,23 +237,7 @@ for (s, what) in zip(stats, ('Picco 1 height', 'Picco 2 height', 'Picco 3 height
     plt.show()
 
 #%%
-#aggiuntine a mano
-bad_idx= list(np.where(np.array(height_second) < 10)[0])
-
-count = 0
-to_plot = []
-for (ii,jj) in four:
-    if count in bad_idx:
-        print(str((ii,jj)))
-        to_plot.append((ii,jj))
-    count+=1
-
-to_add += to_plot
-syg_kwargs_height = 38.91
-syg_kwargs_brill_height = 5.4
-syg_kwargs_width = 2.4
-#%%
-#Suggestions
+# stampo i syg_kwargs consigliati risultanti delle analisi statistiche
 
 how_many = 15
 for tup, what in zip([height_first, height_second, height_third, height_fourth, dist_01, dist_12, dist_23], ['picco el sx', 'picco brillouin sx', 'picco brillouin dx', 'picco el dx', 'dist 01', 'dist 12','dist2']):
@@ -269,6 +264,10 @@ print('Ti suggerisco di usare come medie distanze da elastici per taglio sulle x
 
 
 #%%
+#####
+######  6)  FIRST NORMAL and FIRST ALMOST
+#####        
+
 for ii,jj in serpentine_range(len(rows), len(cols), 'right'):
 
     if matrix[ii][jj].y.max() > 15000:
@@ -277,48 +276,44 @@ for ii,jj in serpentine_range(len(rows), len(cols), 'right'):
 
 first_normal = str(serpentine_range(len(rows), len(cols), 'right')[0])
 
-print(" Primo normale è {}, Primo almost è {}".format(first_normal, first_almost))
-
-
-
-
+print(" Primo normale è {}, Primo almost è {}\nCorri a fare i fit con Exp_single.ipynb e inserisci i parametri qua sotto\n".format(first_normal, first_almost))
 
 
 #%%
-#GENERO FILE di CONFIG
-###
-###         CONTROLLA INITIAL !!!!!!!!!!!!
-####
-####
+# inserisci prototipi p0
 
-import configparser
-from Alessandria import Get_Around
+p0_normal = [ 4.47878847e-03,  7.44602179e+00,  1.19372730e-01, -5.41093640e-03,
+        5.68669007e-02,  7.13459150e-02,  7.16867979e+03, -6.28367498e+00,
+        1.39048357e+01, -2.34364951e-02, -6.55254330e-01]
+p0_almost = [ 4.45785324e-03,  7.40442712e+00,  8.07935070e-02,  3.96812954e-02,
+        9.58287799e-02,  2.65541107e-01,  3.21314854e-08, -9.62281912e+00,
+        1.58244543e+01, -7.21776390e-02,  9.61758585e+00]
+
+if len(p0_almost) == len(p0_almost):
+    print('Acquisiti p0_normal e p0_almost predefiniti, entrambi con {} elementi'.format(len(p0_almost)))
+else:
+    raise ValueError('Lunghezza di p0_normal ({}) e p0_almost ({}) non coincide, ma DEVE'.format(len(p0_normal), len(p0_almost)))
+
+
+#%%
+#####
+######  7)  GENERO FILE .ini
+#####       
+
+#altri opera
 
 config = configparser.ConfigParser()
 
 config['I/O'] = {'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_filename, 'log_file' : 'log_'+spectra_filename, 'transpose' : transpose}
-
 config['syg_kwargs'] = { 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
-
-config['Operatives'] = {'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'exclude_delta' : True, 'initial' : 'left','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': 50000, 'sat_width':13.5, 'almost_treshold':15000, 'pre_cut' : False, 'cut' :True}
-config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : [ 4.47878847e-03,  7.44602179e+00,  1.19372730e-01, -5.41093640e-03,
-        5.68669007e-02,  7.13459150e-02,  7.16867979e+03, -6.28367498e+00,
-        1.39048357e+01, -2.34364951e-02, -6.55254330e-01], 
-'first_almost': first_almost, 'p0_almost' :[ 4.45785324e-03,  7.40442712e+00,  8.07935070e-02,  3.96812954e-02,
-        9.58287799e-02,  2.65541107e-01,  3.21314854e-08, -9.62281912e+00,
-        1.58244543e+01, -7.21776390e-02,  9.61758585e+00], 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
-
+config['Operatives'] = {'cut': True, 'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'exclude_delta' : True, 'initial' : 'left','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': saturation_height, 'sat_width':saturation_width, 'almost_treshold':15000, }
+config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : p0_normal, 
+'first_almost': first_almost, 'p0_almost' :p0_almost, 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
 config['Tot'] = {'skip_tot' : True, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 'inf')}
 
-
-#check
-p0_normal           = np.array(eval(config['Markov']['p0_normal']))
-if ((config.getboolean('Operatives', 'exclude_delta') == True) & (len(p0_normal) != len(cols_mark_nodelta))):
-    print(' Be careful with that axe, Eugene! Se escludi la delta dai normal, p0_normal deve essere lungo {}'.format(len(cols_mark_nodelta)))
-
-with open(now_path+'config.ini', 'w') as fin:
+with open(join(now_path,'config.ini'), 'w') as fin:
     config.write(fin)
 
 #%%

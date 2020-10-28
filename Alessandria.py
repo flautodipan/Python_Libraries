@@ -4,6 +4,7 @@ import  matplotlib.pyplot   as      plt
 from    PIL                 import  Image
 from    scipy.signal        import  find_peaks
 from    scipy.io            import  loadmat
+from    os.path             import  join
 
 
 """    
@@ -179,22 +180,25 @@ def Is_Far_by_N_sigma_from_Mean(value, population, N):
         return True
     else: return False
 
-def Import_from_Matlab (mat_filename, path, transpose = True, **kwargs):
+def Import_from_Matlab (mat_filename, path, transpose = True, matcell = True ):
 
     """
-    Funzione che importa da matlab, file 'path+matfilename'
-    a seconda del tipo di dato, va strutturata con kwargs
+    Funzione che importa da matlab, file /path/matfilename
 
-    -   matlab cell     =       tensori, vuole una key per il dictionary
-                                es.  loadmat(..)['y']
-
+    -   matlab cell     =       tensori, genera un dict e vuole una key
+                                es.  loadmat(..)['y'] per Brillouin IIT
     """
 
-    dati    =   loadmat(path+mat_filename)
+    dati    =   loadmat(join(path,mat_filename))
 
-    if 'var_name' in kwargs:
+    if matcell:
 
-        dati    =   dati[kwargs['var_name']]
+        keys = []
+        for key, _ in dati.items():
+            keys.append(key)
+        key = keys[-1]
+        dati    =   dati[key]
+        print('Took data from matlab cell datatype. Variable name is {}'.format(key))
     
     if transpose: return dati.T
     else:     return dati
