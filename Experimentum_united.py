@@ -21,6 +21,7 @@ from        Alessandria         import  *
 
 import      time
 from        datetime            import date
+from        subprocess          import run
 import      os
 from        os.path             import join
 import      configparser
@@ -46,18 +47,20 @@ cols_gauss  = ( 'A', 'mu', 'sigma')
 
 #%%
 #ANALYSIS PATH 
-if sys.argv[1] != '-f':
 
-    print('Sto in modalità terminale\n')
+mode = Check_Execution_Mode(sys.argv)
+
+if mode == 'terminal':
+
+    print("I'm executing by command prompt \n")
     spectra_filename = sys.argv[1]
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
     print("By default setting, I'm taking data from directory {}, hope it's correct\n".format(now_path))
-    
     analysis_path = Get_Analysis_Path_From_Terminal(now_path, spectra_filename)
 
-elif sys.argv[1] == '-f': 
+elif mode == 'interactive': 
 
-    print('Sto in modalità interattiva')
+    print("Executing python interactive window using Jupyter")
     spectra_filename = 'ARS_13_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
     analysis_name = 'prova_{}'.format(date.today().strftime("%d_%m_%Y"))
@@ -68,7 +71,8 @@ elif sys.argv[1] == '-f':
     while True:
 
         if not os.path.exists(now_path +analysis_name+'/'):
-            os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+            run(['cd', now_path, '&&', 'mkdir', analysis_name], shell = True)
+            #os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
             break
 
         else: 
@@ -134,7 +138,7 @@ rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
 
 ############
 
-if sys.argv[1] != '-f':
+if mode == 'terminal':
     print('p0s lenght is {} for normal, {} for almost\n'.format(len(p0_normal), len(p0_almost)))
     recover_markov, skip_tot, exclude_delta, method = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta)
     inputs.set('Operatives', 'exclude_delta', str(exclude_delta))

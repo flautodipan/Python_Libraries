@@ -11,6 +11,8 @@ from    scipy.optimize      import curve_fit
 from    scipy.io            import loadmat
 import  json
 import  os
+from    os.path             import join
+from    subprocess          import run
 
 from    Models              import S_Dynamical_Form_Factor_2, S_2_Generate, S_Dynamical_Form_Factor_0, S_0_Generate, S_Dynamical_Form_Factor_0_nodelta, S_Dynamical_Form_Factor_2_nodelta     
 from    Alessandria         import *
@@ -1918,3 +1920,8 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
 
     return recover_markov, skip_tot, exclude_delta, method
 
+def Check_Execution_Mode(argv):
+
+# argv[1] = -f è Jupyter su Linux, su windows ho un ipylauncher in argv[0]
+
+    return 'terminal' if ((argv[1] != '-f') & ('ipykernel_launcher' not in argv[0])) else 'interactive'
