@@ -1063,7 +1063,7 @@ class Spectrum  :
                 
         self.bounds = pd.DataFrame( {}, index= columns, columns=('down', 'up'))
 
-        for (col, rule) in zip(columns, rules):
+        for (col, (_, rule)) in zip(columns, rules.items()):
     
             if  rule    ==  'inf':
 
@@ -1096,7 +1096,6 @@ class Spectrum  :
         
         
         if columns == cols_mark_nodelta:
-
             attribute = 'Residuals_Markov_nodelta'
         elif columns == cols_mark:
             attribute = 'Residuals_Markov'
@@ -1114,14 +1113,12 @@ class Spectrum  :
         Parameters       =    self.res_lsq.x
         
         try:
-
             J                =    self.res_lsq.jac
             cov              =    np.linalg.inv(J.T.dot(J))
             Delta_Parameters =    np.sqrt(np.diagonal(cov))
 
         except  np.linalg.LinAlgError as err:
 
-            
             if 'Singular matrix' in str(err):
                 print('Ho trovato matrice singolare')
                 Delta_Parameters        =   np.empty(len(self.p0[list(columns)].values[0]))
@@ -1132,7 +1129,6 @@ class Spectrum  :
         self.y_markov_fit  = self.y_Gauss_markov_convolution
       
         if fig:
-
             plt.figure()
             plt.title('Fit for '+self.__str__())
             plot(self.x_freq, self.y, '+', label='Data')
@@ -1844,14 +1840,16 @@ def Get_Analysis_Path_From_Terminal(now_path, spectra_filename):
     
     return analysis_path
     
-def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
-
-    delay = 3. #sec
+def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta, fit_algorithm):
+    
+    print('I will show the most important operatives inputs I took from config.ini, just to verify their correctness\n')
+    delay = 3.
 
     if recover_markov:
         print('You decided to recover markov fit from {} \nIt is correct? Enter "ok" if so, any other key to change this option'.format(analysis_path))  
     else:
         print('You will perform markov fit. Enter "ok" to continue, any other key to modify this opt\n')
+    
     if input() == 'ok':
         pass  
     else:
@@ -1883,7 +1881,7 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
             pass
         else:
             skiptot = True
-            print('You will exclude delta in all fits')
+            print('You will skip fit tot')
             time.sleep(delay)
 
     
@@ -1904,24 +1902,40 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta ):
             print('You will exclude delta in all fits')
             time.sleep(delay)
     
-    print('Insert fit algorithm: lm for Levenberg-Marqadrart, trf per trust region')
+    print('Inserted fit algorithm: {}, that means {}\n Enter ok to confirm, any other to switch to the other'.format(fit_algorithm, 'Trust Reflective Region' if fit_algorithm == 'trf' else 'Levenberg-Marquardart'))
 
-    while True:
-        method = input()
-        if method == 'lm':
-            print('You choose lm')
-            time.sleep(delay)
-            break
-        elif method == 'trf':
-            print('You choose trf')
-            time.sleep(delay)
-            break
-        else: print('Did not understand. Retry.\n')
 
-    return recover_markov, skip_tot, exclude_delta, method
+    input = input()
+    if input == 'ok':
+        print('Ok, you confirmed {}'.format(fit_algorithm))
+        time.sleep(delay)
+    else:
+        print('You choose to switch to {}'.format('Trust Reflective Region' if fit_algorithm != 'trf' else 'Levenberg-Marquardart'))
+        time.sleep(delay)
+
+    print("Now, I am beginning to analyze data. You won't do anything from now on")
+    time.sleep(delay)
+    return recover_markov, skip_tot, exclude_delta, fit_algorithm
 
 def Check_Execution_Mode(argv):
 
 # argv[1] = -f è Jupyter su Linux, su windows ho un ipylauncher in argv[0]
 
     return 'terminal' if ((argv[1] != '-f') & ('ipykernel_launcher' not in argv[0])) else 'interactive'
+
+def Find_Problems(four, which, what_is, value):
+
+    if what_is == 'greater':
+        where = np.where(np.array(which) > value)
+    elif what_is == 'lesser':
+        where = np.where(np.array(which) < value)
+    else: raise ValueError('You can insert "greater" or "lesser"\n')
+
+    where_is = []
+    count = 0
+    for (ii,jj) in four:
+        if count in where[0]:
+            where_is.append((ii,jj),)
+        count+=1
+    print('Ho trovato {} elementi che soddisfano la condizione inserita {} di {}\n'.format(len(where_is), what_is, value))
+    return where_is

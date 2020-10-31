@@ -101,13 +101,14 @@ with open(now_path+'config.ini', 'r') as f:
 
 VIPA_filename       =   inputs['I/O']['VIPA_filename']
 log_file            =   'log_'+spectra_filename
-transpose           =   inputs.getboolean('I/O', 'transpose')
-
 inputs.set('I/O', 'analysis_path', analysis_path)
 inputs.set('I/O', 'now_path', now_path)
 
 
 #operatives
+transpose           =   inputs.getboolean('I/O', 'transpose')
+data_offset
+fit_algorithm       =   inputs['Operatives']['fit_algorithm']
 initial             =   inputs['Operatives']['initial']
 to_add              =   eval(inputs['Operatives']['to_add'])
 pre_cut             =  inputs.getboolean('Operatives','pre_cut')
@@ -116,7 +117,6 @@ exclude_delta       =   inputs.getboolean('Operatives', 'exclude_delta')
 syg_kwargs          =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs')}
 syg_kwargs_VIPA     =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_VIPA')}
 syg_kwargs_brill    =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_brill')}
-VIPA_treshold       =  inputs.getfloat('Operatives','VIPA_treshold')
 sat_height          =  inputs.getfloat('Operatives','sat_height')
 sat_width           =  inputs.getfloat('Operatives','sat_width')
 almost_treshold     =  inputs.getfloat('Operatives','almost_treshold')
@@ -140,7 +140,7 @@ rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
 
 if mode == 'terminal':
     print('p0s lenght is {} for normal, {} for almost\n'.format(len(p0_normal), len(p0_almost)))
-    recover_markov, skip_tot, exclude_delta, method = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta)
+    recover_markov, skip_tot, exclude_delta, fit_algorithm = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta, fit_algorithm)
     inputs.set('Operatives', 'exclude_delta', str(exclude_delta))
     inputs.set('Markov', 'recover_markov', str(recover_markov))
     inputs.set('Tot', 'skip_tot', str(skip_tot) )
@@ -151,10 +151,10 @@ else:
     skip_tot = True
     exclude_delta = True
     initial = initial
-    method = 'lm'
+    fit_algorithm = 'lm'
     print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
 
-inputs.set('Markov', 'method', method)
+inputs.set('Markov', 'fit_algorithm', fit_algorithm)
 
 # %%
 #2) ######################################################################################################################
@@ -278,7 +278,7 @@ with open(analysis_path+log_file, 'a') as f_log:
 
 start = time.process_time()
 
-matrix[0][0].How_Many_Peaks_To_VIPA(treshold = VIPA_treshold, **syg_kwargs_VIPA)
+matrix[0][0].How_Many_Peaks_To_VIPA(treshold = 6, **syg_kwargs_VIPA)
 matrix[0][0].Fit_Pixel2GHz()
 matrix[0][0].VIPA_Pix2GHz()
 matrix[0][0].Align_Spectrum()
@@ -347,7 +347,7 @@ if recover_markov == False:
 
             if (exclude_delta) & ((ii,jj) not in almost_height):
                 columns = cols_mark_nodelta
-                rules_bounds = rules_markov_bounds[0:3]+rules_markov_bounds[6:]
+                rules_bounds = {key : rules_markov_bounds[key] for key in columns}
                 if len(p0_normal) != len(rules_bounds):
                     p0_normal = np.concatenate([p0_normal[0:3], p0_normal[6:]])
 
@@ -370,7 +370,11 @@ if recover_markov == False:
             matrix[ii][jj].Get_cost_markov(matrix[ii][jj].p0[list(columns)].values[0], columns)
             print('Cost before fitting = {:3.2f}'.format(matrix[ii][jj].cost_markov))
             matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
-            fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100),(ii,jj)),)
+            if fit_algorithm == 'trf':
+                fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100, ),(ii,jj)),)
+            elif fit_algorithm == 'lm':
+                fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns,  max_nfev = 100, method = 'lm'),(ii,jj)),)
+            else: raise ValueError('Possibile non si è scelto un valore per fit_algorithm = {} ?'.format(fit_algorithm))
             matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], columns)
             print('Cost after fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_markov))
 
@@ -396,7 +400,7 @@ if recover_markov == False:
 
         f_log.write('\n\n#####################   MARKOVIAN     FIT     ##########################\n\n')
         f_log.write('\nTempo impiegato per fit markoviani: {:3.2} s'.format(markov_time))
-        f_log.write('\n\Tempo impiegato ore = {:3.2}\n'.format(markov_time/3600))
+        f_log.write('\nTempo impiegato ore = {:3.2}\n'.format(markov_time/3600))
 
     # 4) after - fit markoviano
 

@@ -15,6 +15,11 @@ import      os
 from        os.path             import  join
 import      configparser
 
+# nomi dei parametri modelli viscoelastici
+cols_mark           = ('Co', 'Omega', 'Gamma', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark_nodelta   = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_real           = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
+cols_real_nodelta   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset')
 
 ### MANUAL INPUTS
 
@@ -22,19 +27,31 @@ import      configparser
 spectra_filename    =   'ARS_10_02'
 now_path            =   join('..', 'BRILLOUIN', 'TDP43', spectra_filename)
 VIPA_filename       =   'ARS_10_02_VIPA_notsat'
-log_file            =   'log_'+spectra_filename
 
-#operatives
+#to modify
 syg_kwargs_test     =   {'height': 10, 'distance': 32, 'width': 2.1}
 syg_kwargs_VIPA     =   {'distance':70, 'width': 1}
 syg_kwargs_brill    =   {'height': 18, 'distance': 31, 'width': 2.1}
+
+# OPERATIVES FOR ACQUISITION
 transpose           =   False
 data_offset         =   183.
+almost_treshold     =   150000
 saturation_height   =   50000
 saturation_width    =   15.
 pre_cut             =   True
 pre_cut_range       =   (30,210) if pre_cut else None
+initial             =   'right'
 to_add              =   []
+
+#OPERATIVES FOR FIT
+fit_algorithm       =   'trf'
+cut                 =   True
+exclude_delta       =   True
+recover_markov      =   False
+rules_markov_bounds =   {'Co' : 'positive', 'Omega' : 0.2, 'Gamma' :'positive', 'delta_position' : [-2,2], 'delta_width': 'positive', 'delta_amplitude' : 'positive', 'A' : 'positive', 'mu' : 0.01, 'sigma' : 0.001,  'shift' : 'inf', 'offset' :'inf'}
+skip_tot            =   True
+rules_tot_bounds    =   {'Co' : 0.2, 'Omega' : 0.01, 'Gamma' : 0.01, 'Delta': 'positive', 'tau' : 'positive', 'delta_position': [-2,2], 'delta_width' : 0.01, 'delta_amplitude' : 0.01, 'shift':'inf', 'offset' : 'inf'}
 
 
 # %%
@@ -60,7 +77,6 @@ less_than_four  = []
 bizarre         = []
 
 # Riempio oggetti e classifico in chi ha 4 picchi, chi ne ha di più, chi di meno
-matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
 for ii in range(len(rows)):
     for jj in range(len(cols)):
@@ -68,8 +84,7 @@ for ii in range(len(rows)):
         
         matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = data_offset, cut = pre_cut, cut_range = pre_cut_range)
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_test)
-        matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
-        matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
+
 
         if matrix[ii][jj].n_peaks == 4:
             four.append((ii,jj))
@@ -91,12 +106,6 @@ print('Numero di spettri con meno di 4 picchi:\n{}'.format(len(less_than_four)))
 print('Numero di spettri non saturati:\n{}/{}'.format(len(not_saturated), dim))
 print('Numero di spettri saturati:\n{}/{}'.format(len(saturated), dim))
 print('Numero di spettri che saranno esclusi da analisi:\n{}/{}'.format(len(excluded), dim))
-
-
-
-#%%
-#VERIFICHIAMO IL VIPA
-matrix[0][0].How_Many_Peaks_To_VIPA(treshold = 0, **syg_kwargs_VIPA, fig = True, verbose = True)
 
 
 #%%
@@ -125,6 +134,7 @@ for ii in range(len(rows)):
                 four.append((ii,jj))
 
             elif ((ii,jj) in less_than_four):
+                print('Per lo spettro {} sto usando How_Many_Peaks_To\n'.format(str((ii,jj))))
                 matrix[ii][jj].How_Many_Peaks_To(width = syg_kwargs_test['width'], distance = syg_kwargs_test['distance'])
                 if hasattr(matrix[ii][jj], 'spectrum_cut_height'):
                     matrix[ii][jj].Get_Spectrum_Peaks(height =  matrix[ii][jj].spectrum_cut_height, width = syg_kwargs_test['width'], distance = syg_kwargs_test['distance'])
@@ -215,6 +225,10 @@ stats = (height_first, height_second, height_third, height_fourth, width_first, 
 for (s, what) in zip(stats, ('height picco 1', 'Picco 2 height', 'Picco 3 height', 'Picco 4 height', 'Picco 1 width', 'Picco 2 width', 'Picco 3 width', 'Picco 4 width', 'dist_01', 'dist12', 'dist23')):
     print('\n{}\nMedia = {:.3}\nMin = {:3}\nMax = {:3}\n'.format(what, np.mean(s), np.min(s), np.max(s)))
 
+#salvo medie distanze elastico-brillouin
+mean_dist_01 = np.mean(dist_01)
+mean_dist_23 = np.mean(dist_23)
+
 #%%
 # faccio pure i plot
 
@@ -265,36 +279,57 @@ print('Ti suggerisco di usare come medie distanze da elastici per taglio sulle x
 
 #%%
 #####
-######  6)  FIRST NORMAL and FIRST ALMOST
-#####        
+######  5)  FIND PROBLEMS (solo se necessario)
+#####       
 
-for ii,jj in serpentine_range(len(rows), len(cols), 'right'):
+where_is = Find_Problems(four, which = dist_23, what_is = 'greater', value = 36)
+
+Plot_Elements_Spectrum(matrix, where_is[:10], pix = True, peaks = True, x_range= (), y_range=())
+#%%
+#####
+######  6)  FIRST NORMAL and FIRST ALMOST and VIPA check
+#####       fit per initial conditions 
+
+for ii,jj in serpentine_range(len(rows), len(cols), initial):
 
     if matrix[ii][jj].y.max() > 15000:
-        first_almost = str((ii,jj))
+        first_almost = (ii,jj)
         break
 
-first_normal = str(serpentine_range(len(rows), len(cols), 'right')[0])
+first_normal = serpentine_range(len(rows), len(cols), initial)[0]
 
-print(" Primo normale è {}, Primo almost è {}\nCorri a fare i fit con Exp_single.ipynb e inserisci i parametri qua sotto\n".format(first_normal, first_almost))
+print(" Primo normale è {}, Primo almost è {}\nOra faccio i fit per stimare le migliori condizioni iniziali\n".format(first_normal, first_almost))
 
+p0s = []
+for (ii,jj) in [first_normal, first_almost]:
+    print('Faccio il fit per {}\n'.format(str((ii,jj))))
 
-#%%
-# inserisci prototipi p0
+    matrix[ii][jj].Get_VIPA_tif(VIPA_filename, now_path, offset = data_offset)
+    matrix[ii][jj].How_Many_Peaks_To_VIPA(treshold = 6, **syg_kwargs_VIPA, fig = True, verbose = False)
+    matrix[ii][jj].Fit_Pixel2GHz(fig = True if (ii,jj) == first_normal else False , data_color = 'maroon', fit_color = 'yellowgreen', )
+    matrix[ii][jj].VIPA_Pix2GHz(fig = True if (ii,jj) == first_normal else False )
+    matrix[ii][jj].Poly2GHz      =   matrix[ii][jj].Poly2GHz
+    matrix[ii][jj].Align_Spectrum(alignment = matrix[ii][jj].alignment)
+    matrix[ii][jj].Spectrum_Pix2GHz()
+    matrix[ii][jj].Cut_n_Estimate_Spectrum(estimate = True, cut = cut, mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
+    matrix[ii][jj].Fit_VIPA_Gaussian(fig = True if (ii,jj) == first_normal else False )
+    columns = cols_mark
+    rules_bounds = rules_markov_bounds
 
-p0_normal = [ 4.47878847e-03,  7.44602179e+00,  1.19372730e-01, -5.41093640e-03,
-        5.68669007e-02,  7.13459150e-02,  7.16867979e+03, -6.28367498e+00,
-        1.39048357e+01, -2.34364951e-02, -6.55254330e-01]
-p0_almost = [ 4.45785324e-03,  7.40442712e+00,  8.07935070e-02,  3.96812954e-02,
-        9.58287799e-02,  2.65541107e-01,  3.21314854e-08, -9.62281912e+00,
-        1.58244543e+01, -7.21776390e-02,  9.61758585e+00]
+    matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
+    matrix[ii][jj].Get_Best_p0([matrix[ii][jj].p0[list(columns)].values[0]], columns)
+    matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
+    if fit_algorithm == 'trf':
+        matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100, ) 
+    else: matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, method = 'lm',  max_nfev = 100, )
+    p0s.append(list(matrix[ii][jj].Markov_Fit_Params.T.Values.values))
+    print('Ok ho stimato i parametri iniziali per {}\n'.format(str((ii,jj)),))
 
-if len(p0_almost) == len(p0_almost):
-    print('Acquisiti p0_normal e p0_almost predefiniti, entrambi con {} elementi'.format(len(p0_almost)))
-else:
-    raise ValueError('Lunghezza di p0_normal ({}) e p0_almost ({}) non coincide, ma DEVE'.format(len(p0_normal), len(p0_almost)))
+    for col, val in zip(columns, matrix[ii][jj].Markov_Fit_Params.T.Values.values):
+        print('{} = {:3.2f}'.format(col, val))
 
-
+p0_normal = p0s[0]
+p0_almost = p0s[1]
 #%%
 #####
 ######  7)  GENERO FILE .ini
@@ -304,14 +339,14 @@ else:
 
 config = configparser.ConfigParser()
 
-config['I/O'] = {'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_filename, 'log_file' : 'log_'+spectra_filename, 'transpose' : transpose}
+config['I/O'] = {'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_filename}
 config['syg_kwargs'] = { 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
-config['Operatives'] = {'cut': True, 'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'exclude_delta' : True, 'initial' : 'left','to_add' : to_add, 'mean_dist_01' : np.mean(dist_01), 'mean_dist_23' : np.mean(dist_23), 'VIPA_treshold' : 6, 'sat_height': saturation_height, 'sat_width':saturation_width, 'almost_treshold':15000, }
-config['Markov'] = {'recover_markov': False, 'first_normal' : first_normal, 'p0_normal' : p0_normal, 
-'first_almost': first_almost, 'p0_almost' :p0_almost, 'rules_markov_bounds':  ('positive', 0.2, 'positive', [-2,2] , 'positive', 'positive', 'positive', 0.01, 0.001,  'inf', 'inf') }
-config['Tot'] = {'skip_tot' : True, 'rules_tot_bounds' : (0.2, 0.01, 0.01, 'positive', 'positive', [-2,2], 0.01, 0.01, 'inf', 'inf')}
+config['Operatives'] = {'transpose' : transpose, 'data_offset' : data_offset, 'almost_treshold':almost_treshold, 'sat_height': saturation_height, 'sat_width':saturation_width, 'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'initial': initial, 'to_add' : to_add,  'fit_algorithm' : fit_algorithm, 'cut': cut,  'exclude_delta' : exclude_delta,'mean_dist_01' : mean_dist_01, 'mean_dist_23' : mean_dist_23, }
+config['Markov'] = {'recover_markov': recover_markov, 'first_normal' : first_normal, 'p0_normal' : p0_normal, 
+'first_almost': first_almost, 'p0_almost' :p0_almost, 'rules_markov_bounds':  rules_markov_bounds }
+config['Tot'] = {'skip_tot' : skip_tot, 'rules_tot_bounds' : rules_tot_bounds}
 
 with open(join(now_path,'config.ini'), 'w') as fin:
     config.write(fin)
