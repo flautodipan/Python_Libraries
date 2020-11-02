@@ -12,18 +12,18 @@ warnings.filterwarnings("ignore")
 
 
 path = '../GROMACS/'
-wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc5_new',  'wtc6', 'wtc7_16']
+wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5',  'wtc6', 'wtc7_16']
 wtc_keys_red = [wtc_keys[1]]+wtc_keys[3:]
 cov_keys = ['cov2', 'cov3', 'cov4']
-mtc_keys = ['mtc1', 'mtc2', 'mtc3']
+mtc_keys = ['MTC1', 'mtc2', 'mtc3']
 
 all_keys = wtc_keys+cov_keys+mtc_keys
 gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 
 #%%
 # FORMO IL DATAFRAME con i DATI CHE VOGLIO STAMPARE ORA
-now_keys = ['wtc1', 'wtc1_h_new'] + cov_keys
-now_eqs1 = ['wtc1_h_new', ]# 'mtc3']
+now_keys = wtc_keys_red +mtc_keys
+now_eqs1 = ['wtc1_h_new', 'mtc3']
 now_eqs2 = ['mtc2',]
 
 dfs = {}

@@ -10,28 +10,22 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 
+wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc5_new',  'wtc6', 'wtc7_16']
+wtc_keys_red = [wtc_keys[1]]+wtc_keys[3:]
+cov_keys = ['cov2', 'cov3', 'cov4']
+mtc_keys = ['MTC1', 'mtc2', 'mtc3']
+all_keys = wtc_keys+cov_keys+mtc_keys
+gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 
 # IMPOSTAZIONI INIZIALI
 
 treshold = 9
-WTC_identifier = ('wtc1_h', 'wtc2', 'wtc3', 'wtc4',  'wtc5', 'wtc6','wtc7_16')
-
-
-#%%
-
-mode = Check_Execution_Mode(sys.argv)
-
-if mode == 'terminal':
-    print('\n\n Eseguo programma in modalità da terminale\n\n')
-    path = sys.argv[1]
-
-else:
-    print('\n\n Eseguo programma in modalità interattiva jupyter\n\n')
-    path = '../GROMACS/'
-
-#%%
-
 path = '../GROMACS/'
+now_keys = ['wtc1']
+
+
+#%%
+
 res = np.arange(96, 270, 1)
 how_many_contacts = {}
 numbers = {}

@@ -21,7 +21,7 @@ redo_cov = False
 # prendo info sperimentali e di dinamica MD da file excel in 
 # ../GROMACS/MD_experimental_data.xlsx
 
-now_name = 'wtc5_new'
+now_name = 'wtc1'
 eq       = '_eq'
 
 exp_df = pd.read_excel(os.path.join(now_path, 'MD_experimental_data.xlsx'))
