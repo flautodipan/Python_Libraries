@@ -243,17 +243,8 @@ def delta_function (x, position, width, amplitude):
 
     return amplitude*np.exp(-((x-position)/width)**2/(np.abs(width)*np.sqrt(np.pi)))
 
+def Check_Execution_Mode(argv):
 
-def Is_Far_by_N_sigma_from_Mean(value, population, N, verbose = False):
-    
-    """
-    Funzione che ritorna True quando value >(<) di mu +(-) N*sigma 
-    dove mu è mean di population e  sigma è la std 
-    """
+# argv[1] = -f è Jupyter su Linux, su windows ho un ipylauncher in argv[0]
 
-    if (value > (np.mean(population) + N*np.std(population))) | (value < (np.mean(population) - N*np.std(population))):
-        if verbose : print('{:3.2f} fuori da media {:3.2f} di {} std {:3.2f}'.format(value, np.mean(population),N,  np.std(population)))
-        return True
-    else: return False
-
-    
+    return 'terminal' if ((argv[1] != '-f') & ('ipykernel_launcher' not in argv[0])) else 'interactive'
