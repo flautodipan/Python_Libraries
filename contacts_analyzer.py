@@ -9,6 +9,7 @@ from    os.path import join
 import sys
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc5_new',  'wtc6', 'wtc7_16']
 wtc_keys_red = [wtc_keys[1]]+wtc_keys[3:]
@@ -23,9 +24,9 @@ path = '../GROMACS/'
 
 treshold = 9
 exp_df = pd.read_excel(join(path,'MD_experimental_data.xlsx'))
-now_keys = ['wtc1']
-now_eqs1 = []
-now_eqs2 = []
+now_keys = wtc_keys_red +mtc_keys
+now_eqs1 = ['wtc1_h_new', 'MTC1', 'mtc3']
+now_eqs2 = ['mtc2',]
 
 
 #%%
@@ -89,34 +90,22 @@ for key in now_keys:
 
     # 3) rendo contatti istogramma
 
-        counts = np.zeros(res.size)
-        for r, ii in zip(res, range(len(res))):
-            how_many = 0
-            for c in contacts:
-                if r in c: how_many += 1
-                else: pass
-            counts[ii] = how_many
-            
-        df['contacts'] = counts
+    counts = np.zeros(res.size)
+    for r, ii in zip(res, range(len(res))):
+        how_many = 0
+        for c in contacts:
+            if r in c: how_many += 1
+            else: pass
+        counts[ii] = how_many
+        
+    df['contacts'] = counts
 
 
-        # 4) salvo in rispettiva cartella
+    # 4) salvo in rispettiva cartella
 
-        df.to_json(join(now_path, 'df_{}_contacts_{}.json'.format(eq[1:],key)))
-        df.to_csv(join(now_path, 'df_{}_contacts_{}.csv'.format(eq[1:],key)))
-        print('Ok ho salvato i risultati in {}'.format(now_path))
-
-
-        # 5) visualizzo 
-
-        f, ax = plt.subplots()
-
-        ax.plot(res, df.contacts.values, c = now_exp_df.color.values[0], label = '# contacts')
-
-        ax.set_xticks(label)
-        ax.set_title('Number of contacts vs residue number')
-
-        # 6) identifico e salvo i residui più importanti
+    df.to_json(join(now_path, 'df_{}_contacts_{}.json'.format(eq[1:],key)))
+    df.to_csv(join(now_path, 'df_{}_contacts_{}.csv'.format(eq[1:],key)))
+    print('Ok ho salvato i risultati in {}'.format(now_path))
 
 
-#%%
+# %%

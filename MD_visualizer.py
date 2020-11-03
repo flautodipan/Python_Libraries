@@ -23,7 +23,7 @@ gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 #%%
 # FORMO IL DATAFRAME con i DATI CHE VOGLIO STAMPARE ORA
 now_keys = wtc_keys_red +mtc_keys
-now_eqs1 = ['wtc1_h_new', 'mtc3']
+now_eqs1 = ['wtc1_h_new', 'MTC1', 'mtc3']
 now_eqs2 = ['mtc2',]
 
 dfs = {}
