@@ -8,6 +8,7 @@ import  warnings
 import  pandas as pd
 import  matplotlib.pyplot as plt
 import  os
+from os.path import join
 warnings.filterwarnings("ignore")
 
 
@@ -29,13 +30,13 @@ now_eqs2 = ['mtc2',]
 dfs = {}
 for now_name in now_keys:  
 
-    now_path    = path + now_name.upper() +'/'
+    now_path    = join(path, now_name.upper())
 
     #gestione eq
     eq = '_eq2' if now_name in now_eqs2 else '_eq1' if now_name in now_eqs1 else '_eq' 
     if ((now_name in now_eqs1) & (now_name in now_eqs2)):
         raise ValueError('{} in both eq1 and eq2'.format(now_name))
-    dfs[now_name] = pd.read_json(now_path+now_name+'_df'+eq+'.json')
+    dfs[now_name] = pd.read_json(join(now_path, now_name+'_df'+eq+'.json'))
     print('Acquisisco {} con eq = {}'.format(now_name, eq, ))
 
 DF = pd.DataFrame()

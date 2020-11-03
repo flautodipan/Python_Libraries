@@ -21,8 +21,8 @@ redo_cov = False
 # prendo info sperimentali e di dinamica MD da file excel in 
 # ../GROMACS/MD_experimental_data.xlsx
 
-now_name = 'wtc1'
-eq       = '_eq'
+now_name = 'MTC1'
+eq       = '_eq1'
 
 exp_df = pd.read_excel(os.path.join(now_path, 'MD_experimental_data.xlsx'))
 exp_df = exp_df[exp_df.identifier == now_name]
@@ -97,7 +97,7 @@ BS_O5      = BA.Print_Protein_BS_old(res, Bonds_O5, protein.lenght, prot_initial
 BS_RNA_O5 = BA.Print_Protein_BS_old(res, Bonds_O5, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
 
 np.save(os.path.join(now_path, 'BS_O5'+eq+'.npy'), BS_O5)
-np.save(os.path.join(now_path+'BS_RNA_O5'+eq+'.npy'), BS_RNA_O5)
+np.save(os.path.join(now_path, 'BS_RNA_O5'+eq+'.npy'), BS_RNA_O5)
 
 with open  (os.path.join(now_path, filename+'_O5'+eq+'.txt'), 'w') as f:
         f.write("# frame \t Protein Binding Site (BS) Residues at {} Å treshold\n".format(treshold))

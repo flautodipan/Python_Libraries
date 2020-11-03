@@ -341,7 +341,7 @@ class Trajectory():
             
             plt.ylabel('{} (nm)'.format(RMSD))
             plt.title('{} for {}'.format(RMSD, self.__str__()))
-            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
+            plt.savefig(join(path, kwargs['fig']+'.pdf'), format = 'pdf')
             
 
         if ('histo' in kwargs):
@@ -350,7 +350,7 @@ class Trajectory():
             _ =   plt.hist(getattr(self, RMSD), bins = kwargs['bins'], histtype='bar', rwidth=0.8, color=kwargs['color'], alpha = 0.9)
             plt.xlabel('{} (nm)'.format(RMSD))
             plt.title("{} distribution for {}".format(RMSD, self.__str__()))
-            plt.savefig(path+kwargs['histo']+'.pdf', format = 'pdf')
+            plt.savefig(join(path, kwargs['histo']+'.pdf'), format = 'pdf')
             plt.show()
 
     def Define_Equilibrium_by_RMSD(self, time_range_eq, path = './', scale = 'ns', **kwargs):
@@ -385,7 +385,7 @@ class Trajectory():
             plt.title('Equilibrium RMSD for {}'.format(self.__str__()))
             
             plt.legend()
-            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf') 
+            plt.savefig(join(path, kwargs['fig']+'.pdf'), format = 'pdf') 
 
         print("Selezionata zona di equilibrio da {} ps  a {} ps".format(time_range_eq[0], time_range_eq[1]))
         print('Pari a un numero di frame = {}'.format(self.n_frames_eq))
@@ -468,7 +468,7 @@ class Trajectory():
             plt.legend()
             plt.xlabel('Number of atom')
             plt.ylabel('RMSF (nm)')
-            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
+            plt.savefig(join(path, kwargs['fig']+'.pdf'), format = 'pdf')
 
     def Get_Gyradium(self, xvg_filename, path  = './', skip_lines = 28, **kwargs):
 
@@ -485,7 +485,7 @@ class Trajectory():
             plt.ylabel('Gyration Radium (nm)')
             if 'ylim' in kwargs:
                 plt.ylim(kwargs['ylim'][0], kwargs['ylim'][1])
-            plt.savefig(path+kwargs['fig']+'.pdf', format = 'pdf')
+            plt.savefig(join(path, kwargs['fig']+'.pdf'), format = 'pdf')
 
 
     def Get_Terminals_Dist(self, xvg_filename, path='./', skip = False, **kwargs):
@@ -1082,9 +1082,9 @@ def Print_Cov_Matrix_BS(c_matrix, name, c_type, BS, idx, pearson = False, text =
     plt.tight_layout()
     f.autolayout=True
     if not pearson:
-        f.savefig(path+name+'_'+c_type+'_cov_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
+        f.savefig(join(path, name+'_'+c_type+'_cov_matrix.pdf'), format = 'pdf', bbox_inches = 'tight')
     else:
-        f.savefig(path+name+'_'+c_type+'_pear_matrix.pdf', format = 'pdf', bbox_inches = 'tight')
+        f.savefig(join(path, name+'_'+c_type+'_pear_matrix.pdf'), format = 'pdf', bbox_inches = 'tight')
 
 def CAP_Cov_Matrix(cov_matrix, idx, save_filename, save_path = './'):
 
@@ -1104,7 +1104,7 @@ def CAP_Cov_Matrix(cov_matrix, idx, save_filename, save_path = './'):
             ii_0 = second_idx*3
             cov_matrix_CAP[ii,jj] = np.mean(cov_matrix[ii_0:ii_0+3, jj_0:jj_0+3])
             
-    np.savetxt(save_path+save_filename, cov_matrix_CAP)
+    np.savetxt(join(save_path,save_filename), cov_matrix_CAP)
 
     return cov_matrix_CAP
 

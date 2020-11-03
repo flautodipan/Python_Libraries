@@ -9,7 +9,6 @@ from    os.path import join
 import sys
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc5_new',  'wtc6', 'wtc7_16']
 wtc_keys_red = [wtc_keys[1]]+wtc_keys[3:]
@@ -30,7 +29,7 @@ now_eqs2 = ['mtc2',]
 
 
 #%%
-for key in now_keys:
+for key in ['wtc1']:
 
     now_path = join(path, key.upper(),)
     eq = '_eq2' if key in now_eqs2 else '_eq1' if key in now_eqs1 else '_eq' 
