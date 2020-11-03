@@ -10,10 +10,9 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 
-wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc5_new',  'wtc6', 'wtc7_16']
-wtc_keys_red = [wtc_keys[1]]+wtc_keys[3:]
+wtc_keys = ['wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16']
 cov_keys = ['cov2', 'cov3', 'cov4']
-mtc_keys = ['MTC1', 'mtc2', 'mtc3']
+mtc_keys = ['MTC1', 'mtc2', 'mtc3', 'mtc4']
 all_keys = wtc_keys+cov_keys+mtc_keys
 gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 
@@ -23,13 +22,15 @@ path = '../GROMACS/'
 
 treshold = 9
 exp_df = pd.read_excel(join(path,'MD_experimental_data.xlsx'))
-now_keys = wtc_keys_red +mtc_keys
+now_keys = wtc_keys + mtc_keys
 now_eqs1 = ['wtc1_h_new', 'MTC1', 'mtc3']
 now_eqs2 = ['mtc2',]
 
 
 #%%
-for key in ['wtc1']:
+for key in ['mtc4']:
+
+    #BS_t = []
 
     now_path = join(path, key.upper(),)
     eq = '_eq2' if key in now_eqs2 else '_eq1' if key in now_eqs1 else '_eq' 
@@ -84,7 +85,7 @@ for key in ['wtc1']:
             Bonds_P   = BA.Analyze_Bond_Residues(Cont_P, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
             BS_P      = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
             BS_RNA_P = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
-        
+
             contacts.append(BS_P)
 
     # 3) rendo contatti istogramma
@@ -98,10 +99,13 @@ for key in ['wtc1']:
         counts[ii] = how_many
         
     df['contacts'] = counts
+    #BS_t.append(BS_P, )
+
 
 
     # 4) salvo in rispettiva cartella
 
+    
     df.to_json(join(now_path, 'df_{}_contacts_{}.json'.format(eq[1:],key)))
     df.to_csv(join(now_path, 'df_{}_contacts_{}.csv'.format(eq[1:],key)))
     print('Ok ho salvato i risultati in {}'.format(now_path))

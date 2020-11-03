@@ -21,8 +21,8 @@ redo_cov = False
 # prendo info sperimentali e di dinamica MD da file excel in 
 # ../GROMACS/MD_experimental_data.xlsx
 
-now_name = 'MTC1'
-eq       = '_eq1'
+now_name = 'mtc4'
+eq       = '_eq'
 
 exp_df = pd.read_excel(os.path.join(now_path, 'MD_experimental_data.xlsx'))
 exp_df = exp_df[exp_df.identifier == now_name]

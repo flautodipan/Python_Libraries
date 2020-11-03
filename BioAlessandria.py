@@ -1012,7 +1012,7 @@ def Get_Covariance_Matrix(N, filename, path = './',):
 
         init+= N
     
-    np.save(path+filename+'.npy', cov_matrix)
+    np.save(join(path,filename+'.npy'), cov_matrix)
     return cov_matrix
 
 def Pearson_Matrix_from_Cov(cov_matrix):

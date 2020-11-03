@@ -12,14 +12,14 @@ from scipy.stats import pearsonr
 path = '../GROMACS/'
 wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16']
 cov_keys = ['cov1', 'cov2', 'cov3', 'cov4']
-mtc_keys = ['mtc1', 'mtc2']
+mtc_keys = ['mtc1', 'mtc2',  'mtc3', 'mtc4']
 exp_df = pd.read_excel(path+'MD_experimental_data.xlsx')
 eq = 'eq'
 now_keys = cov_keys[1:]
 
 #%%
 
-for now_name in ['wtc5_new', ]:
+for now_name in ['mtc4', ]:
 
     now_exp_df = exp_df[exp_df.identifier == now_name]
     now_path = path + now_name.upper()  + '/'

@@ -11,9 +11,9 @@ import  pandas              as pd
 import  matplotlib.pyplot   as plt
 import  seaborn             as sns
 
-wtc_keys = ['wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16']
+wtc_keys = ['wtc1','wtc1_h_new', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16']
 cov_keys = ['cov2', 'cov3', 'cov4']
-mtc_keys = ['MTC1', 'mtc2', 'mtc3']
+mtc_keys = ['MTC1', 'mtc2', 'mtc3', 'mtc4']
 all_keys = wtc_keys+cov_keys+mtc_keys
 gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 
@@ -31,60 +31,78 @@ exp_df = pd.read_excel(join(path,'MD_experimental_data.xlsx'))
 
 dfs = {}
 BSs = {}
+eq_len = {}
 
-for now_name in now_keys:  
+for key in now_keys:  
 
-    now_path    = join(path, now_name.upper())
+    now_path    = join(path, key.upper())
+    now_exp_df  = exp_df[exp_df.identifier == key]
 
-    eq = '_eq2' if now_name in now_eqs2 else '_eq1' if now_name in now_eqs1 else '_eq' 
-    if ((now_name in now_eqs1) & (now_name in now_eqs2)):
-        raise ValueError('{} in both eq1 and eq2'.format(now_name))
 
-    BSs[now_name] = np.load(join(now_path, 'BS_P'+eq+'.npy'))
-    dfs[now_name] = pd.read_json(join(now_path, 'df'+eq+'_contacts_'+now_name+'.json'))
-    print('Acquisisco {} con eq = {}'.format(now_name, eq, ))
-
-#%%
-#2) stampo figure
-
-for now_name in now_keys:  
-
-    now_path    = join(path, now_name.upper())
-    now_exp_df  = exp_df[exp_df.identifier == now_name]
-    eq = '_eq2' if now_name in now_eqs2 else '_eq1' if now_name in now_eqs1 else '_eq' 
-    if ((now_name in now_eqs1) & (now_name in now_eqs2)):
-        raise ValueError('{} in both eq1 and eq2'.format(now_name))
+    eq = '_eq2' if key in now_eqs2 else '_eq1' if key in now_eqs1 else '_eq' 
+    if ((key in now_eqs1) & (key in now_eqs2)):
+        raise ValueError('{} in both eq1 and eq2'.format(key))
     # /1000 perché frame ogni 100 ps, eq_sampling ogni 10
-    eq_len      = (eval(getattr(now_exp_df, 'time_range'+eq).values[0])[1] - eval(getattr(now_exp_df, 'time_range'+eq).values[0])[0])/1000
-    if now_name == 'wtc1' : exp_eq_len = eq_len
-    #acquisizione
-    f, ax = plt.subplots()
+    eq_len[key]  = int((eval(getattr(now_exp_df, 'time_range'+eq).values[0])[1] - eval(getattr(now_exp_df, 'time_range'+eq).values[0])[0])/1000)
+    if key == 'wtc1' : exp_eq_len = eq_len[key]
 
-    ax.stem(dfs[now_name].contacts.values, markerfmt = now_exp_df.color.values[0], basefmt = now_exp_df.color.values[0], linefmt = now_exp_df.color.values[0])
+    BSs[key] = np.load(join(now_path, 'BS_P'+eq+'.npy'))
+    dfs[key] = pd.read_json(join(now_path, 'df'+eq+'_contacts_'+key+'.json'))
+    print('Acquisisco {} con eq = {}'.format(key, eq, ))
 
-    ax.set_title('{} Number of contacts vs residue number\n Treshold = {} ang   # tot frame = {} '.format(now_name, treshold, int(eq_len)))
-    ax.set_xlabel('Protein Residue Number')
-    ax.set_ylabel('# of contacts')
 
-    f.savefig(join(now_path,now_name+'_contacts'+eq+'.pdf'), format = 'pdf')
 # %%
 
-#3) RESIDUI PIU IMPORTANTI DI WTC1 e confronto con pdb iniziali 
+#2) RESIDUI PIU IMPORTANTI DI WTC1 e confronto con pdb iniziali 
 
 treshold = 300 #valore basato su pdf a partire da distribuzione valori
 
-exp_contacts        = dfs['wtc1'].res_number[dfs['wtc1'].contacts > treshold]
-exp_contacts_name   = dfs['wtc1'].res_name[dfs['wtc1'].contacts > treshold]
 
-print('Ho trovato {} residui per la dinamica NMR che hanno contatti in più di {} frame su {}\n\n'.format(len(exp_contacts), treshold, int(exp_eq_len)))
+
 
 truth = {}
-if 'wtc1' in now_keys : now_keys.remove('wtc1')
+#if 'wtc1' in now_keys : now_keys.remove('wtc1')
 
 for key in now_keys:
 
-    truth[key] = [True if bs in exp_contacts.values else False for bs in BSs[key]]
+    if key == 'wtc1':
 
-    print('La configurazione iniziale di {} ritrova\n{} contatti sperimentali su {}\n'.format(key, sum(truth[key]), len(exp_contacts)))
+        exp_contacts        = dfs[key].res_number[dfs[key].contacts > treshold]
+        exp_contacts_name   = dfs[key].res_name[dfs[key].contacts > treshold]
+        print('Ho trovato {} residui per la dinamica NMR che hanno contatti in più di {} frame su {}\n\n'.format(len(exp_contacts), treshold, int(exp_eq_len)))
+
+    else:
+        truth[key] = [True if bs in exp_contacts.values else False for bs in BSs[key]]
+        print('La configurazione iniziale di {} ritrova\n{} contatti sperimentali su {}\n'.format(key, sum(truth[key]), len(exp_contacts)))
+
+
+#%%
+#3) stampo figure stemplot
+
+for key in now_keys:  
+
+    now_path    = join(path, key.upper())
+    now_exp_df  = exp_df[exp_df.identifier == key]
+
+    eq = '_eq2' if key in now_eqs2 else '_eq1' if key in now_eqs1 else '_eq' 
+    if ((key in now_eqs1) & (key in now_eqs2)):
+        raise ValueError('{} in both eq1 and eq2'.format(key))
+
+    #acquisizione
+    f, ax = plt.subplots()
+    
+    ax.stem(dfs[key].res_number.values, dfs[key].contacts.values, markerfmt = now_exp_df.color.values[0], basefmt = now_exp_df.color.values[0], linefmt = now_exp_df.color.values[0])
+    y_lims = ax.get_ylim()
+    [ax.vlines(bs, y_lims[0], y_lims[1], colors = now_exp_df.contrastcolor.values[0], alpha = 0.4, label = 'Experimental BS' if bs == exp_contacts.values[0] else None) for bs in exp_contacts]
+
+    ax.set_title('{} Number of contacts vs residue number\n Treshold = {} ang   # tot frame = {} '.format(key, treshold, eq_len[key]))
+    ax.set_xlabel('Protein Residue Number')
+    ax.set_ylabel('# of contacts')
+
+    plt.legend()
+    f.savefig(join(now_path,key+'_contacts'+eq+'.pdf'), format = 'pdf')
 
 # %%
+
+# 4) Matrice dei contatti
+

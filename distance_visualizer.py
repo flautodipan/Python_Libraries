@@ -51,7 +51,7 @@ fig, ax = plt.subplots()
 #for x, x_err, y, key in zip(x_vals[1:], x_errs[1:], correlators[1:], now_keys[1:]):
 for x, x_err, y, key in zip(x_vals, x_errs, correlators, now_keys):
 
-    ax.errorbar(x, y, xerr = x_err, yerr = y_err , fmt = 'o', ecolor= 'maroon', color = 'green', label = 'mtc series' if key in wtc_keys[-1] else None)
+    ax.errorbar(x, y, xerr = x_err, yerr = y_err , fmt = 'o', ecolor= 'maroon', color = 'green', )
     plt.annotate('NMR' if key == 'wtc1' else 'wtc1' if key == 'wtc1_h' else 'wtc1_new' if key == 'wtc1_h_new' else key, (x,y), xytext = (5, 10), textcoords = 'offset points')
 
 ax.set_title('CA-P minimum mean distance vs Kd')
