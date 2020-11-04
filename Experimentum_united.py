@@ -61,7 +61,7 @@ if mode == 'terminal':
 elif mode == 'interactive': 
 
     print("Executing python interactive window using Jupyter")
-    spectra_filename = 'ARS_13_02'
+    spectra_filename = 'ARS_10_02'
     now_path = '../BRILLOUIN/TDP43/'+spectra_filename+'/'
     analysis_name = 'prova_{}'.format(date.today().strftime("%d_%m_%Y"))
 
@@ -105,33 +105,34 @@ inputs.set('I/O', 'analysis_path', analysis_path)
 inputs.set('I/O', 'now_path', now_path)
 
 
-#operatives
-transpose           =   inputs.getboolean('I/O', 'transpose')
-data_offset
-fit_algorithm       =   inputs['Operatives']['fit_algorithm']
-initial             =   inputs['Operatives']['initial']
-to_add              =   eval(inputs['Operatives']['to_add'])
-pre_cut             =  inputs.getboolean('Operatives','pre_cut')
-pre_cut_range       =  eval(inputs['Operatives']['pre_cut_range'])
-exclude_delta       =   inputs.getboolean('Operatives', 'exclude_delta')
+# OPERATIVES for ACQUISITION
 syg_kwargs          =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs')}
 syg_kwargs_VIPA     =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_VIPA')}
 syg_kwargs_brill    =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_brill')}
+
+transpose           =   inputs.getboolean('Operatives', 'transpose')
+data_offset         =   inputs.getfloat('Operatives', 'data_offset')
+almost_treshold     =  inputs.getfloat('Operatives','almost_treshold')
 sat_height          =  inputs.getfloat('Operatives','sat_height')
 sat_width           =  inputs.getfloat('Operatives','sat_width')
-almost_treshold     =  inputs.getfloat('Operatives','almost_treshold')
+pre_cut             =  inputs.getboolean('Operatives','pre_cut')
+pre_cut_range       =  eval(inputs['Operatives']['pre_cut_range'])
+initial             =   inputs['Operatives']['initial']
+to_add              =   eval(inputs['Operatives']['to_add'])
+fit_algorithm       =   inputs['Operatives']['fit_algorithm']
 cut                 =  inputs.getboolean('Operatives','cut')
+exclude_delta       =   inputs.getboolean('Operatives', 'exclude_delta')
 mean_dist_01        =  inputs.getfloat('Operatives','mean_dist_01')
 mean_dist_23        =  inputs.getfloat('Operatives','mean_dist_23')
-#markov_fit
 
+#markov_fit
 recover_markov      = inputs.getboolean('Markov', 'recover_markov')
 first_normal        = inputs.get('Markov', 'first_normal')
 first_almost         = inputs.get('Markov', 'first_almost')
 p0_normal           = np.array(eval(inputs['Markov']['p0_normal']))
 p0_almost           = np.array(eval(inputs['Markov']['p0_almost']))
-
 rules_markov_bounds =   eval(inputs['Markov']['rules_markov_bounds'])
+
 #tot fit
 skip_tot            =  inputs.getboolean('Tot', 'skip_tot')
 rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
@@ -147,11 +148,11 @@ if mode == 'terminal':
    
 else:
     log_file            =   'inter_log_'+spectra_filename
-    recover_markov = False
-    skip_tot = True
-    exclude_delta = True
+    recover_markov = recover_markov
+    skip_tot = skip_tot
+    exclude_delta = exclude_delta
     initial = initial
-    fit_algorithm = 'lm'
+    fit_algorithm = 'trf'
     print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
 
 inputs.set('Markov', 'fit_algorithm', fit_algorithm)
@@ -324,8 +325,8 @@ with open(analysis_path+log_file, 'a') as f_log:
 #######    ||    ||    ||
 #######   ||||  ||||  ||||
 
-print("\nI'm beginning markovian fit\n")
-
+print("\nI'm beginning markovian fit\nFit algorithm = {}\n\n".format(fit_algorithm))
+time.sleep(3)
 if recover_markov == False:
         
     print('\n\n You chose to do the markovian fit\n\n')

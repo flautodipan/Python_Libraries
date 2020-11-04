@@ -1105,6 +1105,7 @@ class Spectrum  :
         start            =    time.process_time()
 
         if p0 == 'auto':
+            
             self.res_lsq     =    least_squares(getattr(self, attribute), x0 = self.p0[list(columns)].values[0], args= ([self.y]),  **kwargs)    
         else:
             self.res_lsq     =    least_squares(getattr(self, attribute), p0, args= ([self.y]),  **kwargs)    
