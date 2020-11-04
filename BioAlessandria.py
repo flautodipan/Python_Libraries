@@ -1326,6 +1326,29 @@ def Find_Nearest_2D(insieme, point):
 
     return (insieme[idx, :], idx)
 
+def Get_Protein_BS(protein, RNA, RNA_atom = 'P'):
+
+    res = 
+    if RNA_atom == 'P':
+
+        protein.Get_Atom_Coord(atom_name = 'CA')
+        protein.Get_lenght()
+        protein.Get_Protein_Sequence()
+        RNA.Get_Atom_Coord(atom_name='P')
+        RNA.Get_RNA_Sequence()
+        RNA.Get_lenght()
+        sequence = np.concatenate([protein.sequence, RNA.sequence])
+        Coord_P   = np.concatenate((protein.CA_Coord, RNA.P_Coord))
+        Dist_P    = BA.Dist_Matrix(Coord_P)
+        Cont_P   = BA.Contacts_Matrix(Dist_P, treshold)
+        Bonds_P   = BA.Analyze_Bond_Residues(Cont_P, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
+        BS_P      = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
+        BS_RNA_P = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
+
+        return BS_P, BS_RNA_P
+
+    else: raise ValueError('Non hai ancora scritto questo codice')
+
 def gauss(x,mu,sigma,A):
     return A*np.exp(-(x-mu)**2/2/sigma**2)
 

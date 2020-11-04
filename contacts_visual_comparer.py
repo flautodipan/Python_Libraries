@@ -106,3 +106,36 @@ for key in now_keys:
 
 # 4) Matrice dei contatti
 
+now_keys_discarded = ['wtc1_h_new', 'wtc7_16', 'MTC1', 'mtc2', 'mtc3', 'mtc4']
+now_keys_discarded = [ key + '_discarded' for key in now_keys_discarded]
+
+res =  dfs['wtc1'].res_number.values
+df = pd.DataFrame(index =res )
+
+NOW_KEYS = now_keys+now_keys_discarded
+NOW_KEYS.sort()
+
+for key in NOW_KEYS:
+
+    # acquisisco frame iniziale 
+    now_path = join(path, key.upper() if 'discarded' not in key else key[:-10].upper())
+    now_pdb = key if 'discarded' not in key else key[:-10]
+    now_pdb += '.pdb'
+
+    protein   = BA.Protein(os.path.join(now_path, now_pdb), model = False)
+    RNA     =  BA.RNA(os.path.join(now_path, now_pdb), chain_id=' ', model = False)
+
+    print('Ok, acquisito frame iniziale {} da {}\n'.format('discarded' if 'disc' in key else ' ', now_path))
+
+    #BS_P, _ = 
+    
+    
+    
+    temp = np.zeros(len(res))
+    df[key] = [1 if r in exp_contacts else 0 for r in res]
+
+df
+# %%
+# %%
+    f, ax = plt.subplots()
+    ax.pcolor(df.values, cmap = 'PiYG', edgecolors = 'white', linewidth = .1)

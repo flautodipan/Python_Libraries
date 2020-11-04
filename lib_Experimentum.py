@@ -3,7 +3,7 @@ import  numpy               as np
 import  pandas              as pd
 from    matplotlib.pyplot   import plot
 import  matplotlib.pyplot   as plt
-from matplotlib_scalebar import scalebar
+from    matplotlib_scalebar import scalebar
 from    scipy.signal        import find_peaks
 from    scipy.optimize      import leastsq
 from    scipy.optimize      import least_squares
