@@ -104,13 +104,16 @@ with open  (os.path.join(now_path, filename+'_O5'+eq+'.txt'), 'w') as f:
         for bs in BS_O5:
             f.write('r {} | '.format(bs))
 # 2) P
+
+"""
 Coord_P   = np.concatenate((protein.CA_Coord, RNA.P_Coord))
 Dist_P    = BA.Dist_Matrix(Coord_P)
 Cont_P   = BA.Contacts_Matrix(Dist_P, treshold)
 Bonds_P   = BA.Analyze_Bond_Residues(Cont_P, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
 BS_P      = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
 BS_RNA_P = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
-
+"""
+BS_P, BS_RNA_P = BA.Get_Protein_BS(protein, RNA, res, treshold)
 np.save(os.path.join(now_path, 'BS_P'+eq+'.npy'), BS_P)
 np.save(os.path.join(now_path, 'BS_RNA_P'+eq+'.npy'), BS_RNA_P)
 

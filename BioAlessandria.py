@@ -88,8 +88,8 @@ class Protein:
         else:
             
             self.atoms  =   self.pdb.df['ATOM']
-            self.atoms  =   self.atoms[self.pdb.df['ATOM']['chain_id']==chain_id] 
-            self.initial=   self.atoms.residue_number[0]
+            self.atoms  =   self.atoms[self.atoms.chain_id == chain_id] 
+            self.initial=   self.atoms.residue_number.values[0]
             #self.terminus =  self.pdb.df['OTHERS']
          
         
@@ -180,7 +180,7 @@ class RNA:
         else:
             
             self.atoms  =   self.pdb.df['ATOM']
-            self.atoms  =   self.atoms[self.pdb.df['ATOM']['chain_id']==chain_id] 
+            self.atoms  =   self.atoms[self.atoms.chain_id ==chain_id] 
             #self.terminus =  self.pdb.df['OTHERS']
 
         if initial:
@@ -1326,24 +1326,23 @@ def Find_Nearest_2D(insieme, point):
 
     return (insieme[idx, :], idx)
 
-def Get_Protein_BS(protein, RNA, RNA_atom = 'P'):
+def Get_Protein_BS(protein, RNA, res, treshold, RNA_atom = 'P'):
 
-    res = 
     if RNA_atom == 'P':
 
         protein.Get_Atom_Coord(atom_name = 'CA')
         protein.Get_lenght()
-        protein.Get_Protein_Sequence()
+        #protein.Get_Protein_Sequence()
         RNA.Get_Atom_Coord(atom_name='P')
-        RNA.Get_RNA_Sequence()
+        #RNA.Get_RNA_Sequence()
         RNA.Get_lenght()
-        sequence = np.concatenate([protein.sequence, RNA.sequence])
+        #sequence = np.concatenate([protein.sequence, RNA.sequence])
         Coord_P   = np.concatenate((protein.CA_Coord, RNA.P_Coord))
-        Dist_P    = BA.Dist_Matrix(Coord_P)
-        Cont_P   = BA.Contacts_Matrix(Dist_P, treshold)
-        Bonds_P   = BA.Analyze_Bond_Residues(Cont_P, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
-        BS_P      = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
-        BS_RNA_P = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
+        Dist_P    = Dist_Matrix(Coord_P)
+        Cont_P   = Contacts_Matrix(Dist_P, treshold)
+        Bonds_P   = Analyze_Bond_Residues(Cont_P, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
+        BS_P      = Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
+        BS_RNA_P = Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['RNA']
 
         return BS_P, BS_RNA_P
 

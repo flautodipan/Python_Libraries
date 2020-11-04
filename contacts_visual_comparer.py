@@ -18,7 +18,7 @@ all_keys = wtc_keys+cov_keys+mtc_keys
 gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 
 # IMPOSTAZIONI INIZIALI
-treshold = 9
+BS_treshold = 9
 path = join('..', 'GROMACS')
 now_keys = wtc_keys +mtc_keys
 
@@ -95,7 +95,7 @@ for key in now_keys:
     y_lims = ax.get_ylim()
     [ax.vlines(bs, y_lims[0], y_lims[1], colors = now_exp_df.contrastcolor.values[0], alpha = 0.4, label = 'Experimental BS' if bs == exp_contacts.values[0] else None) for bs in exp_contacts]
 
-    ax.set_title('{} Number of contacts vs residue number\n Treshold = {} ang   # tot frame = {} '.format(key, treshold, eq_len[key]))
+    ax.set_title('{} Number of contacts vs residue number\n Treshold = {} ang   # tot frame = {} '.format(key, BS_treshold, eq_len[key]))
     ax.set_xlabel('Protein Residue Number')
     ax.set_ylabel('# of contacts')
 
@@ -105,37 +105,64 @@ for key in now_keys:
 # %%
 
 # 4) Matrice dei contatti
+exp_key = 'wtc1'
+now_keys_discarded_ = ['wtc1_h_new', 'wtc7_16', 'MTC1', 'mtc2', 'mtc3', 'mtc4']
+now_keys_discarded = [ key + '_discarded' for key in now_keys_discarded_]
 
-now_keys_discarded = ['wtc1_h_new', 'wtc7_16', 'MTC1', 'mtc2', 'mtc3', 'mtc4']
-now_keys_discarded = [ key + '_discarded' for key in now_keys_discarded]
-
-res =  dfs['wtc1'].res_number.values
-df = pd.DataFrame(index =res )
+prot_res =  dfs[exp_key].res_number.values
+df = pd.DataFrame(index =prot_res )
 
 NOW_KEYS = now_keys+now_keys_discarded
 NOW_KEYS.sort()
 
 for key in NOW_KEYS:
 
-    # acquisisco frame iniziale 
-    now_path = join(path, key.upper() if 'discarded' not in key else key[:-10].upper())
-    now_pdb = key if 'discarded' not in key else key[:-10]
-    now_pdb += '.pdb'
+    # differenzio key real key, perché i discarded prendono file da real key
+    real_key = key[:-10] if '_discarded' in key else key
+    now_path = join(path, real_key.upper())
+    now_pdb = key+'.pdb'
+    eq = '_eq2' if key in now_eqs2 else '_eq1' if real_key in now_eqs1 else '_eq' 
+    if ((real_key in now_eqs1) & (real_key in now_eqs2)):
+        raise ValueError('{} in both eq1 and eq2'.format(real_key))
+    
+    print('\n\nNuovo ciclo path = {} \nchiave = {}, chiave reale = {}\n\n'.format(now_path, key, real_key))
+
+
+    # acquisisco RMSF per res e frame iniziale 
+    res, RMSF_res = BA.Parse_xvg_skip('rmsf_res_'+real_key+eq+'.xvg', now_path, skip_lines= 17)
+    res = np.array(res, dtype=int)
+    # faccio diventare indici dei residui RNA successivi a quelli proteina
+    idx_RNA_start = np.where( res == 1.)[0][0]
+    res[idx_RNA_start:] += res[idx_RNA_start-1]
 
     protein   = BA.Protein(os.path.join(now_path, now_pdb), model = False)
-    RNA     =  BA.RNA(os.path.join(now_path, now_pdb), chain_id=' ', model = False)
+    RNA     =  BA.RNA(os.path.join(now_path, now_pdb), chain_id='B' if real_key == 'wtc1' else '', model = False)
 
-    print('Ok, acquisito frame iniziale {} da {}\n'.format('discarded' if 'disc' in key else ' ', now_path))
+    print('Ok, acquisito frame iniziale {} da {}\n'.format('discarded' if 'disc' in key else '', join(now_path, now_pdb)))
 
-    #BS_P, _ = 
-    
-    
-    
-    temp = np.zeros(len(res))
-    df[key] = [1 if r in exp_contacts else 0 for r in res]
+    BS_P , _ = BA.Get_Protein_BS(protein, RNA, res, BS_treshold)
 
-df
+    if key == exp_key:
+        df[key] = [1 if r in exp_contacts.values else 0 for r in prot_res]
+        df[key+'_ini'] = [1 if r in BS_P else 0 for r in prot_res]
+    else:
+        df[key] = [1 if r in BS_P else 0 for r in prot_res]
+
+
+df = df[['wtc1', 'wtc1_ini', 'wtc1_h_new', 'wtc1_h_new_discarded', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16', 'wtc7_16_discarded', 'MTC1', 'MTC1_discarded', 'mtc2', 'mtc2_discarded', 'mtc3', 'mtc3_discarded',  'mtc4', 'mtc4_discarded']]
 # %%
 # %%
-    f, ax = plt.subplots()
-    ax.pcolor(df.values, cmap = 'PiYG', edgecolors = 'white', linewidth = .1)
+f, ax = plt.subplots(figsize=(19, 8))
+
+
+ax.pcolor(df.values, cmap = 'hot', edgecolors = 'white', linewidth = .1)
+
+x_ticks = np.arange(0, df.values.shape[1], step = 1)
+y_labels = [str(int(a)) for a in ax.get_yticks() + prot_res[0] ]
+x_labels = ['NMR', 'NMR_ini','wtc1', 'wtc1_d', 'wtc2','wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7', 'wtc7_d', 'mtc1', 'mtc1_d', 'mtc2', 'mtc2_d', 'mtc3', 'mtc3_d', 'mtc4', 'mtc4_d' ]
+ax.set_xticks(x_ticks + 0.5, minor = False)
+#ax.set_yticks(y_ticks)
+ax.set_xticklabels(x_labels)
+ax.set_yticklabels(y_labels)
+plt.xticks(fontsize='large')
+# %%
