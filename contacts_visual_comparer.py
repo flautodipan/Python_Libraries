@@ -150,11 +150,9 @@ for key in NOW_KEYS:
 
 
 df = df[['wtc1', 'wtc1_ini', 'wtc1_h_new', 'wtc1_h_new_discarded', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16', 'wtc7_16_discarded', 'MTC1', 'MTC1_discarded', 'mtc2', 'mtc2_discarded', 'mtc3', 'mtc3_discarded',  'mtc4', 'mtc4_discarded']]
-# %%
-# %%
+# %% 4) FIGURE e stampe finali
+
 f, ax = plt.subplots(figsize=(19, 8))
-
-
 ax.pcolor(df.values, cmap = 'hot', edgecolors = 'white', linewidth = .1)
 
 x_ticks = np.arange(0, df.values.shape[1], step = 1)
@@ -164,5 +162,9 @@ ax.set_xticks(x_ticks + 0.5, minor = False)
 #ax.set_yticks(y_ticks)
 ax.set_xticklabels(x_labels)
 ax.set_yticklabels(y_labels)
+ax.set_ylabel('Residue number')
+ax.set_xlabel('Structure identifier')
+ax.set_title('Contacts comparison of structure with NMR')
 plt.xticks(fontsize='large')
+
 # %%

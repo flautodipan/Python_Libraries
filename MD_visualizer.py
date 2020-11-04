@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 
 
 path = '../GROMACS/'
-wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5',  'wtc6', 'wtc7_16']
+wtc_keys = ['wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5',  'wtc6', 'wtc7_16']
 wtc_keys_red = [wtc_keys[1]]+wtc_keys[3:]
 cov_keys = ['cov2', 'cov3', 'cov4']
 mtc_keys = ['MTC1', 'mtc2', 'mtc3', 'mtc4']
@@ -23,8 +23,8 @@ gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 
 #%%
 # FORMO IL DATAFRAME con i DATI CHE VOGLIO STAMPARE ORA
-now_keys = wtc_keys_red +mtc_keys
-now_eqs1 = ['wtc1_h_new', 'MTC1', 'mtc3']
+now_keys = wtc_keys + mtc_keys
+now_eqs1 = ['wtc1_h_new', 'MTC1', 'mtc3', 'mtc4', 'wtc7_16']
 now_eqs2 = ['mtc2',]
 
 dfs = {}
@@ -157,6 +157,8 @@ fig, ax = plt.subplots()
 ax.set_title('Protein BS Covariance with Protein BS  vs Kd\nRNA by P atoms')
 
 for x,x_err, y, key in zip(x_vals, x_errs, correlators_P, now_keys):
+#for x,x_err, y, key in zip(x_vals[1:], x_errs[1:], correlators_P[1:], now_keys[1:]):
+
     ax.errorbar(x, y, xerr= x_err, fmt = 'o', ecolor = 'orange', mew = 0.1, color = 'black' if key in wtc_keys else 'green' if key in cov_keys else 'goldenrod', label = 'wtc_series' if key == wtc_keys[-1] else 'cov_series' if key == cov_keys[-1] else 'mtc series' if key == mtc_keys[-1] else None)
     plt.annotate('NMR' if key == 'wtc1' else 'wtc1' if key == 'wtc1_h' else 'wtc1_new' if key == 'wtc1_h_new' else key, (x,y), xytext = (5, 10), textcoords = 'offset points')
 
