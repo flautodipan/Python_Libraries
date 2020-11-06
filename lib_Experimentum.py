@@ -436,36 +436,55 @@ class Spectrum  :
             plt.show()
             plt.close()
     
-    def Check_Brillouin_Distances(self, average, stdev):
+    def Check_Brillouin_Distances(self, mean_dist_01, mean_dist_12, mean_dist_23,  stdev):
+
         """
         Function that is supposed to be called when peaks are already four
         --> check if the distance of Brillouin peaks is in the average 
             otherwise it means they are not brillouin
         """
-        if (np.abs(self.x[self.peaks['idx'][1]] - self.x[self.peaks['idx'][2]]) > (average*stdev)):
-            return True
-        else:
-            return False
+        if ((self.n_peaks == 4) | ((self.n_peaks == 3) & (self.alignment == 'dx'))):
+            if (np.abs(self.x[self.peaks['idx'][0]] - self.x[self.peaks['idx'][1]]) > (mean_dist_01+mean_dist_01*stdev)):
+                print(1) 
+                return True
+            elif (np.abs(self.x[self.peaks['idx'][2]] - self.x[self.peaks['idx'][3]]) > (mean_dist_23+mean_dist_23*stdev)):
+                print(2) 
+                return True
+            elif (np.abs(self.x[self.peaks['idx'][1]] - self.x[self.peaks['idx'][2]]) > (mean_dist_12+mean_dist_12*stdev)):
+                print(3) 
+                return True
+            else: return False
 
-    def Align_Spectrum(self, alignment = False):
+        elif ((self.n_peaks == 3) & (self.alignment == 'sx')):
+            if (np.abs(self.x[self.peaks['idx'][0]] - self.x[self.peaks['idx'][1]]) > (mean_dist_12+mean_dist_01*stdev)):
+                print(4) 
+                return True
+            elif (np.abs(self.x[self.peaks['idx'][1]] - self.x[self.peaks['idx'][2]]) > (mean_dist_23+mean_dist_12*stdev)):
+                print(5) 
+                return True
+            else: return False
+
+
+        else: raise ValueError('Numero picchi {} non riconosciuto'.format(self.n_peaks))
+
+    def Align_Spectrum(self, alignment):
 
         """
         Funzione che allinea correttamente gli spettri con gli elastici di convoluzione VIPA 
         """
-        if alignment:
-            pass
-        else:
-            alignment = getattr(self, 'alignment')
+        setattr(self, 'alignment', alignment)
 
-        if alignment == 'dx':
-            
-            #self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][0]]
-            self.x      = self.x - self.x[self.peaks['idx'][0]]
+        if self.alignment == 'dx':
+            if (self.n_peaks == 4) | (self.n_peaks == 3):            
+                self.x      = self.x - self.x[self.peaks['idx'][0]]
+            else: raise ValueError('Il picco non ha nè 4, né 3 picchi, ma {}. Non so che fare'.format(self.n_peaks))
 
-        elif alignment == 'sx':
-
-            #self.x_freq = self.x_freq - self.x_freq[self.peaks['idx'][3]]
-            self.x      = self.x - self.x[self.peaks['idx'][3]]
+        elif self.alignment == 'sx':
+            if self.n_peaks == 4:
+                self.x      = self.x - self.x[self.peaks['idx'][3]]
+            elif self.n_peaks == 3:
+                self.x      = self.x - self.x[self.peaks['idx'][2]]
+            else: raise ValueError('Il picco non ha nè 4, né 3 picchi, ma {}. Non so che fare'.format(self.n_peaks))
 
     def Spectrum_Pix2GHz (self, fig = False):
 
@@ -1199,7 +1218,8 @@ class Spectrum  :
 
     def Get_p0(self,p0, columns):
 
-
+        if not hasattr(self, 'p0'): 
+            self.p0  =   pd.DataFrame({}, columns = columns, index = ['Values'])
         self.p0.T.Values[list(columns)] = [value for value in p0]
 
         #self.p0      =   pd.DataFrame({idx : value for (idx, value) in zip(columns, p0)}, index = ['Values'])

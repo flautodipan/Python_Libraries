@@ -36,7 +36,7 @@ syg_kwargs_brill    =   {'height': 18, 'distance': 31, 'width': 2.1}
 # OPERATIVES FOR ACQUISITION
 transpose           =   False
 data_offset         =   183.
-almost_treshold     =   150000
+almost_treshold     =   15000
 saturation_height   =   50000
 saturation_width    =   15.
 pre_cut             =   True
@@ -167,7 +167,7 @@ if len(four) != (dim -len(excluded)):
 
 Plot_Elements_Spectrum(matrix, bizarre, peaks = True, pix = True)
 
-print('OSS importante:\nQuesti spettri verrano classificati come brillouin_higher a meno che non li aggiungi manualmente al parametro iniziale to_add.\nIn questo caso FAR GIRARE NUOVAMENTE il programma dopo la modifica e saranno esclusi.')
+print('OSS importante:\nQuesti spettri, se con tre picchi, verrano classificati come brillouin_higher a meno che non li aggiungi manualmente al parametro iniziale to_add. Se sono due li escludo perché non so come allinearli.\nSe aggiungi manualmente, FAR GIRARE NUOVAMENTE il programma dopo la modifica e saranno esclusi.')
 
 #%%
 #####
@@ -193,7 +193,9 @@ for ii in range(len(rows)):
                 if matrix[ii][jj].y.max() >= almost_treshold: almost_height.append((ii,jj),)
                 else: normals.append((ii,jj),)
             elif (ii,jj) in bizarre:
-                brillouin_higher.append((ii,jj),)
+                if matrix[ii][jj].n_peaks == 3:
+                    brillouin_higher.append((ii,jj),)
+                else: excluded.append((ii,jj),)
             else: raise ValueError('Strano, ma (ii,jj) = {} non è nè normal nè brillouin_higher. Check it'.format(str((ii,jj))))
         else: pass
 
@@ -270,6 +272,7 @@ for (s, what) in zip(stats, ('height picco 1', 'Picco 2 height', 'Picco 3 height
 
 #salvo medie distanze elastico-brillouin
 mean_dist_01 = np.mean(dist_01)
+mean_dist_12 = np.mean(dist_12)
 mean_dist_23 = np.mean(dist_23)
 
 #%%
@@ -389,7 +392,7 @@ config['I/O'] = {'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_f
 config['syg_kwargs'] = { 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
-config['Operatives'] = {'transpose' : transpose, 'data_offset' : data_offset, 'alignment' : alignment, 'almost_treshold':almost_treshold, 'sat_height': saturation_height, 'sat_width':saturation_width, 'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'initial': initial, 'to_add' : to_add,  'fit_algorithm' : fit_algorithm, 'cut': cut,  'exclude_delta' : exclude_delta,'mean_dist_01' : mean_dist_01, 'mean_dist_23' : mean_dist_23, }
+config['Operatives'] = {'transpose' : transpose, 'data_offset' : data_offset, 'alignment' : alignment, 'almost_treshold':almost_treshold, 'sat_height': saturation_height, 'sat_width':saturation_width, 'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'initial': initial, 'to_add' : to_add,  'fit_algorithm' : fit_algorithm, 'cut': cut,  'exclude_delta' : exclude_delta,'mean_dist_01' : mean_dist_01, 'mean_dist_12' : mean_dist_12, 'mean_dist_23' : mean_dist_23, }
 config['Markov'] = {'recover_markov': recover_markov, 'first_normal' : first_normal, 'p0_normal' : p0_normal, 
 'first_almost': first_almost, 'p0_almost' :p0_almost, 'rules_markov_bounds':  rules_markov_bounds }
 config['Tot'] = {'skip_tot' : skip_tot, 'rules_tot_bounds' : rules_tot_bounds}

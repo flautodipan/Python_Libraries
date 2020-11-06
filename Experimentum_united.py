@@ -26,17 +26,6 @@ from        os.path             import join
 import      configparser
 import      sys
 
-
-#variables immutable
-
-invisible           =   []
-brillouin_higher    =   []
-brillouin_highest   =   []
-boni                =   []
-excluded            =   []
-almost_height       =   []
-normals             =   []
-
 cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position','delta_width',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
@@ -89,6 +78,11 @@ else:
 
 
 #%%
+# 0) ACQUISISCO DATI DI INPUT 
+
+##############
+####   config.ini
+##############
 
 inputs = configparser.ConfigParser()
 
@@ -125,6 +119,7 @@ fit_algorithm       =   inputs['Operatives']['fit_algorithm']
 cut                 =   inputs.getboolean('Operatives','cut')
 exclude_delta       =   inputs.getboolean('Operatives', 'exclude_delta')
 mean_dist_01        =   inputs.getfloat('Operatives','mean_dist_01')
+mean_dist_12        =   inputs.getfloat('Operatives','mean_dist_12')
 mean_dist_23        =   inputs.getfloat('Operatives','mean_dist_23')
 
 #markov_fit
@@ -141,8 +136,11 @@ rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
 
 ############
 
+# check delle cose operazionali
+
 if mode == 'terminal':
 
+    partial = False
     print('p0s lenght is {} for normal, {} for almost\n'.format(len(p0_normal), len(p0_almost)))
     recover_markov, skip_tot, exclude_delta, fit_algorithm = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta, fit_algorithm)
     inputs.set('Operatives', 'exclude_delta', str(exclude_delta))
@@ -150,32 +148,60 @@ if mode == 'terminal':
     inputs.set('Tot', 'skip_tot', str(skip_tot) )
    
 else:
+    partial = True
     log_file            =   'inter_log_'+spectra_filename
     recover_markov = recover_markov
     skip_tot = skip_tot
     exclude_delta = exclude_delta
     initial = initial
-    fit_algorithm = 'trf'
+    fit_algorithm = fit_algorithm
     print('Rec Mark = {}\nSkip Tot = {}\nexlude_delta={}\ninitial={}'.format(recover_markov, skip_tot, exclude_delta, initial))
 
 inputs.set('Markov', 'fit_algorithm', fit_algorithm)
+
+
+####################
+#######  classes.ini
+####################
+
+classes = configparser.ConfigParser()
+
+with open(join(now_path, 'classes.ini'), 'r') as f_in:
+    classes.read_file(f_in)
+
+normals             = eval(classes.get('tuples', 'normals'))
+brillouin_higher    = eval(classes.get('tuples', 'brillouin_higher'))
+almost_height       = eval(classes.get('tuples', 'almost_height'))
+excluded            = eval(classes.get('tuples', 'excluded'))
+
+# aggiuntivi
+boni      = []
+invisible = []
+now_excluded = []
+
 
 # %%
 #2) ######################################################################################################################
 
 #######   ||||  ||||    DATA ACQUISITION AND TREATMENT : - acquisiamo i file di INPUT
-#######    ||    ||                                  - eseguiamo operazioni su cartelle
-#######    ||    ||
+#######    ||    ||                                      - eseguiamo operazioni su cartelle
+#######    ||    ||                                      - converto e taglio lo spettro
 #######    ||    ||
 #######   ||||  ||||
 
+############
+#  1) ACQUISITION  
+############
 
-#import dati spettro 
 dati    =   Import_from_Matlab(spectra_filename, now_path, transpose = transpose)
 n_rows  =   len(dati)
 n_cols  =   len(dati[0])
-#matrix, rows, cols = Initialize_Matrix(0,0,3,3)
-matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
+if partial:
+    matrix, rows, cols = Initialize_Matrix(0,0,3,3)
+    ii_0, jj_0 = serpentine_range(len(rows), len(cols), initial)[0]
+
+else:
+    matrix, rows, cols = Initialize_Matrix(0,0, n_rows, n_cols)
 dim     =   len(rows)*len(cols)
 inputs.set('I/O','n_rows', str(len(rows)))
 inputs.set('I/O','n_cols', str(len(cols)))
@@ -201,91 +227,73 @@ for (ii, ii_true) in zip(range(len(rows)), rows):
 
         print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
         
-        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
-        matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
+        if (ii_true,jj_true) not in excluded:
+
+            matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
+            matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
+            matrix[ii][jj].Align_Spectrum(alignment = alignment)
+
+            # check ulteriore
+            if matrix[ii][jj].Check_Brillouin_Distances(mean_dist_01 = mean_dist_01, mean_dist_12 = mean_dist_12, mean_dist_23 = mean_dist_23, stdev = 0.15):
+                print('Acc! Something went wrong with spectrum (ii,jj) = {}.\nFor safety, I will exclude it'.format(str((ii,jj))))
+                invisible.append((ii,jj),)
+                now_excluded.append((ii.jj),)
+            else:
+                boni.append((ii,jj), )
+            # acquisisco VIPA
+            matrix[ii][jj].x_VIPA   =   matrix[ii_0][jj_0].x_VIPA
+            matrix[ii][jj].y_VIPA   =   matrix[ii_0][jj_0].y_VIPA
+
+            # set_nature
+            if (ii,jj) in normals: matrix[ii][jj].Set_Spectrum_Nature('normal')
+            elif (ii,jj) in almost_height: matrix[ii][jj].Set_Spectrum_Nature('almost_height')
+            elif (ii,jj) in brillouin_higher: matrix[ii][jj].Set_Spectrum_Nature('brillouin_higher')
         
-        matrix[ii][jj].x_VIPA   =   matrix[ii_0][jj_0].x_VIPA
-        matrix[ii][jj].y_VIPA   =   matrix[ii_0][jj_0].y_VIPA
+        else: now_excluded.append((ii,jj))
 
-### catalogo la natura degli spettri
+# aggiorno esclusi
+if len(invisible) > 0:
+    print('Attenzione: rispetto agli esclusi previsti da pre_Experimentum.py, ho aggiunto {} elementi'.format(len(invisible)))
+    excluded    += invisible
+    excluded.sort()
+else: print("Ok, tutto bene nell'acquisizione spettri")
 
-not_saturated, saturated = Get_Saturated_Elements(matrix, len(rows), len(cols), saturation_height = sat_height, saturation_width = sat_width)
-excluded        = saturated.copy()
-excluded        = Escludi_a_Mano(to_add, excluded)
-
-for (ii, ii_true) in zip(range(len(rows)), rows):  
-    for (jj, jj_true) in zip(range(len(cols)), cols):
-        
-            print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
-
-            if (ii_true,jj_true) not in excluded:
-                #Spettri normali , quattro picchi di cui i picchi più alti sono elastici
-                
-                if matrix[ii][jj].n_peaks >= 4:
-                    if matrix[ii][jj].n_peaks == 5:
-                        matrix[ii][jj].Exclude_Glass_Peak()
-                    else:
-                        matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
-
-                    if matrix[ii][jj].Check_Brillouin_Distances(average = 70, stdev = 70/10):
-                        invisible += [(ii,jj), ]
-                    else: 
-                        if matrix[ii][jj].y.max() > almost_treshold:
-                            almost_height += [(ii,jj),]
-                        else:
-                            normals += [(ii,jj),]
-
-                        boni += [(ii,jj),]
-                elif (matrix[ii][jj].n_peaks == 2):
-                    matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
-                    brillouin_highest += [(ii,jj), ]
-                    boni += [(ii,jj),]
-                elif  (matrix[ii][jj].n_peaks == 3):
-                    matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_brill)
-                    if (matrix[ii][jj].y.argmax() == matrix[ii][jj].peaks['idx'][1]) | (matrix[ii][jj].y.argmax() == matrix[ii][jj].peaks['idx'][2]):
-                        brillouin_highest += [(ii,jj), ]
-                    else:
-                        brillouin_higher += [(ii,jj), ]
-                    boni += [(ii,jj),]
-                else:
-                    raise ValueError("Numero di picchi non previsti ({} )dal codice per spettro {}".format(matrix[ii][jj].n_peaks, str((ii,jj))))
-
-excluded    += invisible
-excluded.sort()
+# check 
+if (len(now_excluded) + len(boni)) != dim:
+    raise ValueError('ATTENZIONE: excluded elements ({}) and ready_for_fit(boni) ({}) elements are not complementary to total dimension {}'.format(len(excluded), len(boni), dim))
 
 acq_time    =   time.process_time()-start
 tempo       =   tempo + (('acquisizione', acq_time),)
 print('\nTempo impiegato per acquisizione spettri: {} s\n'.format(acq_time))
 
 #%%
+# scrivo su log file
+
 with open(analysis_path+log_file, 'a') as f_log:
 
     f_log.write('\n\n###############################INFO ON DATA ACQUISITION#######################################\n\n')
-    f_log.write('\nTotale spettri saturati : {}\n'.format(len(saturated)))
-    f_log.write(str(saturated))
-    f_log.write('\nTotale spettri con Brillouin più alti di un elastico : {}\n'.format(len(brillouin_higher)))
-    f_log.write(str(brillouin_higher))
-    f_log.write('\nTotale spettri con Brillouin più alti in assoluto : {}\n'.format(len(brillouin_highest)))
-    f_log.write(str(brillouin_highest))
-    f_log.write('\nTotale spettri con Brillouin invisibili (= aggiunti dopo ulteriore controllo): {}\n'.format(len(invisible)))
-    f_log.write(str(invisible))
     f_log.write('\nTotale spettri boni :  {} di cui\n'.format(len(boni)))
     f_log.write('\nTotale spettri con elastici più alti di {} : {}\n'.format(almost_treshold, len(almost_height)))
     f_log.write('\nTotale spettri normali : {}\n'.format(len(normals))) 
     f_log.write('\nTotale spettri almost height : {}\n'.format(len(almost_height)))
-    f_log.write('\n\nTotale spettri : {}\ndi cui {} inutilizzabili, '.format(dim, len(invisible)+len(saturated)))
-    f_log.write('ossia il %3.2f percento\n'%(float(len(invisible)+len(saturated))*100/dim))
-    f_log.write('Di cui il {} invisibili e il {} saturati\n\n'.format(len(invisible)*100/dim, len(saturated)*100/dim))
+    f_log.write('\nTotale spettri con Brillouin più alti di un elastico : {}\n'.format(len(brillouin_higher)))
+    f_log.write(str(brillouin_higher))
+    f_log.write('\nTotale spettri con Brillouin invisibili (= aggiunti dopo ulteriore controllo): {}\n'.format(len(invisible)))
+    f_log.write(str(invisible))
+    f_log.write('\nTotale spettri esclusi : {}\n'.format(len(excluded)))
+    f_log.write(str(excluded))   
+    f_log.write('\n\nTotale spettri : {}\ndi cui {} inutilizzabili, '.format(dim, len(invisible)+len(excluded)))
+    f_log.write('ossia il %3.2f percento\n'%(float(len(invisible)+len(excluded))*100/dim))
 
 # %%
-#2) Faccio operazioni di modifica spettro
-
+############
+#  1) TREATMENT  
+############
 start = time.process_time()
 
 matrix[ii_0][jj_0].How_Many_Peaks_To_VIPA(treshold = 6, **syg_kwargs_VIPA)
 matrix[ii_0][jj_0].Fit_Pixel2GHz()
 matrix[ii_0][jj_0].VIPA_Pix2GHz()
-matrix[ii_0][jj_0].Align_Spectrum(alignment = alignment)
 matrix[ii_0][jj_0].Spectrum_Pix2GHz()
 matrix[ii_0][jj_0].Estimate_Spectrum_Parameters(verbose = True)
 matrix[ii_0][jj_0].Cut_Spectrum(mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
@@ -293,21 +301,26 @@ matrix[ii_0][jj_0].Fit_VIPA_Gaussian()
 
 for ii in range(len(rows)):
     for jj in range(len(cols)):
-            print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
-            if ((ii,jj) not in excluded) & ((ii,jj) != (0,0)):
-                matrix[ii][jj].x_VIPA_freq   =   matrix[ii_0][jj_0].x_VIPA_freq
-                matrix[ii][jj].y_VIPA        =   matrix[ii_0][jj_0].y_VIPA
-                matrix[ii][jj].Poly2GHz      =   matrix[ii_0][jj_0].Poly2GHz
-                matrix[ii][jj].Align_Spectrum(alignment = alignment)
-                matrix[ii][jj].Spectrum_Pix2GHz()
-                matrix[ii][jj].Cut_Spectrum(mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)            elif ((ii,jj) in excluded):
-                matrix[ii][jj].Poly2GHz      =   matrix[ii_0][jj_0].Poly2GHz
-                matrix[ii][jj].Spectrum_Pix2GHz()
+        print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
+
+        if ((ii,jj) not in excluded) & ((ii,jj) != (ii_0,  jj_0)):
+
+            matrix[ii][jj].x_VIPA_freq   =   matrix[ii_0][jj_0].x_VIPA_freq
+            matrix[ii][jj].y_VIPA        =   matrix[ii_0][jj_0].y_VIPA
+            matrix[ii][jj].Poly2GHz      =   matrix[ii_0][jj_0].Poly2GHz
+            matrix[ii][jj].Spectrum_Pix2GHz()
+            matrix[ii][jj].Cut_Spectrum(mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
+
+        elif ((ii,jj) in excluded):
+            matrix[ii][jj].Poly2GHz      =   matrix[ii_0][jj_0].Poly2GHz
+            matrix[ii][jj].Spectrum_Pix2GHz()
 
 mod_time    =   time.process_time()-start
 tempo       =   tempo + (('modifica',mod_time), )
 
 #%%
+# salvataggi
+
 with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\n\n######### MODIFICA SPETTRI #####################\n\n')
     f_log.write('\nTempo impiegato per modifica spettri: {} s\nTaglio spettri è {}\n\n'.format(mod_time, cut))
@@ -316,6 +329,7 @@ with open(analysis_path+log_file, 'a') as f_log:
 Save_XY_position(matrix, len(rows), len(cols), path = analysis_path)
 Save_XY_VIPA(matrix[ii_0][jj_0].x_VIPA_freq, matrix[ii_0][jj_0].y_VIPA, path = analysis_path)
 
+print('\n\nI saved xy info on xy.txt and xy_VIPA.txt in your analysis directory {}\n\n'.format(analysis_path))
 with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\n\nI saved xy info on xy.txt and xy_VIPA.txt in your analysis directory {}\n\n'.format(analysis_path))
 
@@ -336,14 +350,8 @@ if recover_markov == False:
     fit                 =   ()
     start = time.process_time()
     isolated = Get_Isolated_Elements(excluded)
-    
-    # je faccio fa un primo giro perchè no, così lo controllo e miglioro la mia stima di p0
-    """
-    matrix[ii_0][jj_0].Get_Fit_Bounds(percents_markov, cols_mark)
-    _ =  matrix[ii_0][jj_0].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[ii_0][jj_0].bounds['down'].values, matrix[ii_0][jj_0].bounds['up'].values),  max_nfev = 100)
-    Plot_Elements_Spectrum(matrix, [(0,0)], fit = 'markov')
-    """
-    for (ii,jj) in serpentine_range(len(rows), len(cols), 'right'):
+
+    for (ii,jj) in serpentine_range(len(rows), len(cols), initial):
 
         if (ii,jj) in boni:
 
@@ -354,7 +362,6 @@ if recover_markov == False:
                 rules_bounds = {key : rules_markov_bounds[key] for key in columns}
                 if len(p0_normal) != len(rules_bounds):
                     p0_normal = np.concatenate([p0_normal[0:3], p0_normal[6:]])
-
             else:
                 columns = cols_mark
                 rules_bounds = rules_markov_bounds
@@ -460,7 +467,7 @@ if not skip_tot:
     print("\n\nI'm beginning total fit\n\n")
     start = time.process_time()
 
-    for (ii,jj) in serpentine_range(len(rows), len(cols), 'right'):
+    for (ii,jj) in serpentine_range(len(rows), len(cols), initial):
 
         if (ii,jj) in boni:
 
