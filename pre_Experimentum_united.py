@@ -335,8 +335,6 @@ p0_almost = p0s[1]
 ######  7)  GENERO FILE .ini
 #####       
 
-#altri opera
-
 config = configparser.ConfigParser()
 
 config['I/O'] = {'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_filename}

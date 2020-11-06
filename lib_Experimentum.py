@@ -139,6 +139,10 @@ class Spectrum  :
         self.peaks      =   Find_First_n_peaks(self.peaks, 4, exclude = [3])
 
 
+    def Set_Spectrum_Nature(self, nature):
+        
+        setattr(self, 'nature', nature)
+
     def Get_VIPA_mat(self, mat_filename, path='./', tunable = None, offset = 'same', fig = False):
         
         """
@@ -472,31 +476,52 @@ class Spectrum  :
             plt.show()
             plt.close()
 
-    def Cut_n_Estimate_Spectrum(self, cut = True, mean_dist01 = 37, mean_dist23 = 34, estimate = False, verbose = False):
+    def Cut_Spectrum(self, mean_dist01, mean_dist23,  factor = 0.5, ):
+
+        """
+        Esegue il taglio degli spettri, eliminando gli elastici dall'analisi.
+        (mi allargo a partire dai Brillouin di un fattore pari a factor*meandist(brillouin, elastico))
+        Se la natura è normal o almost, si aspetta di avere tutti e quattro i picchi
+        Se la natura è brillouin_higher, si aspetta di avere 3 o 2 picchi addirittura
+        Nel caso di 3, 
+
+        """
+        # 4 picchi
+        if ((self.nature == 'normal') | (self.nature == 'almost')):
+
+            idx_min               =   self.peaks['idx'][1] - int(mean_dist01*factor)
+            idx_max               =   self.peaks['idx'][2] + int(mean_dist23*factor)
+
         
+        elif self.nature == 'brillouin_higher':
 
-        """
+            # 3 picchi
+            if self.n_peaks == 3:
+                if self.alignment == 'sx':
+                    idx_min               =   self.peaks['idx'][0] - int(mean_dist01*factor)
+                    idx_max               =   self.peaks['idx'][1] + int(mean_dist23*factor)
+                else:
+                    idx_min               =   self.peaks['idx'][1] - int(mean_dist01*factor)
+                    idx_max               =   self.peaks['idx'][2] + int(mean_dist23*factor)
+            # 2 picchi
+            elif self.n_peaks == 2:
+                    idx_min               =   self.peaks['idx'][0] - int(mean_dist01*factor)
+                    idx_max               =   self.peaks['idx'][1] + int(mean_dist23*factor)
 
-        Funzione che esegue 
-        #
-        # taglio      :     trovo i valori dei picchi elastici e delle relative ampiezze 
-        #                   (grazie scipy) e banalmente mi sposto di distanza rispetto 
-        #                   alle posizioni dei picchi sull'array delle frequenze
-        #                   il taglio sulle y è consequenziale, il tutto grazie agli indici
-        #
-        # stima dei parametri iniziali :
-        #                    riesco a stimare qualche parametro e genero un p0 tarato per fit markoc
-        #                    che in ogni caso è il primo che faccio
-        #  
-        #   OSS: tutto funziona perchè mi aspetto due picchi elastici ad aprire e
-        #        chiudere lo spettro
-        #      
+            else: raise ValueError('Numero picchi non riconosciuto come valido: {}'.format(self.n_peaks))
 
-        """
 
-        idx_min               =   self.peaks['idx'][1] - int(mean_dist01/2)
-        idx_max               =   self.peaks['idx'][2] + int(mean_dist23/2)
-    
+        else: raise ValueError('Natura dello spettro non riconosciuta: {}'.format(self.nature))
+
+        #eseguo il taglio
+        self.x_freq         =   self.x_freq[idx_min:idx_max]
+        self.x              =   self.x[idx_min:idx_max]
+        self.y              =   self.y[idx_min:idx_max]
+        self.y_err          =   self.y_err[idx_min:idx_max]
+
+            
+    def Estimate_Spectrum_Parameters(self, verbose = False):
+
         # STIMA PARAMETRI INIZIALI della funzione teorica
         # (quelli che posso, e devo farlo  prima di tagliare)
         
@@ -505,30 +530,18 @@ class Spectrum  :
         # 1)    stima dei parametri dai dati
         #       Omega come la media della posizione dei massimi brillouin
         #       Gamma (=Delta)come la media dell'ampiezza restituita da find_peaks per i Brillouin /10 (mah..)
-        #       offset come la media dei valori dello spettro nella zona tra i due picchi
-
-        if  estimate:
-                
-            self.p0['Omega']            =   [np.absolute(self.x_freq[self.peaks['idx'][2]] - self.x_freq[self.peaks['idx'][1]])*0.5]
-            self.p0['Gamma']            =   [0.1]
-            self.p0['offset']           =   [0]
-            self.p0['Co']               =   [0.01]
-            self.p0['shift']            =   [0.]
-            self.p0['delta_position']   =   [0.]
-            self.p0['delta_amplitude']  =   [1]
-            self.p0['delta_width']      =   [0.1]
-            self.p0['Delta']            =   self.p0['Gamma']
-            self.p0['tau']              =   [1.]
-
-        
-        # procedo con il taglio se è voluto
-
-        if cut:           
-            
-            self.x_freq         =   self.x_freq[idx_min:idx_max]
-            self.x              =   self.x[idx_min:idx_max]
-            self.y              =   self.y[idx_min:idx_max]
-            self.y_err          =   self.y_err[idx_min:idx_max]
+        #       offset come la media dei valori dello spettro nella zona tra i due picchi  
+        #   
+        self.p0['Omega']            =   [np.absolute(self.x_freq[self.peaks['idx'][2]] - self.x_freq[self.peaks['idx'][1]])*0.5]
+        self.p0['Gamma']            =   [0.1]
+        self.p0['offset']           =   [0]
+        self.p0['Co']               =   [0.01]
+        self.p0['shift']            =   [0.]
+        self.p0['delta_position']   =   [0.]
+        self.p0['delta_amplitude']  =   [1]
+        self.p0['delta_width']      =   [0.1]
+        self.p0['Delta']            =   self.p0['Gamma']
+        self.p0['tau']              =   [1.]
 
 
     def Get_cost_markov(self, p0, columns):

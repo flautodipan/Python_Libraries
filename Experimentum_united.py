@@ -1,4 +1,3 @@
-
 #########################                                                   #######################
 #########################           EXPERIMENTUM UNITED                     #######################
 
@@ -106,24 +105,26 @@ inputs.set('I/O', 'now_path', now_path)
 
 
 # OPERATIVES for ACQUISITION
-syg_kwargs          =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs')}
-syg_kwargs_VIPA     =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_VIPA')}
-syg_kwargs_brill    =  {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_brill')}
+syg_kwargs          =   {item[0] : float(item[1]) for item in inputs.items('syg_kwargs')}
+syg_kwargs_VIPA     =   {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_VIPA')}
+syg_kwargs_brill    =   {item[0] : float(item[1]) for item in inputs.items('syg_kwargs_brill')}
 
 transpose           =   inputs.getboolean('Operatives', 'transpose')
 data_offset         =   inputs.getfloat('Operatives', 'data_offset')
-almost_treshold     =  inputs.getfloat('Operatives','almost_treshold')
-sat_height          =  inputs.getfloat('Operatives','sat_height')
-sat_width           =  inputs.getfloat('Operatives','sat_width')
-pre_cut             =  inputs.getboolean('Operatives','pre_cut')
-pre_cut_range       =  eval(inputs['Operatives']['pre_cut_range'])
+almost_treshold     =   inputs.getfloat('Operatives','almost_treshold')
+sat_height          =   inputs.getfloat('Operatives','sat_height')
+sat_width           =   inputs.getfloat('Operatives','sat_width')
+pre_cut             =   inputs.getboolean('Operatives','pre_cut')
+pre_cut_range       =   eval(inputs['Operatives']['pre_cut_range'])
 initial             =   inputs['Operatives']['initial']
 to_add              =   eval(inputs['Operatives']['to_add'])
+
+# OPERATIVES for FITs
 fit_algorithm       =   inputs['Operatives']['fit_algorithm']
-cut                 =  inputs.getboolean('Operatives','cut')
+cut                 =   inputs.getboolean('Operatives','cut')
 exclude_delta       =   inputs.getboolean('Operatives', 'exclude_delta')
-mean_dist_01        =  inputs.getfloat('Operatives','mean_dist_01')
-mean_dist_23        =  inputs.getfloat('Operatives','mean_dist_23')
+mean_dist_01        =   inputs.getfloat('Operatives','mean_dist_01')
+mean_dist_23        =   inputs.getfloat('Operatives','mean_dist_23')
 
 #markov_fit
 recover_markov      = inputs.getboolean('Markov', 'recover_markov')
@@ -140,6 +141,7 @@ rules_tot_bounds    =   eval(inputs['Tot']['rules_tot_bounds'])
 ############
 
 if mode == 'terminal':
+
     print('p0s lenght is {} for normal, {} for almost\n'.format(len(p0_normal), len(p0_almost)))
     recover_markov, skip_tot, exclude_delta, fit_algorithm = Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta, fit_algorithm)
     inputs.set('Operatives', 'exclude_delta', str(exclude_delta))
@@ -196,7 +198,7 @@ matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 for (ii, ii_true) in zip(range(len(rows)), rows):  
     for (jj, jj_true) in zip(range(len(cols)), cols):
 
-        print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+        print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
         
         matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
@@ -212,7 +214,8 @@ excluded        = Escludi_a_Mano(to_add, excluded)
 
 for (ii, ii_true) in zip(range(len(rows)), rows):  
     for (jj, jj_true) in zip(range(len(cols)), cols):
-            print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
+        
+            print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
 
             if (ii_true,jj_true) not in excluded:
                 #Spettri normali , quattro picchi di cui i picchi più alti sono elastici
