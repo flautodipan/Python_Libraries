@@ -1879,9 +1879,10 @@ def Get_Analysis_Path_From_Terminal(now_path, spectra_filename):
             break
     
     return analysis_path
-    
+
+
 def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta, fit_algorithm):
-    
+
     print('I will show the most important operatives inputs I took from config.ini, just to verify their correctness\n')
     delay = 3.
 
@@ -1890,7 +1891,9 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta, fit_al
     else:
         print('You will perform markov fit. Enter "ok" to continue, any other key to modify this opt\n')
     
-    if input() == 'ok':
+    a = input()
+
+    if a == 'ok':
         pass  
     else:
         while(True):
@@ -1945,8 +1948,8 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta, fit_al
     print('Inserted fit algorithm: {}, that means {}\n Enter ok to confirm, any other to switch to the other'.format(fit_algorithm, 'Trust Reflective Region' if fit_algorithm == 'trf' else 'Levenberg-Marquardart'))
 
 
-    input = input()
-    if input == 'ok':
+    a = input()
+    if a == 'ok':
         print('Ok, you confirmed {}'.format(fit_algorithm))
         time.sleep(delay)
     else:

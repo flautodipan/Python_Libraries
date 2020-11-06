@@ -59,14 +59,15 @@ elif mode == 'interactive':
     while True:
 
         if not os.path.exists(now_path +analysis_name+'/'):
-            run(['cd', now_path, '&&', 'mkdir', analysis_name], shell = True)
-            #os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
+            #run(['cd', now_path, '&&', 'mkdir', analysis_name], shell = True)
+            os.system('cd '+now_path +' && mkdir '+analysis_name+'/')
             break
 
         else: 
             copy += 1
             analysis_name = backup
             analysis_name += ('_' + str(copy))
+
         
 
     analysis_path = now_path + analysis_name +'/'
@@ -148,7 +149,7 @@ if mode == 'terminal':
     inputs.set('Tot', 'skip_tot', str(skip_tot) )
    
 else:
-    partial = True
+    partial = False
     log_file            =   'inter_log_'+spectra_filename
     recover_markov = recover_markov
     skip_tot = skip_tot
