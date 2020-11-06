@@ -18,7 +18,7 @@ all_keys = wtc_keys+cov_keys+mtc_keys
 gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 
 # IMPOSTAZIONI INIZIALI
-BS_treshold = 9
+BS_treshold = 12
 path = join('..', 'GROMACS')
 now_keys = wtc_keys +mtc_keys
 
@@ -100,7 +100,7 @@ for key in now_keys:
     ax.set_ylabel('# of contacts')
 
     plt.legend()
-    f.savefig(join(now_path,key+'_contacts'+eq+'.pdf'), format = 'pdf')
+    f.savefig(join(now_path,key+'_contacts'+eq+'_{}.pdf'.format(BS_treshold)), format = 'pdf')
 
 # %%
 
@@ -111,6 +111,7 @@ now_keys_discarded = [ key + '_discarded' for key in now_keys_discarded_]
 
 prot_res =  dfs[exp_key].res_number.values
 df = pd.DataFrame(index =prot_res )
+df_dist = pd.DataFrame(index =prot_res )
 
 NOW_KEYS = now_keys+now_keys_discarded
 NOW_KEYS.sort()
@@ -140,17 +141,50 @@ for key in NOW_KEYS:
 
     print('Ok, acquisito frame iniziale {} da {}\n'.format('discarded' if 'disc' in key else '', join(now_path, now_pdb)))
 
-    BS_P , _ = BA.Get_Protein_BS(protein, RNA, res, BS_treshold)
+
+    protein.Get_Atom_Coord(atom_name = 'CA')
+    protein.Get_lenght()
+    #protein.Get_Protein_Sequence()
+    RNA.Get_Atom_Coord(atom_name='P')
+    #RNA.Get_RNA_Sequence()
+    RNA.Get_lenght()
+    #sequence = np.concatenate([protein.sequence, RNA.sequence])
+    Coord_P   = np.concatenate((protein.CA_Coord, RNA.P_Coord))
+    Dist_P    = BA.Dist_Matrix(Coord_P)
+    Cont_P   = BA.Contacts_Matrix(Dist_P, BS_treshold)
+    Bonds_P   = BA.Analyze_Bond_Residues(Cont_P, (protein.lenght, RNA.lenght), ("protein", "RNA"), first=  ('RNA', 1), second = ('Proteina', protein.initial))
+    BS_P      = BA.Print_Protein_BS_old(res, Bonds_P, protein.lenght, prot_initial=protein.initial, RNA_initial=RNA.initial)['Prot']
 
     if key == exp_key:
         df[key] = [1 if r in exp_contacts.values else 0 for r in prot_res]
         df[key+'_ini'] = [1 if r in BS_P else 0 for r in prot_res]
+        df_dist[key] = [np.min([ d for d in Dist_P[ii][idx_RNA_start:]]) for ii in range(len(prot_res))]
+
+        protein   = BA.Protein(os.path.join(now_path, 'average_pdb_wtc1_eq.pdb'), model = False)
+        RNA     =  BA.RNA(os.path.join(now_path, now_pdb), chain_id='B' if real_key == 'wtc1' else '', model = False)
+        protein.Get_Atom_Coord(atom_name = 'CA')
+        protein.Get_lenght()
+        #protein.Get_Protein_Sequence()
+        RNA.Get_Atom_Coord(atom_name='P')
+        #RNA.Get_RNA_Sequence()
+        RNA.Get_lenght()
+        #sequence = np.concatenate([protein.sequence, RNA.sequence])
+        Coord_P   = np.concatenate((protein.CA_Coord, RNA.P_Coord))
+        Dist_P    = BA.Dist_Matrix(Coord_P)
+        df_dist[key+'_ini'] = [np.min([ d for d in Dist_P[ii][idx_RNA_start:]]) for ii in range(len(prot_res))]
+
     else:
         df[key] = [1 if r in BS_P else 0 for r in prot_res]
-
+    
+        df_dist[key] = [np.min([ d for d in Dist_P[ii][idx_RNA_start:]]) for ii in range(len(prot_res))]
 
 df = df[['wtc1', 'wtc1_ini', 'wtc1_h_new', 'wtc1_h_new_discarded', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16', 'wtc7_16_discarded', 'MTC1', 'MTC1_discarded', 'mtc2', 'mtc2_discarded', 'mtc3', 'mtc3_discarded',  'mtc4', 'mtc4_discarded']]
-# %% 4) FIGURE e stampe finali
+df_dist = df_dist[['wtc1', 'wtc1_ini', 'wtc1_h_new', 'wtc1_h_new_discarded', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16', 'wtc7_16_discarded', 'MTC1', 'MTC1_discarded', 'mtc2', 'mtc2_discarded', 'mtc3', 'mtc3_discarded',  'mtc4', 'mtc4_discarded']]
+
+df.to_csv(join(path, 'df_contacts_comparison_{}ang.csv'.format(BS_treshold)))
+df_dist.to_csv(join(path, 'df_distance_comparison.csv'))
+
+# %% 4) FIGURA dei Contatti
 
 f, ax = plt.subplots(figsize=(19, 8))
 ax.pcolor(df.values, cmap = 'hot', edgecolors = 'white', linewidth = .1)
@@ -164,7 +198,24 @@ ax.set_xticklabels(x_labels)
 ax.set_yticklabels(y_labels)
 ax.set_ylabel('Residue number')
 ax.set_xlabel('Structure identifier')
-ax.set_title('Contacts comparison of structure with NMR')
+ax.set_title('Contacts comparison of structure with NMR\nBS treshold = {} ang'.format(BS_treshold))
+plt.xticks(fontsize='large')
+# %% 5) FIGURA delle minime distanze
+
+f, ax = plt.subplots(figsize=(19, 8))
+mappa = ax.pcolor(df_dist.values, cmap = 'hot', edgecolors = 'white', linewidth = .1)
+plt.colorbar(mappa)
+
+x_ticks = np.arange(0, df_dist.values.shape[1], step = 1)
+y_labels = [str(int(a)) for a in ax.get_yticks() + prot_res[0] ]
+x_labels = ['NMR', 'NMR_ini','wtc1', 'wtc1_d', 'wtc2','wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7', 'wtc7_d', 'mtc1', 'mtc1_d', 'mtc2', 'mtc2_d', 'mtc3', 'mtc3_d', 'mtc4', 'mtc4_d' ]
+ax.set_xticks(x_ticks + 0.5, minor = False)
+#ax.set_yticks(y_ticks)
+ax.set_xticklabels(x_labels)
+ax.set_yticklabels(y_labels)
+ax.set_ylabel('Residue number')
+ax.set_xlabel('Structure identifier')
+ax.set_title('Minimum C_a - P distance (angstrom) comparison of structures with NMR = {} ang'.format(BS_treshold))
 plt.xticks(fontsize='large')
 
 # %%
