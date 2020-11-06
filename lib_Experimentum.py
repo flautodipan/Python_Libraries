@@ -306,17 +306,23 @@ class Spectrum  :
 
                     height-=delta
 
-        #ora che ho tre picchi approfitto per stimare allinemento:
-
-        if self.y_VIPA[pk[0][0]] > self.y_VIPA[pk[0][2]]:
-            self.alignment = 'sx'
-        elif self.y_VIPA[pk[0][0]] < self.y_VIPA[pk[0][2]]:
-            self.alignment = 'dx'
-        else : raise ValueError('Picchi a ordini differenti uguali?\npicco sx = {}\npicco dx = {}'.format(self.y_VIPA[pk[0][0]],self.y_VIPA[pk[0][2]]))
-
         self.GHz_fit_height     =   h_save[0]
         self.gauss_fit_height   =   h_save[1]
         self.VIPA_peaks_dist    =   syg_kwargs['distance']
+
+
+    def Get_Spectrum_Alignment_From_Normal(self,):
+        
+        # supponendo che la nature normal dello spettro sia corretta, stimo alignment
+
+        if self.peaks['heights'][0] < self.peaks['heights'][3]:
+            print('La presa dati è allineata a sinistra, nel senso che il picco elastico del secondo ordine è a sinistra del principale (v. immagine VIPA)')
+            return 'sx'
+        elif self.peaks['heights'][0] > self.peaks['heights'][3]:
+            print('La presa dati è allineata a destra, nel senso che il picco elastico del secondo ordine è a destra del principale (v. immagine VIPA)')
+            return 'dx'
+        else : raise ValueError('Picchi a ordini differenti uguali?\npicco sx = {}\npicco dx = {}'.format(self.peaks['heights'][0],self.peaks['heights'][3]))
+
 
     def Fit_VIPA_Gaussian(self, fig = False, verbose = False):
 

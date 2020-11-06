@@ -111,6 +111,7 @@ syg_kwargs_brill    =   {item[0] : float(item[1]) for item in inputs.items('syg_
 
 transpose           =   inputs.getboolean('Operatives', 'transpose')
 data_offset         =   inputs.getfloat('Operatives', 'data_offset')
+alignment           =   inputs['Operatives']['alignment']
 almost_treshold     =   inputs.getfloat('Operatives','almost_treshold')
 sat_height          =   inputs.getfloat('Operatives','sat_height')
 sat_width           =   inputs.getfloat('Operatives','sat_width')
@@ -128,8 +129,8 @@ mean_dist_23        =   inputs.getfloat('Operatives','mean_dist_23')
 
 #markov_fit
 recover_markov      = inputs.getboolean('Markov', 'recover_markov')
-first_normal        = inputs.get('Markov', 'first_normal')
-first_almost         = inputs.get('Markov', 'first_almost')
+ii_0,jj_0           = eval(inputs.get('Markov', 'first_normal'))
+first_almost        = inputs.get('Markov', 'first_almost')
 p0_normal           = np.array(eval(inputs['Markov']['p0_normal']))
 p0_almost           = np.array(eval(inputs['Markov']['p0_almost']))
 rules_markov_bounds =   eval(inputs['Markov']['rules_markov_bounds'])
@@ -193,7 +194,7 @@ tempo = ()
 super_start = time.process_time()
 start = super_start
 
-matrix[0][0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
+matrix[ii_0][jj_0].Get_VIPA_tif(VIPA_filename, now_path, offset = 183.)
 
 for (ii, ii_true) in zip(range(len(rows)), rows):  
     for (jj, jj_true) in zip(range(len(cols)), cols):
@@ -203,8 +204,8 @@ for (ii, ii_true) in zip(range(len(rows)), rows):
         matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
         matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
         
-        matrix[ii][jj].x_VIPA   =   matrix[0][0].x_VIPA
-        matrix[ii][jj].y_VIPA   =   matrix[0][0].y_VIPA
+        matrix[ii][jj].x_VIPA   =   matrix[ii_0][jj_0].x_VIPA
+        matrix[ii][jj].y_VIPA   =   matrix[ii_0][jj_0].y_VIPA
 
 ### catalogo la natura degli spettri
 
@@ -229,7 +230,6 @@ for (ii, ii_true) in zip(range(len(rows)), rows):
                     if matrix[ii][jj].Check_Brillouin_Distances(average = 70, stdev = 70/10):
                         invisible += [(ii,jj), ]
                     else: 
-
                         if matrix[ii][jj].y.max() > almost_treshold:
                             almost_height += [(ii,jj),]
                         else:
@@ -282,26 +282,26 @@ with open(analysis_path+log_file, 'a') as f_log:
 
 start = time.process_time()
 
-matrix[0][0].How_Many_Peaks_To_VIPA(treshold = 6, **syg_kwargs_VIPA)
-matrix[0][0].Fit_Pixel2GHz()
-matrix[0][0].VIPA_Pix2GHz()
-matrix[0][0].Align_Spectrum()
-matrix[0][0].Spectrum_Pix2GHz()
-matrix[0][0].Cut_n_Estimate_Spectrum(estimate = True, cut = cut, mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
-matrix[0][0].Fit_VIPA_Gaussian()
+matrix[ii_0][jj_0].How_Many_Peaks_To_VIPA(treshold = 6, **syg_kwargs_VIPA)
+matrix[ii_0][jj_0].Fit_Pixel2GHz()
+matrix[ii_0][jj_0].VIPA_Pix2GHz()
+matrix[ii_0][jj_0].Align_Spectrum(alignment = alignment)
+matrix[ii_0][jj_0].Spectrum_Pix2GHz()
+matrix[ii_0][jj_0].Estimate_Spectrum_Parameters(verbose = True)
+matrix[ii_0][jj_0].Cut_Spectrum(mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
+matrix[ii_0][jj_0].Fit_VIPA_Gaussian()
 
 for ii in range(len(rows)):
     for jj in range(len(cols)):
             print('Passo row = %d/%d col = %d/%d'%(ii,len(rows)-1, jj, len(cols)-1))
             if ((ii,jj) not in excluded) & ((ii,jj) != (0,0)):
-                matrix[ii][jj].x_VIPA_freq   =   matrix[0][0].x_VIPA_freq
-                matrix[ii][jj].y_VIPA        =   matrix[0][0].y_VIPA
-                matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
-                matrix[ii][jj].Align_Spectrum(alignment = matrix[0][0].alignment)
+                matrix[ii][jj].x_VIPA_freq   =   matrix[ii_0][jj_0].x_VIPA_freq
+                matrix[ii][jj].y_VIPA        =   matrix[ii_0][jj_0].y_VIPA
+                matrix[ii][jj].Poly2GHz      =   matrix[ii_0][jj_0].Poly2GHz
+                matrix[ii][jj].Align_Spectrum(alignment = alignment)
                 matrix[ii][jj].Spectrum_Pix2GHz()
-                matrix[ii][jj].Cut_n_Estimate_Spectrum(cut = cut, mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
-            elif ((ii,jj) in excluded):
-                matrix[ii][jj].Poly2GHz      =   matrix[0][0].Poly2GHz
+                matrix[ii][jj].Cut_Spectrum(mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)            elif ((ii,jj) in excluded):
+                matrix[ii][jj].Poly2GHz      =   matrix[ii_0][jj_0].Poly2GHz
                 matrix[ii][jj].Spectrum_Pix2GHz()
 
 mod_time    =   time.process_time()-start
@@ -314,7 +314,7 @@ with open(analysis_path+log_file, 'a') as f_log:
 
 # salvo info spettri e VIPA
 Save_XY_position(matrix, len(rows), len(cols), path = analysis_path)
-Save_XY_VIPA(matrix[0][0].x_VIPA_freq, matrix[0][0].y_VIPA, path = analysis_path)
+Save_XY_VIPA(matrix[ii_0][jj_0].x_VIPA_freq, matrix[ii_0][jj_0].y_VIPA, path = analysis_path)
 
 with open(analysis_path+log_file, 'a') as f_log:
     f_log.write('\n\nI saved xy info on xy.txt and xy_VIPA.txt in your analysis directory {}\n\n'.format(analysis_path))
@@ -339,8 +339,8 @@ if recover_markov == False:
     
     # je faccio fa un primo giro perchè no, così lo controllo e miglioro la mia stima di p0
     """
-    matrix[0][0].Get_Fit_Bounds(percents_markov, cols_mark)
-    _ =  matrix[0][0].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[0][0].bounds['down'].values, matrix[0][0].bounds['up'].values),  max_nfev = 100)
+    matrix[ii_0][jj_0].Get_Fit_Bounds(percents_markov, cols_mark)
+    _ =  matrix[ii_0][jj_0].Non_Linear_Least_Squares_Markov(cols_mark, bound = (matrix[ii_0][jj_0].bounds['down'].values, matrix[ii_0][jj_0].bounds['up'].values),  max_nfev = 100)
     Plot_Elements_Spectrum(matrix, [(0,0)], fit = 'markov')
     """
     for (ii,jj) in serpentine_range(len(rows), len(cols), 'right'):

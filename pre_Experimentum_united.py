@@ -162,11 +162,54 @@ else:
     print('Tutto ok, non vi erano spettri less_than_four non esclusi')
 
 if len(four) != (dim -len(excluded)):
-    print('\nHo trovato {} spettri di cui non sono riuscito a trovare 4 picchi\n'.format(len(bizarre)))
+    print('\nHo trovato {} spettri di cui non sono riuscito a trovare almeno 4 picchi\n'.format(len(bizarre)))
     print(bizarre)
 
 Plot_Elements_Spectrum(matrix, bizarre, peaks = True, pix = True)
-to_add += bizarre
+
+print('OSS importante:\nQuesti spettri verrano classificati come brillouin_higher a meno che non li aggiungi manualmente al parametro iniziale to_add.\nIn questo caso FAR GIRARE NUOVAMENTE il programma dopo la modifica e saranno esclusi.')
+
+#%%
+#####
+###### 4) TUPLE:  costruisco insiemi di elementi che poi salverò in un classification.ini
+#####             acquisito da Exp_united.py 
+
+# categorie
+normals             = []
+almost_height       = []
+brillouin_higher    = []
+
+#ulteriore check
+if (len(bizarre) + len(four) + len(excluded)) != dim:
+    raise ValueError('Attenzione insiemi non complementari\nlen(less_than_four) {} + len(four) {} + len(excluded) {} NON uguale a dim totale {}'.format(len(bizarre), len(four), len(excluded), dim))
+
+
+for ii in range(len(rows)):
+    for jj in range(len(cols)):
+        print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
+
+        if (ii,jj) not in excluded:
+            if (ii,jj) in four: 
+                if matrix[ii][jj].y.max() >= almost_treshold: almost_height.append((ii,jj),)
+                else: normals.append((ii,jj),)
+            elif (ii,jj) in bizarre:
+                brillouin_higher.append((ii,jj),)
+            else: raise ValueError('Strano, ma (ii,jj) = {} non è nè normal nè brillouin_higher. Check it'.format(str((ii,jj))))
+        else: pass
+
+if (len(brillouin_higher) + len(normals) + len(almost_height) + len(excluded)) != dim:
+    raise ValueError('Attenzione insiemi non complementari\nlen(brillouin_higher) {} + len(normals) {} + len(almost) {} + len(excluded) {} NON uguale a dim totale {}'.format(len(brillouin_higher), len(normals),len(almost_height),  len(excluded), dim))
+else: ('Ok, catalogazione avvenuta con successo.\nOra salvo i dati nella cartella.')
+
+classification = configparser.ConfigParser()
+classification.add_section('tuples')
+classification.set('tuples', 'normals', str(normals))
+classification.set('tuples', 'brillouin_higher', str(brillouin_higher))
+classification.set('tuples', 'almost_height', str(almost_height))
+classification.set('tuples', 'excluded', str(excluded))
+with open(join(now_path, 'classes.ini'), 'w') as f_config:
+    classification.write(f_config)
+
 #%%
 #####
 ###### 4) STATS:  costruisco variabili che mi permettono di studiare le posizioni relative
@@ -304,18 +347,23 @@ p0s = []
 for (ii,jj) in [first_normal, first_almost]:
     print('Faccio il fit per {}\n'.format(str((ii,jj))))
 
+    if (ii,jj) == first_normal:
+        matrix[ii][jj].Set_Spectrum_Nature('normal')
+        alignment = matrix[ii][jj].Get_Spectrum_Alignment_From_Normal()
+    else: matrix[ii][jj].Set_Spectrum_Nature('almost_height')
+
     matrix[ii][jj].Get_VIPA_tif(VIPA_filename, now_path, offset = data_offset)
     matrix[ii][jj].How_Many_Peaks_To_VIPA(treshold = 6, **syg_kwargs_VIPA, fig = True, verbose = False)
     matrix[ii][jj].Fit_Pixel2GHz(fig = True if (ii,jj) == first_normal else False , data_color = 'maroon', fit_color = 'yellowgreen', )
     matrix[ii][jj].VIPA_Pix2GHz(fig = True if (ii,jj) == first_normal else False )
     matrix[ii][jj].Poly2GHz      =   matrix[ii][jj].Poly2GHz
-    matrix[ii][jj].Align_Spectrum(alignment = matrix[ii][jj].alignment)
+    matrix[ii][jj].Align_Spectrum(alignment = alignment)
     matrix[ii][jj].Spectrum_Pix2GHz()
-    matrix[ii][jj].Cut_n_Estimate_Spectrum(estimate = True, cut = cut, mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
+    matrix[ii][jj].Estimate_Spectrum_Parameters(verbose = True)
+    matrix[ii][jj].Cut_Spectrum(mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
     matrix[ii][jj].Fit_VIPA_Gaussian(fig = True if (ii,jj) == first_normal else False )
     columns = cols_mark
     rules_bounds = rules_markov_bounds
-
     matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
     matrix[ii][jj].Get_Best_p0([matrix[ii][jj].p0[list(columns)].values[0]], columns)
     matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
@@ -341,7 +389,7 @@ config['I/O'] = {'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_f
 config['syg_kwargs'] = { 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
-config['Operatives'] = {'transpose' : transpose, 'data_offset' : data_offset, 'almost_treshold':almost_treshold, 'sat_height': saturation_height, 'sat_width':saturation_width, 'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'initial': initial, 'to_add' : to_add,  'fit_algorithm' : fit_algorithm, 'cut': cut,  'exclude_delta' : exclude_delta,'mean_dist_01' : mean_dist_01, 'mean_dist_23' : mean_dist_23, }
+config['Operatives'] = {'transpose' : transpose, 'data_offset' : data_offset, 'alignment' : alignment, 'almost_treshold':almost_treshold, 'sat_height': saturation_height, 'sat_width':saturation_width, 'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'initial': initial, 'to_add' : to_add,  'fit_algorithm' : fit_algorithm, 'cut': cut,  'exclude_delta' : exclude_delta,'mean_dist_01' : mean_dist_01, 'mean_dist_23' : mean_dist_23, }
 config['Markov'] = {'recover_markov': recover_markov, 'first_normal' : first_normal, 'p0_normal' : p0_normal, 
 'first_almost': first_almost, 'p0_almost' :p0_almost, 'rules_markov_bounds':  rules_markov_bounds }
 config['Tot'] = {'skip_tot' : skip_tot, 'rules_tot_bounds' : rules_tot_bounds}
