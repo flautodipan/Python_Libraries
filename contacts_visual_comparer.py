@@ -18,7 +18,7 @@ all_keys = wtc_keys+cov_keys+mtc_keys
 gian_keys = [wtc_keys[1]] + wtc_keys[3:]
 
 # IMPOSTAZIONI INIZIALI
-BS_treshold = 12
+BS_treshold = 9
 path = join('..', 'GROMACS')
 now_keys = wtc_keys +mtc_keys
 
@@ -200,6 +200,28 @@ ax.set_ylabel('Residue number')
 ax.set_xlabel('Structure identifier')
 ax.set_title('Contacts comparison of structure with NMR\nBS treshold = {} ang'.format(BS_treshold))
 plt.xticks(fontsize='large')
+
+# %% 4) FIGURA dei Contatti
+# ordine differente
+
+
+
+df = df[['wtc1', 'wtc1_ini', 'wtc1_h_new', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16', 'MTC1', 'mtc2', 'mtc3', 'mtc4', 'wtc1_h_new_discarded', 'wtc7_16_discarded','MTC1_discarded', 'mtc2_discarded','mtc3_discarded',  'mtc4_discarded']]
+f, ax = plt.subplots(figsize=(19, 8))
+ax.pcolor(df.values, cmap = 'hot', edgecolors = 'white', linewidth = .1)
+
+x_ticks = np.arange(0, df.values.shape[1], step = 1)
+y_labels = [str(int(a)) for a in ax.get_yticks() + prot_res[0] ]
+x_labels = ['NMR', 'NMR_ini','wtc1', 'wtc2','wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7', 'mtc1',  'mtc2',  'mtc3',  'mtc4', 'wtc1_d', 'wtc7_d', 'mtc1_d', 'mtc2_d', 'mtc3_d', 'mtc4_d' ]
+ax.set_xticks(x_ticks + 0.5, minor = False)
+#ax.set_yticks(y_ticks)
+ax.set_xticklabels(x_labels)
+ax.set_yticklabels(y_labels)
+ax.set_ylabel('Residue number')
+ax.set_xlabel('Structure identifier')
+ax.set_title('Contacts comparison of structure with NMR\nBS treshold = {} ang'.format(BS_treshold))
+plt.xticks(fontsize='large')
+
 # %% 5) FIGURA delle minime distanze
 
 f, ax = plt.subplots(figsize=(19, 8))
@@ -209,6 +231,29 @@ plt.colorbar(mappa)
 x_ticks = np.arange(0, df_dist.values.shape[1], step = 1)
 y_labels = [str(int(a)) for a in ax.get_yticks() + prot_res[0] ]
 x_labels = ['NMR', 'NMR_ini','wtc1', 'wtc1_d', 'wtc2','wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7', 'wtc7_d', 'mtc1', 'mtc1_d', 'mtc2', 'mtc2_d', 'mtc3', 'mtc3_d', 'mtc4', 'mtc4_d' ]
+ax.set_xticks(x_ticks + 0.5, minor = False)
+#ax.set_yticks(y_ticks)
+ax.set_xticklabels(x_labels)
+ax.set_yticklabels(y_labels)
+ax.set_ylabel('Residue number')
+ax.set_xlabel('Structure identifier')
+ax.set_title('Minimum C_a - P distance (angstrom) comparison of structures with NMR = {} ang'.format(BS_treshold))
+plt.xticks(fontsize='large')
+
+# %%
+# %% 5) FIGURA delle minime distanze
+# ordine differente
+
+
+df_dist = df_dist[['wtc1', 'wtc1_ini', 'wtc1_h_new', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7_16', 'MTC1', 'mtc2', 'mtc3', 'mtc4', 'wtc1_h_new_discarded', 'wtc7_16_discarded','MTC1_discarded', 'mtc2_discarded','mtc3_discarded',  'mtc4_discarded']]
+
+f, ax = plt.subplots(figsize=(19, 8))
+mappa = ax.pcolor(df_dist.values, cmap = 'hot', edgecolors = 'white', linewidth = .1)
+plt.colorbar(mappa)
+
+x_ticks = np.arange(0, df_dist.values.shape[1], step = 1)
+y_labels = [str(int(a)) for a in ax.get_yticks() + prot_res[0] ]
+x_labels = ['NMR', 'NMR_ini','wtc1', 'wtc2','wtc3', 'wtc4', 'wtc5', 'wtc6', 'wtc7', 'mtc1',  'mtc2',  'mtc3',  'mtc4', 'wtc1_d', 'wtc7_d', 'mtc1_d', 'mtc2_d', 'mtc3_d', 'mtc4_d' ]
 ax.set_xticks(x_ticks + 0.5, minor = False)
 #ax.set_yticks(y_ticks)
 ax.set_xticklabels(x_labels)

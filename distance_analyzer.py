@@ -14,7 +14,7 @@ wtc_keys = ['wtc1_h', 'wtc1_h_new', 'wtc1', 'wtc2', 'wtc3', 'wtc4', 'wtc5', 'wtc
 cov_keys = ['cov1', 'cov2', 'cov3', 'cov4']
 mtc_keys = ['mtc1', 'mtc2',  'mtc3', 'mtc4']
 exp_df = pd.read_excel(path+'MD_experimental_data.xlsx')
-eq = 'eq1'
+eq = 'eq2'
 now_keys = cov_keys[1:]
 
 #%%

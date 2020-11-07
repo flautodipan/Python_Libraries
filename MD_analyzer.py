@@ -22,7 +22,7 @@ redo_cov = False
 # ../GROMACS/MD_experimental_data.xlsx
 
 now_name = 'wtc7_16'
-eq       = '_eq1'
+eq       = '_eq2'
 
 exp_df = pd.read_excel(os.path.join(now_path, 'MD_experimental_data.xlsx'))
 exp_df = exp_df[exp_df.identifier == now_name]
