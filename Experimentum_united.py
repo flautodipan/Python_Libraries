@@ -180,7 +180,6 @@ boni      = []
 invisible = []
 now_excluded = []
 
-
 # %%
 #2) ######################################################################################################################
 
@@ -228,10 +227,20 @@ for (ii, ii_true) in zip(range(len(rows)), rows):
 
         print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
         
+        matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
+        matrix[ii][jj].Find_Spectrum_Peaks(**syg_kwargs)
+    
         if (ii_true,jj_true) not in excluded:
 
-            matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii_true][jj_true],np.max(dati[ii_true][jj_true].shape)) , offset = 183., cut = pre_cut, cut_range = pre_cut_range)
-            matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs)
+            if matrix[ii][jj].n_peaks == 4:
+                pass
+            elif matrix[ii][jj].n_peaks < 4:
+                matrix[ii][jj].Find_Spectrum_Peaks(**syg_kwargs_brill)
+            elif matrix[ii][jj].n_peaks == 5:
+                matrix[ii][jj].Exclude_Glass_Peak()
+            else:
+                matrix[ii][jj].Get_Spectrum_4_Peaks_by_Height()
+
             matrix[ii][jj].Align_Spectrum(alignment = alignment)
 
             # check ulteriore

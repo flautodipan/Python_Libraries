@@ -83,7 +83,7 @@ for ii in range(len(rows)):
         print('row = {}/{} col = {}/{}'.format(ii,len(rows)-1, jj, len(cols)-1))
         
         matrix[ii][jj].Get_Spectrum(y = np.resize(dati[ii][jj],np.max(dati[ii][jj].shape)) , offset = data_offset, cut = pre_cut, cut_range = pre_cut_range)
-        matrix[ii][jj].Get_Spectrum_Peaks(**syg_kwargs_test)
+        matrix[ii][jj].Find_Spectrum_Peaks(**syg_kwargs_test)
 
 
         if matrix[ii][jj].n_peaks == 4:
@@ -137,7 +137,7 @@ for ii in range(len(rows)):
                 print('Per lo spettro {} sto usando How_Many_Peaks_To\n'.format(str((ii,jj))))
                 matrix[ii][jj].How_Many_Peaks_To(width = syg_kwargs_test['width'], distance = syg_kwargs_test['distance'])
                 if hasattr(matrix[ii][jj], 'spectrum_cut_height'):
-                    matrix[ii][jj].Get_Spectrum_Peaks(height =  matrix[ii][jj].spectrum_cut_height, width = syg_kwargs_test['width'], distance = syg_kwargs_test['distance'])
+                    matrix[ii][jj].Find_Spectrum_Peaks(height =  matrix[ii][jj].spectrum_cut_height, width = syg_kwargs_test['width'], distance = syg_kwargs_test['distance'])
 
                 if matrix[ii][jj].n_peaks == 4:
                     lowest_height += ((matrix[ii][jj].spectrum_cut_height, (ii,jj)),)
@@ -173,11 +173,12 @@ print('OSS importante:\nQuesti spettri, se con tre picchi, verrano classificati 
 #####
 ###### 4) TUPLE:  costruisco insiemi di elementi che poi salverò in un classification.ini
 #####             acquisito da Exp_united.py 
-
+            
 # categorie
 normals             = []
 almost_height       = []
 brillouin_higher    = []
+
 
 #ulteriore check
 if (len(bizarre) + len(four) + len(excluded)) != dim:
@@ -212,6 +213,8 @@ classification.set('tuples', 'excluded', str(excluded))
 with open(join(now_path, 'classes.ini'), 'w') as f_config:
     classification.write(f_config)
 
+print('Ok ho salvato le configurazioni delle tuple')
+
 #%%
 #####
 ###### 4) STATS:  costruisco variabili che mi permettono di studiare le posizioni relative
@@ -244,6 +247,9 @@ dist_01        = ()
 dist_12        = ()
 dist_23        = ()
 
+prominence_second = []
+prominence_third = []
+
 
 for (ii,jj) in four:
 
@@ -261,19 +267,23 @@ for (ii,jj) in four:
         dist_12       += (np.abs(matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][1]] - matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][2]]), )
         dist_23       += (np.abs(matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][2]] - matrix[ii][jj].x[matrix[ii][jj].peaks['idx'][3]]), )
 
+        prominence_second.append(matrix[ii][jj].peaks['prominences'][1])
+        prominence_third.append(matrix[ii][jj].peaks['prominences'][2])
 
 
 
-stats = (height_first, height_second, height_third, height_fourth, width_first, width_second, width_third, width_fourth, dist_01, dist_12, dist_23)
+stats = (height_first, height_second, height_third, height_fourth, width_first, width_second, width_third, width_fourth, dist_01, dist_12, dist_23, prominence_second, prominence_third)
 
 
-for (s, what) in zip(stats, ('height picco 1', 'Picco 2 height', 'Picco 3 height', 'Picco 4 height', 'Picco 1 width', 'Picco 2 width', 'Picco 3 width', 'Picco 4 width', 'dist_01', 'dist12', 'dist23')):
+for (s, what) in zip(stats, ('height picco 1', 'Picco 2 height', 'Picco 3 height', 'Picco 4 height', 'Picco 1 width', 'Picco 2 width', 'Picco 3 width', 'Picco 4 width', 'dist_01', 'dist12', 'dist23', 'prominenza primo Brill', 'prominenza secondo Brill')):
     print('\n{}\nMedia = {:.3}\nMin = {:3}\nMax = {:3}\n'.format(what, np.mean(s), np.min(s), np.max(s)))
 
 #salvo medie distanze elastico-brillouin
 mean_dist_01 = np.mean(dist_01)
 mean_dist_12 = np.mean(dist_12)
 mean_dist_23 = np.mean(dist_23)
+
+
 
 #%%
 # faccio pure i plot

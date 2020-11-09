@@ -96,12 +96,17 @@ class Spectrum  :
         self.x_VIPA_freq = x_VIPA
         self.y_VIPA = y_VIPA
 
-    def Get_Spectrum_Peaks(self, **syg_kwargs):
+    def Find_Spectrum_Peaks(self, **syg_kwargs):
 
         pk =  find_peaks(self.y, **syg_kwargs)
 
-        self.peaks      =   {'idx': pk[0], 'heights': pk[1]['peak_heights'], 'widths' : pk[1]['widths']}       
+        self.peaks      =   {'idx': pk[0], 'heights': pk[1]['peak_heights'], 'widths' : pk[1]['widths'], 'prominences' : pk[1]['prominences']}       
         self.n_peaks    =   self.peaks['idx'].size
+    
+    def Set_Spectrum_Peaks(self, peaks):
+
+        setattr(self, 'peaks', peaks)
+        setattr(self, 'n_peaks', len(self.peaks['idx']))
 
     def Get_Spectrum_4_Peaks_by_Height(self):
 
@@ -137,7 +142,7 @@ class Spectrum  :
     def Exclude_Glass_Peak(self):
 
         self.peaks      =   Find_First_n_peaks(self.peaks, 4, exclude = [3])
-
+        self.n_peaks    =   self.peaks['idx'].size
 
     def Set_Spectrum_Nature(self, nature):
         
@@ -512,7 +517,7 @@ class Spectrum  :
 
         """
         # 4 picchi
-        if ((self.nature == 'normal') | (self.nature == 'almost')):
+        if ((self.nature == 'normal') | (self.nature == 'almost_height')):
 
             idx_min               =   self.peaks['idx'][1] - int(mean_dist01*factor)
             idx_max               =   self.peaks['idx'][2] + int(mean_dist23*factor)
@@ -1954,6 +1959,7 @@ def Check_Settings_From_Terminal(recover_markov, skip_tot, exclude_delta, fit_al
         time.sleep(delay)
     else:
         print('You choose to switch to {}'.format('Trust Reflective Region' if fit_algorithm != 'trf' else 'Levenberg-Marquardart'))
+        fit_algorithm = 'trf' if fit_algorithm != 'trf' else 'lm'
         time.sleep(delay)
 
     print("Now, I am beginning to analyze data. You won't do anything from now on")

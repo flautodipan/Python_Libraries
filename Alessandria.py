@@ -52,7 +52,7 @@ def Find_First_n_peaks(pk, n_peaks, exclude = None):
 
         idx     =   range(n_peaks)
 
-    return          {'idx' : pk['idx'][idx], 'heights': pk['heights'][idx], 'widths' : pk['widths'][idx]}
+    return          {'idx' : pk['idx'][idx], 'heights': pk['heights'][idx], 'widths' : pk['widths'][idx], 'prominences' : pk['prominences'][idx]}
 
 def Find_Highest_n_peaks(pk, n_peaks):
 
@@ -60,7 +60,7 @@ def Find_Highest_n_peaks(pk, n_peaks):
     from_heighest    =   from_heighest[:n_peaks]
     idx              =   np.sort(from_heighest)
 
-    return          {'idx' : pk['idx'][idx], 'heights': pk['heights'][idx], 'widths' : pk['widths'][idx]}
+    return          {'idx' : pk['idx'][idx], 'heights': pk['heights'][idx], 'widths' : pk['widths'][idx], 'prominences' : pk['prominences'][idx]}
 
 def Analyze_Peaks(x, y, x_dim, fig = False, verbose = False, **syg_kwargs):
 
