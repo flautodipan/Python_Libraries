@@ -143,3 +143,5 @@ def I_2_Generate(Co, Omega, Gamma, Delta, tau, x_min, x_max, density, fig = Fals
 
     return (x,y)
 
+def Lorentian_DHO(omega, delta_amplitude, delta_width, delta_position, a, b, c):
+    pass

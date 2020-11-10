@@ -15,11 +15,17 @@ import      os
 from        os.path             import  join
 import      configparser
 
-# nomi dei parametri modelli viscoelastici
-cols_mark           = ('Co', 'Omega', 'Gamma', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_mark_nodelta   = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
-cols_real           = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
-cols_real_nodelta   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset')
+# viscoelastic models
+cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position','delta_width',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_gauss  = ( 'A', 'mu', 'sigma')
+
+
+# dho models
+cols_dho            = ('dho_position', 'dho_width', 'dho_amplitude', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_dho_nodelta    = ('dho_position', 'dho_width', 'dho_amplitude','A', 'mu', 'sigma',  'shift', 'offset')
+
 
 ### MANUAL INPUTS
 
@@ -44,14 +50,23 @@ pre_cut_range       =   (30,210) if pre_cut else None
 initial             =   'right'
 to_add              =   []
 
-#OPERATIVES FOR FIT
+####
+##OPERATIVES FOR FIT
+#####
+
+model               =   'dho'
 fit_algorithm       =   'trf'
 cut                 =   True
 exclude_delta       =   True
-recover_markov      =   False
-rules_markov_bounds =   {'Co' : 'positive', 'Omega' : 0.2, 'Gamma' :'positive', 'delta_position' : [-2,2], 'delta_width': 'positive', 'delta_amplitude' : 'positive', 'A' : 'positive', 'mu' : 0.01, 'sigma' : 0.001,  'shift' : 'inf', 'offset' :'inf'}
-skip_tot            =   True
-rules_tot_bounds    =   {'Co' : 0.2, 'Omega' : 0.01, 'Gamma' : 0.01, 'Delta': 'positive', 'tau' : 'positive', 'delta_position': [-2,2], 'delta_width' : 0.01, 'delta_amplitude' : 0.01, 'shift':'inf', 'offset' : 'inf'}
+# viscoelastic
+if model == 'viscoelastic':
+    recover_markov      =   False
+    rules_markov_bounds =   {'Co' : 'positive', 'Omega' : 0.2, 'Gamma' :'positive', 'delta_position' : [-2,2], 'delta_width': 'positive', 'delta_amplitude' : 'positive', 'A' : 'positive', 'mu' : 0.01, 'sigma' : 0.001,  'shift' : 'inf', 'offset' :'inf'}
+    skip_tot            =   True
+    rules_tot_bounds    =   {'Co' : 0.2, 'Omega' : 0.01, 'Gamma' : 0.01, 'Delta': 'positive', 'tau' : 'positive', 'delta_position': [-2,2], 'delta_width' : 0.01, 'delta_amplitude' : 0.01, 'shift':'inf', 'offset' : 'inf'}
+# dho
+elif model == 'dho':
+    rules_dho_bounds    =   {'dho_position': 0.2, 'dho_width': 'positive', 'dho_amplitude': 'positive', 'delta_position' : [-2, 2], 'delta_width':0.01, 'delta_amplitude':0.01, 'A':'positive', 'mu': 0.01, 'sigma': 0.001, 'shift' : 'inf', 'offset' : 'inf'}
 
 
 # %%
@@ -372,21 +387,31 @@ for (ii,jj) in [first_normal, first_almost]:
     matrix[ii][jj].Poly2GHz      =   matrix[ii][jj].Poly2GHz
     matrix[ii][jj].Align_Spectrum(alignment = alignment)
     matrix[ii][jj].Spectrum_Pix2GHz()
-    matrix[ii][jj].Estimate_Spectrum_Parameters(verbose = True)
+    matrix[ii][jj].Estimate_Spectrum_Parameters(verbose = True, model = model)
     matrix[ii][jj].Cut_Spectrum(mean_dist01 = mean_dist_01, mean_dist23 = mean_dist_23)
     matrix[ii][jj].Fit_VIPA_Gaussian(fig = True if (ii,jj) == first_normal else False )
-    columns = cols_mark
-    rules_bounds = rules_markov_bounds
     matrix[ii][jj].Get_VIPA_for_fit('interpolate', interpolation_density = 500)
-    matrix[ii][jj].Get_Best_p0([matrix[ii][jj].p0[list(columns)].values[0]], columns)
-    matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
+    
+    if model == 'viscoelastic':
+        columns         = cols_mark
+        rules_bounds    = rules_markov_bounds
+        least_squares   = 'Non_Linear_Least_Squares_Markov'
+        params          = 'Markov_Fit_Params'
+    elif model == 'dho':
+        columns         = cols_dho
+        rules_bounds    = rules_dho_bounds
+        least_squares   = 'Non_Linear_Least_Squares_DHO'
+        params          = 'DHO_Fit_Params'
+
+    matrix[ii][jj].Get_Best_p0([matrix[ii][jj].p0[list(columns)].values[0]], columns, model = model)
     if fit_algorithm == 'trf':
-        matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100, ) 
-    else: matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, method = 'lm',  max_nfev = 100, )
-    p0s.append(list(matrix[ii][jj].Markov_Fit_Params.T.Values.values))
+        matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns,)
+        getattr(matrix[ii][jj], least_squares)(columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100, ) 
+    else: getattr(matrix[ii][jj], least_squares)(columns, method = 'lm',  max_nfev = 100, )
+    p0s.append(list(getattr(matrix[ii][jj], params).T.Values.values))
     print('Ok ho stimato i parametri iniziali per {}\n'.format(str((ii,jj)),))
 
-    for col, val in zip(columns, matrix[ii][jj].Markov_Fit_Params.T.Values.values):
+    for col, val in zip(columns, getattr(matrix[ii][jj], params).T.Values.values):
         print('{} = {:3.2f}'.format(col, val))
 
 p0_normal = p0s[0]
@@ -402,7 +427,7 @@ config['I/O'] = {'spectra_filename' : spectra_filename, 'VIPA_filename' : VIPA_f
 config['syg_kwargs'] = { 'height' : Get_Around(syg_kwargs_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_brill'] = {'height' : Get_Around(syg_kwargs_brill_height, 0.01)[0], 'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
 config['syg_kwargs_VIPA'] = {'width' : Get_Around(syg_kwargs_width, 0.01)[0], 'distance' : Get_Around(syg_kwargs_dist, 0.01)[0]}
-config['Operatives'] = {'transpose' : transpose, 'data_offset' : data_offset, 'alignment' : alignment, 'almost_treshold':almost_treshold, 'sat_height': saturation_height, 'sat_width':saturation_width, 'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'initial': initial, 'to_add' : to_add,  'fit_algorithm' : fit_algorithm, 'cut': cut,  'exclude_delta' : exclude_delta,'mean_dist_01' : mean_dist_01, 'mean_dist_12' : mean_dist_12, 'mean_dist_23' : mean_dist_23, }
+config['Operatives'] = {'transpose' : transpose, 'data_offset' : data_offset, 'alignment' : alignment, 'almost_treshold':almost_treshold, 'sat_height': saturation_height, 'sat_width':saturation_width, 'pre_cut' : pre_cut, 'pre_cut_range' : pre_cut_range, 'initial': initial, 'to_add' : to_add, 'model' : model,  'fit_algorithm' : fit_algorithm, 'cut': cut,  'exclude_delta' : exclude_delta,'mean_dist_01' : mean_dist_01, 'mean_dist_12' : mean_dist_12, 'mean_dist_23' : mean_dist_23, }
 config['Markov'] = {'recover_markov': recover_markov, 'first_normal' : first_normal, 'p0_normal' : p0_normal, 
 'first_almost': first_almost, 'p0_almost' :p0_almost, 'rules_markov_bounds':  rules_markov_bounds }
 config['Tot'] = {'skip_tot' : skip_tot, 'rules_tot_bounds' : rules_tot_bounds}

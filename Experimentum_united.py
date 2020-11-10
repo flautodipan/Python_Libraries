@@ -26,12 +26,17 @@ from        os.path             import join
 import      configparser
 import      sys
 
+# viscoelastic models
 cols        = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position',  'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark   = ('Co', 'Omega', 'Gamma', 'delta_position','delta_width',  'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_mark_nodelta  = ('Co', 'Omega', 'Gamma', 'A', 'mu', 'sigma', 'shift', 'offset')
 cols_real   = ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'delta_position', 'delta_width', 'delta_amplitude','shift', 'offset')
 cols_real_nodelta =  ('Co', 'Omega', 'Gamma', 'Delta', 'tau', 'shift', 'offset')
 cols_gauss  = ( 'A', 'mu', 'sigma')
+
+# dho models
+cols_dho            = ('dho_position', 'dho_width', 'dho_amplitude', 'delta_position', 'delta_width', 'delta_amplitude', 'A', 'mu', 'sigma', 'shift', 'offset')
+cols_dho_nodelta    = ('dho_position', 'dho_width', 'dho_amplitude','A', 'mu', 'sigma',  'shift', 'offset')
 
 #%%
 #ANALYSIS PATH 
@@ -116,6 +121,7 @@ initial             =   inputs['Operatives']['initial']
 to_add              =   eval(inputs['Operatives']['to_add'])
 
 # OPERATIVES for FITs
+model               =   inputs['Operatives']['model']
 fit_algorithm       =   inputs['Operatives']['fit_algorithm']
 cut                 =   inputs.getboolean('Operatives','cut')
 exclude_delta       =   inputs.getboolean('Operatives', 'exclude_delta')
@@ -392,9 +398,9 @@ if recover_markov == False:
             print('Cost before fitting = {:3.2f}'.format(matrix[ii][jj].cost_markov))
             matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns)
             if fit_algorithm == 'trf':
-                fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100, ),(ii,jj)),)
+                fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares(columns, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values),  max_nfev = 100, ),(ii,jj)),)
             elif fit_algorithm == 'lm':
-                fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares_Markov(columns,  max_nfev = 100, method = 'lm'),(ii,jj)),)
+                fit = fit + ((matrix[ii][jj].Non_Linear_Least_Squares(columns,  max_nfev = 100, method = 'lm'),(ii,jj)),)
             else: raise ValueError('Possibile non si è scelto un valore per fit_algorithm = {} ?'.format(fit_algorithm))
             matrix[ii][jj].Get_cost_markov(matrix[ii][jj].Markov_Fit_Params.values[0], columns)
             print('Cost after fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_markov))
@@ -499,7 +505,7 @@ if not skip_tot:
             matrix[ii][jj].Get_Fit_Bounds(rules_bounds, columns = columns)
             matrix[ii][jj].Get_cost_tot(matrix[ii][jj].p0.values[0], p_gauss, kernel, columns)
             print('\nCost before fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_tot))
-            fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares(p_gauss, cols_real, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
+            fit_tot =   fit_tot + (((matrix[ii][jj].Non_Linear_Least_Squares_NoGauss(p_gauss, cols_real, bounds = (matrix[ii][jj].bounds['down'].values, matrix[ii][jj].bounds['up'].values), max_nfev = 35)), (ii,jj)),)
             matrix[ii][jj].Get_cost_tot(matrix[ii][jj].Tot_Fit_Params.values[0], p_gauss, kernel, columns)
             print('\nCost after fitting = {:3.2f}\n'.format(matrix[ii][jj].cost_tot))
             #del matrix[ii][jj].y_Gauss_markov_convolution, matrix[ii][jj].res_lsq, matrix[ii][jj].bounds

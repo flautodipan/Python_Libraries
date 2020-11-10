@@ -261,3 +261,5 @@ def Is_Far_by_N_sigma_from_Mean(value, population, N, verbose = False):
     else: return False
 
     
+def DHO (x, amplitude, width, position,):
+    return (amplitude*(width**2)*(position**2))/((x**2 - position**2)**2 + (width**2)*(position**2))
